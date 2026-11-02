@@ -200,14 +200,17 @@ interface ToastContainerProps {
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => {
   if (toasts.length === 0) return null;
 
+  // Safety cap: render at most 3 toasts even if state has more
+  const visible = toasts.slice(0, 3);
+
   return (
     <div
       aria-label="Notifikasi keamanan"
       className="fixed top-[72px] right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
     >
-      {toasts.map((t) => (
+      {visible.map((t) => (
         <div key={t.id} className="pointer-events-auto">
-          <SingleToast toast={t} onDismiss={onDismiss} duration={6000} />
+          <SingleToast toast={t} onDismiss={onDismiss} duration={8000} />
         </div>
       ))}
     </div>

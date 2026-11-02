@@ -72,14 +72,13 @@ function notificationViewFor(source?: string, action?: string): DashboardView {
 }
 
 /**
- * Notifications are reserved for genuine security incidents. Routine endpoint
- * telemetry is information, not an incident, so only enforced mitigations or
- * critical/high severity detections ring the bell.
+ * Notifications are reserved for genuine security incidents only.
  *
- * Failed SSH/PAM authentication is the exception: it is logged as Medium/LOG
- * (not blocked), but repeated failures are the first signal of a brute-force
- * attempt. Notify for each failed attempt so the bell matches the individual
- * rows visible in Security Events and Centralized Logs.
+ * Rules:
+ * - Skip any event older than 15 minutes (replay protection)
+ * - Skip pure LOG / ALLOW / INFO actions — these are telemetry, not attacks
+ * - Only notify when: BLOCK/DENY/DROP/QUARANTINE action  OR  HIGH/CRITICAL severity
+ *   OR malware/incident/threat event type  OR  repeated auth failures (brute force signal)
  */
 function isNotifiableIncident(evt: SecurityEvent): boolean {
   const occurredAt = Date.parse(String(evt.timestamp || ''));
@@ -94,9 +93,17 @@ function isNotifiableIncident(evt: SecurityEvent): boolean {
   const action = String(evt.action || '').toUpperCase();
   const severity = String(evt.severity || '').toUpperCase();
 
+  // Explicitly exclude pure log/allow entries — these are routine telemetry
+  if (['LOG', 'ALLOW', 'ALLOWED', 'PASS', 'MONITOR'].includes(action)) return false;
+  if (severity === 'LOW' || severity === 'INFO' || severity === 'DEBUG') return false;
+
   const isMitigation = ['BLOCK', 'BLOCKED', 'DENY', 'DROP', 'QUARANTINE'].includes(action);
   const isElevated = severity === 'CRITICAL' || severity === 'HIGH';
-  const isThreatOrIncident = eventType === 'threat' || eventType === 'incident' || evt.source === 'threat' || evt.source === 'correlation';
+  const isThreatOrIncident = (
+    eventType === 'threat' || eventType === 'incident' ||
+    eventType === 'malware' || eventType.includes('malware') ||
+    evt.source === 'threat' || evt.source === 'correlation'
+  );
   const isAuthFailure = [
     'ssh_failed_login',
     'ssh_invalid_user',
@@ -116,6 +123,7 @@ function actionLabelFor(action?: string): string {
   if (act === 'RATE_LIMIT') return 'Dibatasi';
   if (['ALLOW', 'ALLOWED'].includes(act)) return 'Diizinkan';
   if (act === 'QUARANTINE') return 'Dikarantina';
+  if (act === 'ALERT') return 'Peringatan';
   return 'Terdeteksi';
 }
 
@@ -137,6 +145,34 @@ function initialsOf(name?: string): string {
 }
 
 const NOTIF_STORAGE_KEY = 'oat-notifications';
+
+// ---------------------------------------------------------------------------
+// Deduplication: prevent the same attack from generating multiple toasts
+// within a 20-second cooldown window. Key = type:sourceIp:threatName (trimmed).
+// ---------------------------------------------------------------------------
+const toastDedupCache = new Map<string, number>();
+const TOAST_DEDUP_TTL_MS = 20_000; // 20 seconds cooldown per unique event
+
+function makeToastDedupKey(evt: SecurityEvent): string {
+  const srcIp = (evt.sourceIp || evt.source || '').toString().slice(0, 64);
+  const threat = (evt.threat || evt.eventType || evt.action || '').toString().slice(0, 64);
+  const src = (evt.source || '').toString().slice(0, 16);
+  return `${src}:${srcIp}:${threat}`;
+}
+
+function isToastDuplicateWithin(key: string): boolean {
+  const now = Date.now();
+  const last = toastDedupCache.get(key);
+  if (last !== undefined && now - last < TOAST_DEDUP_TTL_MS) return true;
+  toastDedupCache.set(key, now);
+  // Prune stale entries to prevent unbounded growth
+  if (toastDedupCache.size > 200) {
+    for (const [k, ts] of toastDedupCache) {
+      if (now - ts > TOAST_DEDUP_TTL_MS * 5) toastDedupCache.delete(k);
+    }
+  }
+  return false;
+}
 
 function loadStoredNotifications(): TopNotification[] {
   try {
@@ -234,6 +270,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         if (!normalized) return;
         if (!isNotifiableIncident(normalized)) return;
 
+        // ── Deduplication: skip if same attack appeared within 20s ────────
+        const dedupKey = makeToastDedupKey(normalized);
+        if (isToastDuplicateWithin(dedupKey)) return;
+
         const srcIp = normalized.sourceIp || (normalized as any).source_ip || 'IP Eksternal';
         const dest = normalized.destination || (normalized as any).destination_ip || 'Gateway';
         const threatName = normalized.threat || (normalized as any).threat_name || (normalized as any).signature || 'Perimeter Alert';
@@ -251,7 +291,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
         setNotifications(prev => [newNotif, ...prev.slice(0, 99)]);
 
-        // Toast pop-up
+        // ── Toast pop-up: max 3 stacked at a time ─────────────────────────
         const toastItem: ToastItem = {
           id: newNotif.id,
           title: newNotif.title,
@@ -260,7 +300,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
           timestamp: newNotif.timestamp,
           onNavigate: () => onNavigateView(newNotif.view),
         };
-        setToasts(prev => [toastItem, ...prev.slice(0, 4)]);
+        setToasts(prev => [toastItem, ...prev].slice(0, 3));
 
         // Sound chimes for each incoming notification
         playNotificationSound();

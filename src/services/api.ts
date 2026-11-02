@@ -1276,6 +1276,68 @@ export function normalizeRealtimeSecurityEvent(msg: any): SecurityEvent | null {
     } as SecurityEvent;
   }
 
+  // System alerts: agent offline, firewall failure
+  if (type === 'agent.offline' && raw) {
+    return {
+      id: `AOF-${Date.now()}`,
+      timestamp: raw.timestamp || new Date().toISOString(),
+      source: raw.source || 'monitor',
+      sourceIp: raw.sourceIp || raw.ip || '0.0.0.0',
+      destination: '',
+      destinationIp: '',
+      application: raw.threat || 'Endpoint Monitor',
+      threat: raw.threat || 'Endpoint Offline',
+      threatName: raw.threat || 'Endpoint Offline',
+      category: 'System',
+      eventType: 'agent_offline',
+      severity: 'High',
+      action: 'ALERT',
+      status: 'Active',
+      metadata: { message: raw.message, offlineCount: raw.offlineCount }
+    } as SecurityEvent;
+  }
+
+  if ((type === 'firewall.failed' || type === 'firewall.error') && raw) {
+    return {
+      id: `FWF-${Date.now()}`,
+      timestamp: raw.timestamp || new Date().toISOString(),
+      source: 'firewall',
+      sourceIp: raw.sourceIp || raw.ip || '0.0.0.0',
+      destination: '',
+      destinationIp: '',
+      application: raw.threat || 'Firewall Engine',
+      threat: raw.threat || 'Firewall Installation Failed',
+      threatName: raw.threat || 'Firewall Installation Failed',
+      category: 'Firewall',
+      eventType: 'firewall_failure',
+      severity: 'Critical',
+      action: 'ALERT',
+      status: 'Active',
+      metadata: { message: raw.message, agentId: raw.agentId }
+    } as SecurityEvent;
+  }
+
+  // Malware event normalization
+  if (type === 'malware.detected' && raw) {
+    return {
+      id: raw.id || `MAL-${Date.now()}`,
+      timestamp: raw.timestamp || new Date().toISOString(),
+      source: 'agent',
+      sourceIp: raw.sourceIp || raw.ip || '0.0.0.0',
+      destination: '',
+      destinationIp: '',
+      application: raw.host || raw.hostname || 'Endpoint',
+      threat: `Malware: ${raw.malwareName || raw.name || 'Unknown'}`,
+      threatName: `Malware: ${raw.malwareName || raw.name || 'Unknown'}`,
+      category: 'Malware',
+      eventType: 'malware',
+      severity: raw.severity || 'Critical',
+      action: raw.action || 'QUARANTINE',
+      status: 'Active',
+      metadata: { filePath: raw.filePath, family: raw.family }
+    } as SecurityEvent;
+  }
+
   // Backwards compatible: a bare event object with no envelope.
   if (!type && (msg.sourceIp || msg.source_ip) && msg.action) {
     return msg as SecurityEvent;

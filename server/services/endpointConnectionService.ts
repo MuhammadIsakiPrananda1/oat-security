@@ -123,8 +123,26 @@ export function startEndpointMonitor() {
 
           if (prevCount !== undefined && prevCount !== current.connectedCount) {
             console.log(
-              `[Endpoint Monitor] Real-time connectivity changed for org '${orgId || "global"}': ${prevCount} -> ${current.connectedCount} online`
+              `[Endpoint Monitor] Real-time connectivity changed for org '${orgId || 'global'}': ${prevCount} -> ${current.connectedCount} online`
             );
+
+            // Notify frontend when an endpoint goes offline (count dropped)
+            if (prevCount > current.connectedCount) {
+              const offlineEndpoints = current.endpoints.filter(e => e.status === 'OFFLINE');
+              const firstName = offlineEndpoints[0]?.hostname || offlineEndpoints[0]?.name || 'endpoint';
+              SecurityEventBus.publish('agent.offline', {
+                type: 'agent.offline',
+                severity: 'High',
+                action: 'ALERT',
+                source: 'monitor',
+                eventType: 'agent_offline',
+                sourceIp: offlineEndpoints[0]?.ip || '0.0.0.0',
+                threat: `Endpoint Offline: ${firstName}`,
+                message: `Agent ${firstName} tidak merespons. Terakhir terlihat: baru saja.`,
+                offlineCount: prevCount - current.connectedCount,
+                timestamp: new Date().toISOString(),
+              }, orgId || undefined);
+            }
           }
         }
       }

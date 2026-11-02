@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LandingPage } from './pages/public/LandingPage';
 import { AuthView } from './pages/auth/AuthView';
@@ -7,8 +7,6 @@ import { DashboardTopNav } from './components/layout/DashboardTopNav';
 import { SearchModal } from './components/common/SearchModal';
 import { GlobalTranslator } from './i18n/GlobalTranslator';
 import { usePathname, navigate } from './router';
-import { ToastContainer, ToastItem } from './components/common/ToastNotification';
-import { globalRealtimeClient } from './services/api';
 
 // Dashboard Modules
 import { DashboardOverview } from './pages/dashboard/DashboardOverview';
@@ -64,53 +62,9 @@ export function viewFromPath(pathname: string): DashboardView | null {
 }
 
 // ---------------------------------------------------------------------------
-// Toast helpers — map realtime WebSocket events → toast items
-// ---------------------------------------------------------------------------
-const THREAT_EVENTS = new Set([
-  'security_event', 'security_event.created', 'security.alert', 'threat.created',
-  'threat.updated', 'waf.event', 'waf.blocked', 'malware.detected', 'firewall.event',
-]);
-
-function toastFromPayload(payload: any): Omit<ToastItem, 'id' | 'timestamp'> | null {
-  const type: string = payload?.type ?? '';
-  if (!THREAT_EVENTS.has(type)) return null;
-
-  const d = payload?.data ?? payload;
-  const severity: string =
-    (d?.severity ?? d?.threat?.severity ?? d?.event?.severity ?? 'HIGH').toUpperCase();
-
-  // Filter: only show toast for High or Critical severity or blocked attacks
-  const isHighOrCritical = severity === 'HIGH' || severity === 'CRITICAL';
-  const isBlocked = ['BLOCK', 'DENY', 'DROP', 'CHALLENGE'].includes((d?.action || '').toUpperCase());
-  if (!isHighOrCritical && !isBlocked && type !== 'threat.created') {
-    return null;
-  }
-
-  let title = 'Security Alert';
-  let desc = 'Ancaman terdeteksi di jaringan Anda.';
-
-  if (type === 'threat.created') {
-    title = `Threat Detected: ${d?.attackType ?? d?.attack_type ?? d?.name ?? 'SQL Injection / Web Attack'}`;
-    desc = d?.description ?? d?.reason ?? d?.sourceIp ?? desc;
-  } else if (type === 'security_event' || type === 'security_event.created' || type === 'security.alert') {
-    title = `Threat: ${d?.threat ?? d?.eventType ?? d?.event_type ?? d?.category ?? 'Attack Detected'}`;
-    desc = d?.message ?? d?.description ?? (d?.sourceIp ? `Source IP: ${d.sourceIp}` : desc);
-  } else if (type === 'waf.blocked' || type === 'waf.event') {
-    title = `WAF Blocked: ${d?.threat ?? d?.category ?? 'Web Attack'}`;
-    desc = `IP ${d?.clientIp ?? d?.sourceIp ?? d?.ip ?? 'unknown'} — ${d?.rule ?? d?.ruleName ?? d?.reason ?? 'policy violation'}`;
-  } else if (type === 'malware.detected') {
-    title = `Malware Detected: ${d?.malwareName ?? d?.name ?? 'Unknown'}`;
-    desc = d?.filePath ?? d?.host ?? d?.description ?? desc;
-  } else if (type === 'firewall.event') {
-    title = `Firewall Event: ${d?.action ?? 'BLOCK'}`;
-    desc = `${d?.srcIp ?? d?.sourceIp ?? 'unknown'} → port ${d?.dstPort ?? d?.destinationPort ?? '?'}`;
-  }
-
-  return { title, desc, severity };
-}
-
-// ---------------------------------------------------------------------------
 // Main app shell
+// Toast notifications are handled exclusively in DashboardTopNav to avoid
+// duplicate toasts from multiple subscribers on the same event bus.
 // ---------------------------------------------------------------------------
 const MainContent: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -120,31 +74,6 @@ const MainContent: React.FC = () => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   // Operator-adjustable sidebar width (240-300px), remembered per browser.
   const [sidebarWidth, setSidebarWidth] = useSidebarWidth();
-
-  // ── Toast state ────────────────────────────────────────────────────────────
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const dismissToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
-
-  // Subscribe to realtime threat events and fire in-app toast
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const unsub = globalRealtimeClient.subscribe((payload: any) => {
-      const partial = toastFromPayload(payload);
-      if (!partial) return;
-      const toast: ToastItem = {
-        ...partial,
-        id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        timestamp: Date.now(),
-      };
-      setToasts(prev => [toast, ...prev].slice(0, 5)); // max 5 stacked
-    });
-
-    return unsub;
-  }, [isAuthenticated]);
 
   // Keyboard shortcut Cmd+K or Ctrl+K for search
   useEffect(() => {
@@ -234,7 +163,7 @@ const MainContent: React.FC = () => {
 
       {/* Right Main Container */}
       <div className="flex flex-1 h-svh min-h-0 min-w-0 flex-col overflow-hidden bg-zinc-50/60 dark:bg-[#09090b]">
-        {/* Top Navigation */}
+        {/* Top Navigation — also owns the single ToastContainer for the entire app */}
         <DashboardTopNav
           onOpenSearch={() => setShowSearchModal(true)}
           onNavigatePublic={() => navigate(PUBLIC_PATH)}
@@ -280,9 +209,6 @@ const MainContent: React.FC = () => {
         onClose={() => setShowSearchModal(false)}
         onNavigate={handleNavigateView}
       />
-
-      {/* Global Threat Toast Notifications */}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 };

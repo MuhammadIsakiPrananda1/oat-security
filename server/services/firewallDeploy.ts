@@ -291,6 +291,20 @@ export class FirewallDeploymentService {
       appliedAt
     }, agent.organization_id);
 
+    if (status === 'FAILED') {
+      SecurityEventBus.publish('firewall.failed', {
+        type: 'firewall.failed',
+        agentId: agent.id,
+        severity: 'Critical',
+        action: 'ALERT',
+        source: 'firewall',
+        eventType: 'firewall_failure',
+        threat: 'Firewall Service Failed / Down',
+        message: message || 'nftables rules failed to apply or firewall service stopped.',
+        timestamp: now
+      }, agent.organization_id);
+    }
+
     return deployment;
   }
 
