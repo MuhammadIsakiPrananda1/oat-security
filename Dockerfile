@@ -1,5 +1,5 @@
 # =============================================
-# Stage 1: Build Go Agent (linux-amd64)
+# Stage 1: Build Go Agent (linux-amd64 & linux-arm64)
 # =============================================
 FROM golang:1.22-alpine AS agent-builder
 
@@ -8,14 +8,18 @@ WORKDIR /agent
 # Install git (dibutuhkan go mod tidy)
 RUN apk add --no-cache git
 
-# Copy semua file agent (go.sum mungkin belum ada, go mod tidy akan generate)
+# Copy semua file agent
 COPY agent/ .
 
 # Generate go.sum jika belum ada, lalu download dependencies
 RUN go mod tidy && go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o dist/oat-agent-linux-amd64 .
+# Build binary agent untuk linux-amd64 dan linux-arm64
+RUN mkdir -p dist && \
+    cp install.sh dist/install.sh && \
+    cp install.ps1 dist/install.ps1 && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/oat-agent-linux-amd64 . && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/oat-agent-linux-arm64 .
 
 # =============================================
 # Stage 2: Build Frontend (Vite) + Backend (esbuild)
@@ -57,8 +61,9 @@ RUN npm ci --omit=dev --ignore-scripts
 # Copy hasil build frontend + backend dari stage 2
 COPY --from=builder /app/dist ./dist
 
-# Copy Go agent binary dari stage 1
+# Copy Go agent binaries dan installer scripts
 COPY --from=agent-builder /agent/dist ./agent/dist
+COPY agent/install.sh agent/install.ps1 ./agent/
 
 EXPOSE 3000
 
