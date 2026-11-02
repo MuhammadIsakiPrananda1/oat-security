@@ -387,9 +387,8 @@ export const AgentsModule: React.FC = () => {
           fetchAgents(true);
         }
 
-        if (snapshot) {
-          if (data?.agent) setNewlyEnrolledAgent(data.agent);
-          else setNewlyEnrolledAgent(snapshot);
+        if (type === 'agent.enrolled' && snapshot) {
+          setNewlyEnrolledAgent(data?.agent || snapshot);
         }
 
         // The open drawer also shows recent telemetry: refresh it after a short
@@ -1258,37 +1257,45 @@ export const AgentsModule: React.FC = () => {
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm dark:bg-black/80" onClick={() => setNewlyEnrolledAgent(null)} />
-            <div role="dialog" aria-modal="true" className="relative w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/30 bg-white p-6 shadow-2xl dark:border-emerald-500/20 dark:bg-[#0c0c0e]">
+            <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm dark:bg-black/85" onClick={() => setNewlyEnrolledAgent(null)} />
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-500/30 bg-white p-6 shadow-2xl dark:border-emerald-500/20 dark:bg-[#0c0c0e]"
+            >
               <div className="text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 mb-4">
-                  <ShieldCheck className="h-8 w-8 animate-bounce" />
+                <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
+                  <ShieldCheck className="h-7 w-7 text-emerald-500" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                  </span>
                 </div>
-                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-                  Endpoint Berhasil Terpasang!
+                <h3 className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  Endpoint Connected Successfully!
                 </h3>
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  Host <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">{newlyEnrolledAgent.hostname || newlyEnrolledAgent.name}</strong> ({newlyEnrolledAgent.ip || 'Local host'}) telah terhubung.
+                <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  Host <strong className="font-semibold text-zinc-800 dark:text-zinc-200">{newlyEnrolledAgent.hostname || newlyEnrolledAgent.name}</strong> ({newlyEnrolledAgent.ip || 'Local host'}) is now active.
                 </p>
               </div>
 
-              {/* Website Selection Requirement */}
-              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-left">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                    <Globe className="h-3.5 w-3.5" />
-                    Pilih Website untuk Dipantau:
+              {/* Website Selection */}
+              <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-3.5 text-left dark:border-zinc-800 dark:bg-zinc-900/40">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5 text-emerald-500" />
+                    Select Target Website to Monitor
                   </span>
                   {hasAssigned && (
-                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <Check className="h-3 w-3" /> Terpilih
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <Check className="h-3 w-3" /> Selected
                     </span>
                   )}
                 </div>
 
                 {sites.length === 0 ? (
                   <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic">
-                    Memindai web server di host... Anda juga dapat memilih website nanti di drawer detail endpoint.
+                    Scanning web servers on host... You can also bind a website later in endpoint details.
                   </p>
                 ) : (
                   <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
@@ -1301,9 +1308,9 @@ export const AgentsModule: React.FC = () => {
                           type="button"
                           disabled={savingWebsite || isSelected}
                           onClick={() => assignWebsite(newlyEnrolledAgent.id, known?.id, site)}
-                          className={`w-full flex items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-xs font-medium transition cursor-pointer disabled:cursor-default ${
+                          className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition cursor-pointer disabled:cursor-default ${
                             isSelected
-                              ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
                               : 'border-zinc-200 bg-white hover:border-zinc-300 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700'
                           }`}
                         >
@@ -1314,11 +1321,11 @@ export const AgentsModule: React.FC = () => {
                           </div>
                           {isSelected ? (
                             <span className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                              <Check className="h-3.5 w-3.5" /> Aktif
+                              <Check className="h-3.5 w-3.5" /> Active
                             </span>
                           ) : (
-                            <span className="shrink-0 text-[11px] text-emerald-600 hover:underline">
-                              Pilih Website
+                            <span className="shrink-0 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">
+                              Select Website
                             </span>
                           )}
                         </button>
@@ -1328,12 +1335,12 @@ export const AgentsModule: React.FC = () => {
                 )}
                 {!hasAssigned && (
                   <p className="mt-2 text-[10px] text-amber-600 dark:text-amber-400 leading-tight">
-                    * Agen memerlukan target website agar proteksi WAF, firewall, dan log lalu lintas bekerja terarah.
+                    * An endpoint requires a target website so WAF, firewall, and traffic logs operate accurately.
                   </p>
                 )}
               </div>
 
-              <div className="mt-5 flex gap-2.5 justify-center">
+              <div className="mt-5 flex gap-2.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -1341,16 +1348,16 @@ export const AgentsModule: React.FC = () => {
                     setNewlyEnrolledAgent(null);
                     openAgentDetail(target);
                   }}
-                  className="flex-1 h-9 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white transition cursor-pointer"
+                  className="flex-1 h-9.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white transition cursor-pointer shadow-sm"
                 >
-                  {hasAssigned ? 'Buka Detail & Metrik' : 'Atur di Detail Endpoint'}
+                  {hasAssigned ? 'Open Details & Metrics' : 'Configure in Details'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setNewlyEnrolledAgent(null)}
-                  className="px-4 h-9 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer"
+                  className="px-4 h-9.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition cursor-pointer"
                 >
-                  Tutup
+                  Close
                 </button>
               </div>
             </div>
