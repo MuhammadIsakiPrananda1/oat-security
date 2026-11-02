@@ -22,7 +22,7 @@ services:
       start_period: 30s
 
   app:
-    image: ${APP_IMAGE:-ghcr.io/muhammadisaki1prananda1/oat-security:latest}
+    image: ${APP_IMAGE:-ghcr.io/muhammadisakiprananda1/oat-security:latest}
     container_name: oat_app
     restart: unless-stopped
     depends_on:
