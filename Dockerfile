@@ -5,10 +5,14 @@ FROM golang:1.22-alpine AS agent-builder
 
 WORKDIR /agent
 
-COPY agent/go.mod agent/go.sum ./
-RUN go mod download
+# Install git (dibutuhkan go mod tidy)
+RUN apk add --no-cache git
 
+# Copy semua file agent (go.sum mungkin belum ada, go mod tidy akan generate)
 COPY agent/ .
+
+# Generate go.sum jika belum ada, lalu download dependencies
+RUN go mod tidy && go mod download
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" -o dist/oat-agent-linux-amd64 .
