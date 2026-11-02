@@ -92,64 +92,79 @@ jobs:
 
             mkdir -p /opt/oat-security
 
-            # Tulis .env dari GitHub Secrets — tidak pernah ada di repo
+            # Bersihkan newline dari secrets (karena openssl rand -base64 menghasilkan multiline)
+            JWT_RAW="${{ secrets.JWT_SECRET }}"
+            SESSION_RAW="${{ secrets.SESSION_SECRET }}"
+            DB_PASS_RAW="${{ secrets.DB_PASSWORD }}"
+            DB_ROOT_RAW="${{ secrets.DB_ROOT_PASSWORD }}"
+            GEMINI_RAW="${{ secrets.GEMINI_API_KEY }}"
+            GROQ_RAW="${{ secrets.GROQ_API_KEY }}"
+
+            JWT_CLEAN=$(printf '%s' "$JWT_RAW" | tr -d '\r\n ')
+            SESSION_CLEAN=$(printf '%s' "$SESSION_RAW" | tr -d '\r\n ')
+            DB_PASS_CLEAN=$(printf '%s' "$DB_PASS_RAW" | tr -d '\r\n ')
+            DB_ROOT_CLEAN=$(printf '%s' "$DB_ROOT_RAW" | tr -d '\r\n ')
+            GEMINI_CLEAN=$(printf '%s' "$GEMINI_RAW" | tr -d '\r\n ')
+            GROQ_CLEAN=$(printf '%s' "$GROQ_RAW" | tr -d '\r\n ')
+
+            # Tulis .env dari GitHub Secrets (bersih tanpa newline atau spasi perusak)
             cat > /opt/oat-security/.env << ENVEOF
-            NODE_ENV=production
-            HOST=0.0.0.0
-            PORT=3000
-            DB_HOST=oat_db
-            DB_PORT=3306
-            DB_NAME=oat_security
-            DB_USER=oat
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            CORS_ORIGINS=https://aotsecurity.neverlandstudio.ai.id
-            LOG_LEVEL=info
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-            GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-            AGENT_BIN_DIR=./agent/dist
-            SUPPORT_HOURS=24/7 SOC
-            ENVEOF
+NODE_ENV=production
+HOST=0.0.0.0
+PORT=3000
+DB_HOST=oat_db
+DB_PORT=3306
+DB_NAME=oat_security
+DB_USER=oat
+DB_PASSWORD=${DB_PASS_CLEAN}
+DB_ROOT_PASSWORD=${DB_ROOT_CLEAN}
+JWT_SECRET=${JWT_CLEAN}
+SESSION_SECRET=${SESSION_CLEAN}
+CORS_ORIGINS=https://aotsecurity.neverlandstudio.ai.id
+LOG_LEVEL=info
+GEMINI_API_KEY=${GEMINI_CLEAN}
+GROQ_API_KEY=${GROQ_CLEAN}
+AGENT_BIN_DIR=./agent/dist
+SUPPORT_HOURS=24/7 SOC
+ENVEOF
 
             # Tulis docker-compose.prod.yml
             cat > /opt/oat-security/docker-compose.prod.yml << COMPOSEEOF
-            version: "3.9"
-            services:
-              db:
-                image: mysql:8.0
-                container_name: oat_db
-                restart: unless-stopped
-                environment:
-                  MYSQL_ROOT_PASSWORD: \${DB_ROOT_PASSWORD}
-                  MYSQL_DATABASE: \${DB_NAME:-oat_security}
-                  MYSQL_USER: \${DB_USER:-oat}
-                  MYSQL_PASSWORD: \${DB_PASSWORD}
-                env_file: [.env]
-                volumes:
-                  - oat_db_data:/var/lib/mysql
-                networks: [oat_net]
-                healthcheck:
-                  test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-                  interval: 10s
-                  timeout: 5s
-                  retries: 5
-                  start_period: 30s
-              app:
-                image: ${IMAGE}:latest
-                container_name: oat_app
-                restart: unless-stopped
-                depends_on:
-                  db: {condition: service_healthy}
-                env_file: [.env]
-                ports: ["127.0.0.1:3000:3000"]
-                networks: [oat_net]
-            volumes:
-              oat_db_data:
-            networks:
-              oat_net:
-            COMPOSEEOF
+version: "3.9"
+services:
+  db:
+    image: mysql:8.0
+    container_name: oat_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: \${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: \${DB_NAME:-oat_security}
+      MYSQL_USER: \${DB_USER:-oat}
+      MYSQL_PASSWORD: \${DB_PASSWORD}
+    env_file: [.env]
+    volumes:
+      - oat_db_data:/var/lib/mysql
+    networks: [oat_net]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  app:
+    image: ${IMAGE}:latest
+    container_name: oat_app
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+    env_file: [.env]
+    ports: ["127.0.0.1:3000:3000"]
+    networks: [oat_net]
+volumes:
+  oat_db_data:
+networks:
+  oat_net:
+COMPOSEEOF
 
             # Pull image terbaru dan deploy
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
