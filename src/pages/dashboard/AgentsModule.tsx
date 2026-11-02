@@ -282,7 +282,7 @@ export const AgentsModule: React.FC = () => {
       setError('');
 
       // If any active agent is already connected (e.g. status ONLINE), clear any pending enrollment state and dismiss modal
-      if ((data.agents || []).some(a => a.status === 'ONLINE' || a.status === 'ACTIVE')) {
+      if ((data.agents || []).some(a => a.status === 'ONLINE')) {
         setEnrollment(null);
         localStorage.removeItem('oat_active_enrollment_token');
         setShowEnroll(false);

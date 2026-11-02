@@ -7,18 +7,19 @@ data/*.sqlite-*
 data/*.db
 .DS_Store
 *.log
-.env*
+
+# SEMUA .env tidak boleh masuk repo — isi di GitHub Secrets
+.env
+.env.*
 !.env.example
 
-# Agent build artifacts (sources & installer scripts stay versioned)
+# Agent build artifacts
 agent/*.exe
 agent/oat-agent
 agent/dist/
 
-# Temporary / scratch scripts
+# Temporary
 .tmp-*
 scratch/
 *.tmp
-
-# Runtime fixtures
 data/verify-token.txt

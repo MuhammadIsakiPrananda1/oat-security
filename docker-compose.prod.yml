@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: oat_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-oat_root_2026}
+      MYSQL_DATABASE: ${DB_NAME:-oat_security}
+      MYSQL_USER: ${DB_USER:-oat}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-oat_security_2026}
+    volumes:
+      - oat_db_data:/var/lib/mysql
+    networks:
+      - oat_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app:
+    image: ${APP_IMAGE:-ghcr.io/muhammadisaki1prananda1/oat-security:latest}
+    container_name: oat_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - oat_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  oat_db_data:
+    driver: local
+
+networks:
+  oat_network:
+    driver: bridge

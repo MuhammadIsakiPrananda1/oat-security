@@ -1,0 +1,18 @@
+aotsecurity.neverlandstudio.ai.id {
+	reverse_proxy 127.0.0.1:3000
+	encode gzip
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	log {
+		output file /var/log/caddy/oat-security.log {
+			roll_size 50mb
+			roll_keep 7
+		}
+		format json
+	}
+}
