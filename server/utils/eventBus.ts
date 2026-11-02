@@ -34,6 +34,8 @@ export type SecurityEventType =
   | 'firewall.event'
   | 'firewall.deployment_queued'
   | 'firewall.agent_status'
+  | 'firewall.failed'
+  | 'firewall.error'
   | 'network.event'
   | 'authentication.event'
   | 'system.health'
