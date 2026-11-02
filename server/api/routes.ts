@@ -201,20 +201,27 @@ apiRouter.get('/system/status', (_req: AuthenticatedRequest, res) => {
   });
 });
 
-apiRouter.get('/organizations', (_req, res) => {
-  // Prune any agent-provisioned organizations that have no active agents or users remaining
+apiRouter.get('/organizations', (req: AuthenticatedRequest, res) => {
   pruneOrphanedOrganizations();
-  // Hanya kembalikan organisasi jika operator telah memilih website untuk endpoint agent tersebut
+
+  // Super Admin can see all organizations to switch between them
+  if (req.user && req.user.role === 'Super Admin') {
+    const records = db.prepare(`
+      SELECT o.id, o.name, o.domain, o.industry, o.tier 
+      FROM organizations o
+      ORDER BY o.created_at ASC
+    `).all() as any[];
+    return res.json({ organizations: records });
+  }
+
+  // Regular users (e.g. admin, admin2) only see their own organization workspace
+  const targetOrgId = req.user?.organizationId || req.organizationId;
   const records = db.prepare(`
     SELECT o.id, o.name, o.domain, o.industry, o.tier 
     FROM organizations o
-    WHERE EXISTS (
-      SELECT 1 FROM agents a 
-      WHERE a.organization_id = o.id 
-        AND a.application_id IS NOT NULL 
-        AND a.application_id != ''
-    )
-  `).all() as any[];
+    WHERE o.id = ?
+  `).all(targetOrgId) as any[];
+
   res.json({
     organizations: records
   });

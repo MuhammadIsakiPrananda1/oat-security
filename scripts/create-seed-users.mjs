@@ -10,47 +10,81 @@ async function seed() {
     database: process.env.DB_NAME || 'oat_security'
   });
 
-  const orgId = 'org_oat_enterprise';
-  await conn.execute(
-    `INSERT INTO organizations (id, name, domain, industry, tier, created_at)
-     VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP())
-     ON DUPLICATE KEY UPDATE name = VALUES(name), domain = VALUES(domain)`,
-    [orgId, 'OAT Security Corp', 'oatsecurity.neverlandstudio.ai.id', 'Technology', 'Enterprise']
-  );
+  console.log('[OAT Security] Setting up isolated user workspaces...');
 
+  // 1. Buat organisasi masing-masing agar data antar user terisolasi dan tidak bercampur
+  const orgs = [
+    {
+      id: 'org_superadmin',
+      name: 'SuperAdmin Master Operations',
+      domain: 'oatsecurity.neverlandstudio.ai.id',
+      industry: 'Cybersecurity',
+      tier: 'Enterprise'
+    },
+    {
+      id: 'org_admin_01',
+      name: 'Admin Workspace 1',
+      domain: 'admin1.neverlandstudio.ai.id',
+      industry: 'Technology',
+      tier: 'Enterprise'
+    },
+    {
+      id: 'org_admin_02',
+      name: 'Admin Workspace 2',
+      domain: 'admin2.neverlandstudio.ai.id',
+      industry: 'E-Commerce',
+      tier: 'Enterprise'
+    }
+  ];
+
+  for (const org of orgs) {
+    await conn.execute(
+      `INSERT INTO organizations (id, name, domain, industry, tier, created_at)
+       VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP())
+       ON DUPLICATE KEY UPDATE name = VALUES(name), domain = VALUES(domain), tier = VALUES(tier)`,
+      [org.id, org.name, org.domain, org.industry, org.tier]
+    );
+  }
+
+  // 2. Hash passwords
   const hashSuper = await bcrypt.hash('zakykece', 10);
-  const hashAdmin = await bcrypt.hash('zakykeceterus', 10);
+  const hashAdmin1 = await bcrypt.hash('zakykeceterus', 10);
   const hashAdmin2 = await bcrypt.hash('admin2', 10);
 
-  // 1. Super Admin
+  // 3. Masukkan / Update masing-masing User dengan Organisasi Sendiri
+  // User 1: Super Admin -> org_superadmin
   await conn.execute(
     `INSERT INTO users (id, organization_id, name, email, password_hash, role, mfa_enabled, username, created_at)
      VALUES (?, ?, ?, ?, ?, ?, 0, ?, UTC_TIMESTAMP())
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = VALUES(role), username = VALUES(username), mfa_enabled = 0`,
-    ['usr_superadmin_01', orgId, 'Super Administrator', 'superadmin@oatsecurity.com', hashSuper, 'Super Admin', 'superadmin']
+     ON DUPLICATE KEY UPDATE organization_id = VALUES(organization_id), password_hash = VALUES(password_hash), role = VALUES(role), username = VALUES(username), mfa_enabled = 0`,
+    ['usr_superadmin_01', 'org_superadmin', 'Super Administrator', 'superadmin@oatsecurity.com', hashSuper, 'Super Admin', 'superadmin']
   );
 
-  // 2. Admin / User Biasa 1
+  // User 2: Admin 1 -> org_admin_01
   await conn.execute(
     `INSERT INTO users (id, organization_id, name, email, password_hash, role, mfa_enabled, username, created_at)
      VALUES (?, ?, ?, ?, ?, ?, 0, ?, UTC_TIMESTAMP())
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = VALUES(role), username = VALUES(username), mfa_enabled = 0`,
-    ['usr_admin_01', orgId, 'Administrator', 'admin@oatsecurity.com', hashAdmin, 'Admin', 'admin']
+     ON DUPLICATE KEY UPDATE organization_id = VALUES(organization_id), password_hash = VALUES(password_hash), role = VALUES(role), username = VALUES(username), mfa_enabled = 0`,
+    ['usr_admin_01', 'org_admin_01', 'Administrator 1', 'admin@oatsecurity.com', hashAdmin1, 'Admin', 'admin']
   );
 
-  // 3. Admin 2 (User Biasa 2)
+  // User 3: Admin 2 -> org_admin_02
   await conn.execute(
     `INSERT INTO users (id, organization_id, name, email, password_hash, role, mfa_enabled, username, created_at)
      VALUES (?, ?, ?, ?, ?, ?, 0, ?, UTC_TIMESTAMP())
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = VALUES(role), username = VALUES(username), mfa_enabled = 0`,
-    ['usr_admin_02', orgId, 'Admin 2', 'admin2@oatsecurity.com', hashAdmin2, 'Admin', 'admin2']
+     ON DUPLICATE KEY UPDATE organization_id = VALUES(organization_id), password_hash = VALUES(password_hash), role = VALUES(role), username = VALUES(username), mfa_enabled = 0`,
+    ['usr_admin_02', 'org_admin_02', 'Administrator 2', 'admin2@oatsecurity.com', hashAdmin2, 'Admin', 'admin2']
   );
 
-  const [rows] = await conn.execute('SELECT id, name, username, email, role, mfa_enabled FROM users');
-  console.log('\n✅ User OAT Security berhasil dibuat/diperbarui:');
+  const [rows] = await conn.execute(`
+    SELECT u.id, u.name, u.username, u.email, u.role, u.organization_id, o.name as workspace_name
+    FROM users u
+    LEFT JOIN organizations o ON u.organization_id = o.id
+  `);
+
+  console.log('\n✅ User dan Workspace Terisolasi Berhasil Disetup:');
   console.table(rows);
   await conn.end();
 }
 
 seed().catch(console.error);
-
