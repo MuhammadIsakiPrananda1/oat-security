@@ -1,0 +1,312 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+/*
+ ---break---
+ */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Font tokens (Tailwind v4).
+ * The console uses ONE typeface everywhere — Quicksand (falling back to a clean
+ * system sans when the webfont is unavailable). `--font-mono` is intentionally
+ * aliased to the same stack so every `font-mono` utility in the codebase
+ * resolves to the same family, while machine data keeps tabular figures.
+ */
+@theme {
+  --font-sans: 'Quicksand', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: 'Quicksand', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis-weight: auto;
+    @apply font-sans;
+  }
+  body,
+  button,
+  input,
+  select,
+  textarea,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: inherit;
+  }
+  body {
+    font-family: var(--font-sans);
+    @apply bg-background text-foreground;
+  }
+  code,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+    /* Quicksand is proportional — keep columns of numbers and IDs aligned. */
+    font-variant-numeric: tabular-nums;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  /*
+   * Tailwind v4's preflight resets buttons to the default arrow cursor, so
+   * every clickable control has to opt back in with a utility class. Make the
+   * intended behaviour the default instead: enabled buttons and elements
+   * acting as buttons show a pointer, while disabled controls keep their own
+   * `not-allowed` styling.
+   */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(212 212 216) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(212 212 216);
+    border-radius: 8px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(161 161 170);
+  }
+
+  .dark .custom-scrollbar {
+    scrollbar-color: rgb(63 63 70) transparent;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(63 63 70);
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(82 82 91);
+  }
+
+  /*
+   * While the sidebar rail is being dragged, the width transition has to get
+   * out of the way so the panel tracks the pointer exactly.
+   */
+  body[data-sidebar-resizing='true'] [data-slot='sidebar-gap'],
+  body[data-sidebar-resizing='true'] [data-slot='sidebar-container'] {
+    transition-duration: 0ms !important;
+  }
+
+  /*
+   * Themed native select dropdowns (light by default, overridden inside
+   * `.dark`). Only the visual identity is forced here — sizing (width /
+   * padding / font size) is left to the utility classes on each element so
+   * compact inline filters stay compact while form selects keep their own
+   * `w-full`.
+   */
+  select {
+    background-color: #ffffff !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat !important;
+    background-position: right 0.6rem center !important;
+    border: 1px solid rgb(228 228 231) !important;
+    border-radius: 0.5rem !important;
+    color: rgb(63 63 70) !important;
+    padding-right: 1.9rem !important;
+    cursor: pointer !important;
+    appearance: none !important;
+  }
+
+  select:focus {
+    outline: none !important;
+    border-color: rgb(161 161 170) !important;
+    box-shadow: none !important;
+  }
+
+  select option {
+    background-color: #ffffff !important;
+    color: rgb(63 63 70) !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  select option:checked {
+    background-color: rgb(228 228 231) !important;
+    color: rgb(24 24 27) !important;
+    font-weight: 600 !important;
+  }
+
+  select option:hover {
+    background-color: rgb(244 244 245) !important;
+  }
+
+  .dark select {
+    background-color: #0a0a0a !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    border-color: rgb(255 255 255 / 0.12) !important;
+    color: rgb(226 232 240) !important;
+  }
+
+  .dark select:focus {
+    border-color: rgb(255 255 255 / 0.3) !important;
+  }
+
+  .dark select option {
+    background-color: #0a0a0a !important;
+    color: rgb(226 232 240) !important;
+  }
+
+  .dark select option:checked {
+    background-color: rgb(255 255 255 / 0.15) !important;
+    color: rgb(255 255 255) !important;
+  }
+
+  .dark select option:hover {
+    background-color: rgb(255 255 255 / 0.08) !important;
+  }
+}
+/*
+ ---break---
+ */
+@theme inline {
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+/*
+ ---break---
+ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+/*
+ ---break---
+ */
+.dark {
+  /*
+   * Monochrome console palette.
+   *
+   * `<html>` is permanently `class="dark"` (see index.html), so this block is
+   * the single source of truth for the shadcn design tokens. It is mapped 1:1
+   * onto the existing black/white OAT Security theme:
+   *   page black, cards #050505, borders white/12%, accents white/8%,
+   *   destructive = rose, and the sidebar sits one step above pure black.
+   */
+  --background: #000000;
+  --foreground: oklch(0.985 0 0);
+  --card: #050505;
+  --card-foreground: oklch(0.985 0 0);
+  --popover: #0a0a0a;
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(1 0 0 / 8%);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(1 0 0 / 6%);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(1 0 0 / 8%);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(1 0 0 / 30%);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.708 0 0);
+  --chart-3: oklch(0.556 0 0);
+  --chart-4: oklch(0.439 0 0);
+  --chart-5: oklch(0.371 0 0);
+  --sidebar: #050505;
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(1 0 0 / 8%);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(1 0 0 / 30%);
+}
+
+/* ── Toast notification progress bar ─────────────────────────────────────── */
+@keyframes toast-shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}

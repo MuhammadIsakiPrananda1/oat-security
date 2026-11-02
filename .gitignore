@@ -1,0 +1,24 @@
+node_modules/
+build/
+dist/
+coverage/
+data/*.sqlite
+data/*.sqlite-*
+data/*.db
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Agent build artifacts (sources & installer scripts stay versioned)
+agent/*.exe
+agent/oat-agent
+agent/dist/
+
+# Temporary / scratch scripts
+.tmp-*
+scratch/
+*.tmp
+
+# Runtime fixtures
+data/verify-token.txt

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <script>
+      // Apply the persisted theme before the first paint so switching between
+      // light and dark never flashes the wrong palette on reload.
+      (function () {
+        var mode = 'light';
+        try {
+          var stored = localStorage.getItem('oat-theme-mode');
+          if (stored === 'dark' || stored === 'light' || stored === 'system') mode = stored;
+        } catch (e) { /* storage unavailable */ }
+        var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var root = document.documentElement;
+        root.classList.toggle('dark', dark);
+        root.classList.toggle('light', !dark);
+      })();
+    </script>
+    <title>OAT SECURITY - Enterprise Cybersecurity Platform</title>
+    <meta name="description" content="Enterprise-grade WAF, firewall, threat detection, and security monitoring untuk melindungi website, aplikasi, dan jaringan bisnis Anda." />
+    <meta property="og:title" content="OAT SECURITY - Enterprise Cybersecurity Platform" />
+    <meta property="og:description" content="Enterprise-grade WAF, firewall, threat detection, and security monitoring untuk melindungi website, aplikasi, dan jaringan bisnis Anda." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  </head>
+  <body class="antialiased bg-zinc-50 text-zinc-900 selection:bg-zinc-300/60 selection:text-zinc-900 dark:bg-black dark:text-slate-100 dark:selection:bg-white/15 dark:selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

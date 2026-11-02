@@ -1,0 +1,8 @@
+{
+  "name": "OAT SECURITY",
+  "description": "Enterprise Cybersecurity Platform with Cloud WAF, Network Firewall, Threat Detection, and Continuous Security Monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
