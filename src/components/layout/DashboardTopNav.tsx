@@ -147,11 +147,26 @@ function initialsOf(name?: string): string {
 const NOTIF_STORAGE_KEY = 'oat-notifications';
 
 // ---------------------------------------------------------------------------
-// Deduplication: prevent the same attack from generating multiple toasts
-// within a 20-second cooldown window. Key = type:sourceIp:threatName (trimmed).
+// Deduplication: prevent bursts from generating multiple stacked toasts.
+// Only 1 toast is shown at a time, with a minimum 6-second cooldown between popups.
 // ---------------------------------------------------------------------------
 const toastDedupCache = new Map<string, number>();
-const TOAST_DEDUP_TTL_MS = 20_000; // 20 seconds cooldown per unique event
+const TOAST_DEDUP_TTL_MS = 20_000; // 20 seconds cooldown per unique event key
+let lastGlobalToastTime = 0;
+
+function cleanThreatTitle(rawThreat: string): string {
+  const t = (rawThreat || '').trim();
+  const lower = t.toLowerCase();
+  if (lower === 'web' || lower === 'web_attack') return 'Serangan Web (WAF)';
+  if (lower.includes('xss') || lower.includes('cross-site')) return 'Serangan Cross-Site Scripting (XSS)';
+  if (lower.includes('sqli') || lower.includes('sql injection')) return 'Serangan SQL Injection';
+  if (lower.includes('brute') || lower.includes('ssh_failed')) return 'Serangan Brute Force SSH';
+  if (lower.includes('endpoint')) return 'Ancaman Terdeteksi di Endpoint';
+  if (lower.includes('firewall')) return 'Kegagalan Firewall Engine';
+  if (lower.includes('malware')) return 'Malware Terdeteksi';
+  if (t) return t;
+  return 'Insiden Keamanan Terdeteksi';
+}
 
 function makeToastDedupKey(evt: SecurityEvent): string {
   const srcIp = (evt.sourceIp || evt.source || '').toString().slice(0, 64);
@@ -276,7 +291,8 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
         const srcIp = normalized.sourceIp || (normalized as any).source_ip || 'IP Eksternal';
         const dest = normalized.destination || (normalized as any).destination_ip || 'Gateway';
-        const threatName = normalized.threat || (normalized as any).threat_name || (normalized as any).signature || 'Perimeter Alert';
+        const rawThreat = normalized.threat || (normalized as any).threat_name || (normalized as any).signature || 'Perimeter Alert';
+        const threatName = cleanThreatTitle(rawThreat);
         const srcName = normalized.source?.toUpperCase() || (normalized as any).category?.toUpperCase() || 'SECURITY';
 
         const newNotif: TopNotification = {
@@ -291,19 +307,21 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
         setNotifications(prev => [newNotif, ...prev.slice(0, 99)]);
 
-        // ── Toast pop-up: max 3 stacked at a time ─────────────────────────
-        const toastItem: ToastItem = {
-          id: newNotif.id,
-          title: newNotif.title,
-          desc: newNotif.desc,
-          severity: newNotif.severity,
-          timestamp: newNotif.timestamp,
-          onNavigate: () => onNavigateView(newNotif.view),
-        };
-        setToasts(prev => [toastItem, ...prev].slice(0, 3));
-
-        // Sound chimes for each incoming notification
-        playNotificationSound();
+        // ── Single Toast pop-up with burst throttle: only 1 popup every 6s ───
+        const nowMs = Date.now();
+        if (nowMs - lastGlobalToastTime >= 6000) {
+          lastGlobalToastTime = nowMs;
+          const toastItem: ToastItem = {
+            id: newNotif.id,
+            title: newNotif.title,
+            desc: newNotif.desc,
+            severity: newNotif.severity,
+            timestamp: newNotif.timestamp,
+            onNavigate: () => onNavigateView(newNotif.view),
+          };
+          setToasts([toastItem]); // Strictly 1 toast visible
+          playNotificationSound();
+        }
       },
       () => {}
     );
@@ -343,7 +361,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         severity: detail.severity || 'Medium',
         timestamp: detail.timestamp || Date.now(),
       };
-      setToasts(prev => [toast, ...prev.slice(0, 4)]);
+      setToasts([toast]);
     };
     window.addEventListener('oat:notify', handler);
     return () => window.removeEventListener('oat:notify', handler);

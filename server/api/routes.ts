@@ -538,6 +538,113 @@ apiRouter.post('/auth/setup', async (req, res) => {
   });
 });
 
+/**
+ * Self-service operator registration.
+ * Every new user registered gets their own dedicated, completely isolated
+ * organization (workspace). They will not be merged or shared with any other user.
+ */
+apiRouter.post('/auth/register', async (req: AuthenticatedRequest, res) => {
+  try {
+    const { name, email, username, password } = req.body || {};
+    const cleanName = String(name || '').trim();
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanUsername = username ? String(username).trim().toLowerCase() : cleanEmail.split('@')[0].replace(/[^a-z0-9_-]/g, '');
+    const cleanPassword = String(password || '');
+
+    if (!cleanName || !cleanEmail || !cleanPassword) {
+      return res.status(400).json({ error: 'Nama lengkap, email, dan kata sandi wajib diisi.' });
+    }
+    if (cleanPassword.length < 6) {
+      return res.status(400).json({ error: 'Kata sandi minimal 6 karakter.' });
+    }
+
+    // Check if email or username already taken
+    const existing = db.prepare('SELECT id FROM users WHERE email = ? OR username = ?').get(cleanEmail, cleanUsername) as any;
+    if (existing) {
+      return res.status(409).json({ error: 'Email atau username sudah terdaftar.' });
+    }
+
+    // Provision a completely isolated tenant (organization) for this user
+    const randomSuffix = crypto.randomUUID().substring(0, 6);
+    const orgId = `org_${cleanUsername}_${randomSuffix}`;
+    const orgName = `${cleanName}'s Workspace`;
+    const orgDomain = cleanEmail.includes('@') ? cleanEmail.split('@')[1] : `${cleanUsername}.internal`;
+
+    db.prepare(`
+      INSERT INTO organizations (id, name, domain, industry, tier, created_at)
+      VALUES (?, ?, ?, 'Enterprise', 'Standard', UTC_TIMESTAMP())
+    `).run(orgId, orgName, orgDomain);
+
+    // Initialize dedicated WAF Policy for this organization
+    try {
+      db.prepare(`
+        INSERT INTO waf_policy (
+          id, organization_id, engine_enabled, mode, rate_limit_requests, rate_limit_window_s,
+          ip_allowlist, ip_blocklist, geo_block_countries, bot_protection_enabled, sync_to_server, revision, server_status
+        ) VALUES (?, ?, 1, 'block', 100, 10, '[]', '[]', '[]', 1, 1, 1, 'ACTIVE')
+      `).run(`waf_pol_${orgId}`, orgId);
+    } catch (e) {
+      console.warn('[Register] Waf policy auto-init warning:', e);
+    }
+
+    // Hash password & insert user with role 'Admin' scoped exclusively to their orgId
+    const userId = `usr_${cleanUsername}_${randomSuffix}`;
+    const passwordHash = await hashPassword(cleanPassword);
+
+    db.prepare(`
+      INSERT INTO users (id, organization_id, name, email, username, password_hash, role, soc_tier, mfa_enabled, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'Admin', NULL, 0, UTC_TIMESTAMP())
+    `).run(userId, orgId, cleanName, cleanEmail, cleanUsername, passwordHash);
+
+    const token = signToken({
+      userId,
+      email: cleanEmail,
+      role: 'Admin',
+      socTier: null,
+      organizationId: orgId
+    });
+
+    const orgRow = {
+      id: orgId,
+      name: orgName,
+      domain: orgDomain,
+      industry: 'Enterprise',
+      tier: 'Standard'
+    };
+
+    recordAuditLog({
+      organizationId: orgId,
+      userId,
+      userEmail: cleanEmail,
+      role: 'Admin',
+      action: 'User Self-Registration',
+      resource: `Registered account ${cleanEmail} with isolated workspace ${orgName}`,
+      resourceId: orgId,
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent']
+    });
+
+    res.status(201).json({
+      token,
+      organization: orgRow,
+      user: {
+        id: userId,
+        name: cleanName,
+        email: cleanEmail,
+        username: cleanUsername,
+        role: 'Admin',
+        organizationId: orgId,
+        organizationName: orgName,
+        mfaEnabled: false,
+        lastLogin: new Date().toISOString()
+      }
+    });
+  } catch (err: any) {
+    console.error('[Register Error]:', err);
+    res.status(500).json({ error: err.message || 'Gagal mendaftarkan akun baru.' });
+  }
+});
+
 apiRouter.get('/users', (req: AuthenticatedRequest, res) => {
   const orgId = req.organizationId || '';
   const users = db.prepare('SELECT id, organization_id, name, email, role, soc_tier, mfa_enabled, last_login FROM users WHERE organization_id = ?').all(orgId);

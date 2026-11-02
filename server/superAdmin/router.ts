@@ -246,7 +246,31 @@ superAdminRouter.post('/users', async (req: AuthenticatedRequest, res: Response)
 
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const hashedPassword = await hashPassword(String(password));
-    const targetOrgId = organizationId || (db.prepare('SELECT id FROM organizations LIMIT 1').get() as any)?.id || null;
+    let targetOrgId = organizationId;
+
+    if (!targetOrgId) {
+      // Auto-provision a dedicated isolated workspace for this user so they are NOT mixed with other users
+      const randomSuffix = crypto.randomUUID().substring(0, 6);
+      targetOrgId = `org_${cleanUsername}_${randomSuffix}`;
+      const orgName = `${name}'s Workspace`;
+      const orgDomain = cleanEmail.includes('@') ? cleanEmail.split('@')[1] : `${cleanUsername}.internal`;
+
+      db.prepare(`
+        INSERT INTO organizations (id, name, domain, industry, tier, created_at)
+        VALUES (?, ?, ?, 'Enterprise', 'Standard', UTC_TIMESTAMP())
+      `).run(targetOrgId, orgName, orgDomain);
+
+      try {
+        db.prepare(`
+          INSERT INTO waf_policy (
+            id, organization_id, engine_enabled, mode, rate_limit_requests, rate_limit_window_s,
+            ip_allowlist, ip_blocklist, geo_block_countries, bot_protection_enabled, sync_to_server, revision, server_status
+          ) VALUES (?, ?, 1, 'block', 100, 10, '[]', '[]', '[]', 1, 1, 1, 'ACTIVE')
+        `).run(`waf_pol_${targetOrgId}`, targetOrgId);
+      } catch (e) {
+        console.warn('[SuperAdmin Create User] Waf policy auto-init warning:', e);
+      }
+    }
 
     db.prepare(`
       INSERT INTO users (id, organization_id, name, email, username, password_hash, role, soc_tier, mfa_enabled, created_at)

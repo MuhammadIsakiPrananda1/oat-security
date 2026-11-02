@@ -17,6 +17,7 @@ interface AuthContextType {
   organizations: Organization[];
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<User>;
+  register: (payload: { name: string; email: string; password: string; username?: string }) => Promise<User>;
   completeSetup: (payload: SetupPayload) => Promise<User>;
   updateProfile: (payload: {
     name?: string;
@@ -160,6 +161,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(authenticatedUser);
     setToken(typeof data.token === 'string' ? data.token : null);
     // Scope the API client to the tenant bound to this account straight away.
+    setActiveOrganization(data.user.organizationId || '');
+    return authenticatedUser;
+  };
+
+  const register = async (payload: { name: string; email: string; password: string; username?: string }): Promise<User> => {
+    let response: Response;
+    try {
+      response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch {
+      throw new Error('Tidak dapat menghubungi server. Periksa koneksi backend Anda.');
+    }
+
+    if (!response.ok) {
+      const detail = await response.json().catch(() => null);
+      throw new Error(detail?.error || 'Gagal mendaftar akun baru.');
+    }
+
+    const data = await response.json().catch(() => null);
+    if (!data?.user) {
+      throw new Error('Respons pendaftaran tidak valid.');
+    }
+
+    const authenticatedUser = data.user as User;
+    setUser(authenticatedUser);
+    setToken(typeof data.token === 'string' ? data.token : null);
+    if (data.organization) {
+      setOrganizations([data.organization as Organization]);
+      setCurrentOrg(data.organization as Organization);
+    }
     setActiveOrganization(data.user.organizationId || '');
     return authenticatedUser;
   };
@@ -400,6 +434,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         organizations,
         isAuthenticated: !!user,
         login,
+        register,
         completeSetup,
         updateProfile,
         setupRequired,
