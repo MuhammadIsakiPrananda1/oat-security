@@ -46,7 +46,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-oat_security_2026}
       JWT_SECRET: ${JWT_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://aotsecurity.neverlandstudio.ai.id}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://oatsecurity.neverlandstudio.ai.id}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}

@@ -1,4 +1,4 @@
-aotsecurity.neverlandstudio.ai.id {
+oatsecurity.neverlandstudio.ai.id {
 	reverse_proxy 127.0.0.1:3000
 	encode gzip
 	header {

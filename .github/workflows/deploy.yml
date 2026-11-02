@@ -120,7 +120,7 @@ jobs:
               echo "DB_ROOT_PASSWORD=${DB_ROOT_CLEAN}"
               echo "JWT_SECRET=${JWT_CLEAN}"
               echo "SESSION_SECRET=${SESSION_CLEAN}"
-              echo "CORS_ORIGINS=https://aotsecurity.neverlandstudio.ai.id"
+              echo "CORS_ORIGINS=https://oatsecurity.neverlandstudio.ai.id"
               echo "LOG_LEVEL=info"
               echo "GEMINI_API_KEY=${GEMINI_CLEAN}"
               echo "GROQ_API_KEY=${GROQ_CLEAN}"
@@ -178,5 +178,5 @@ jobs:
 
             echo ""
             echo "✅ Deploy selesai!"
-            echo "🌐 https://aotsecurity.neverlandstudio.ai.id"
+            echo "🌐 https://oatsecurity.neverlandstudio.ai.id"
             docker compose -f docker-compose.prod.yml ps
