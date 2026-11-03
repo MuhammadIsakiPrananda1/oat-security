@@ -187,17 +187,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
       ? 'Masukkan kredensial akun Anda untuk membuka konsol operasi keamanan.'
       : 'Enter your account credentials to access the security operations console.',
     userLabel: lang === 'id' ? 'Username / Email Operator' : 'Username / Operator Email',
-    userPlaceholder: lang === 'id' ? 'admin atau email@perusahaan.com' : 'admin or email@company.com',
+    userPlaceholder: lang === 'id' ? 'Masukkan username atau email' : 'Enter your username or email',
     passLabel: lang === 'id' ? 'Kata Sandi' : 'Password',
-    passPlaceholder: lang === 'id' ? 'Masukkan kata sandi akun' : 'Enter your password',
+    passPlaceholder: lang === 'id' ? 'Masukkan kata sandi' : 'Enter your password',
     rememberMe: lang === 'id' ? 'Ingat akun saya' : 'Remember me',
     captchaLabel: lang === 'id' ? 'Verifikasi Keamanan' : 'Human Verification',
     captchaPlaceholder: lang === 'id' ? 'Jawaban' : 'Answer',
     submitBtn: lang === 'id' ? 'Masuk ke Dashboard' : 'Sign In to Dashboard',
     submitting: lang === 'id' ? 'Memverifikasi Akses...' : 'Verifying Access...',
-    securityNotice: lang === 'id' 
-      ? 'Sesi diamankan TLS 1.3 & enkripsi end-to-end. Dipantau 24/7.'
-      : 'Session secured with TLS 1.3 & end-to-end encryption. Monitored 24/7.',
     dark: lang === 'id' ? 'Mode Gelap' : 'Dark Mode',
     light: lang === 'id' ? 'Mode Terang' : 'Light Mode',
     system: lang === 'id' ? 'Ikuti Sistem' : 'System Default',
@@ -225,8 +222,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
 
       {/* ============================================================ */}
       {/* LEFT PANEL: Cohesive Theme (Zinc Light / Dark #09090b)        */}
+      {/* Hidden on mobile, visible on desktop (md:flex)               */}
       {/* ============================================================ */}
-      <div className="md:w-5/12 bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-white p-7 sm:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-zinc-200/90 dark:border-zinc-800 relative">
+      <div className="hidden md:flex md:w-5/12 bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-white p-7 sm:p-10 flex-col justify-between border-b md:border-b-0 md:border-r border-zinc-200/90 dark:border-zinc-800 relative">
         <div className="relative z-10">
           {/* Logo & Platform Info matching Dashboard Sidebar */}
           <div className="flex items-center gap-3.5 mb-8">
@@ -288,22 +286,26 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
             </div>
           </div>
         </div>
-
-        {/* Footer info in left panel */}
-        <div className="relative z-10 pt-8 mt-6 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-          <div className="flex items-center gap-1.5">
-            <Server className="w-3.5 h-3.5" />
-            <span>NGFW / WAF v2.4 Active</span>
-          </div>
-          <span className="font-mono text-[10px]">SOC Node-01</span>
-        </div>
       </div>
 
       {/* ============================================================ */}
       {/* RIGHT PANEL: Cohesive Theme (White / Dark #0c0c0e)           */}
       {/* ============================================================ */}
-      <div className="md:w-7/12 p-7 sm:p-10 flex flex-col justify-between bg-white dark:bg-[#0c0c0e]">
+      <div className="w-full md:w-7/12 p-6 sm:p-10 flex flex-col justify-between bg-white dark:bg-[#0c0c0e]">
         <div>
+          {/* Mobile-Only Header Brand Logo */}
+          <div className="flex md:hidden items-center gap-3 mb-6 pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
+            <span className="w-9 h-9 shrink-0 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 flex items-center justify-center shadow-xs">
+              <Shield className="w-5 h-5" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-white">
+                OAT <span className="font-light text-zinc-500 dark:text-zinc-400">SECURITY</span>
+              </div>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Enterprise SOC Platform</div>
+            </div>
+          </div>
+
           {/* Top indicator line */}
           <div className="flex items-center gap-2 mb-2">
             <span className="h-0.5 w-5 bg-blue-600 dark:bg-blue-500 rounded-full" />
@@ -329,11 +331,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
           <form onSubmit={handleSubmit} className="space-y-4 text-left">
             {/* Username / Email */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5">
                 <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   {t.userLabel}
                 </label>
-                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">ID / Corporate Email</span>
               </div>
               <div className="relative">
                 <Mail className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -352,11 +353,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="mb-1.5">
                 <label htmlFor="auth-password" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   {t.passLabel}
                 </label>
-                <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">SHA-256 / Bcrypt</span>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -406,12 +406,14 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
 
                 <div className="flex-1 sm:max-w-[120px]">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     required
                     value={captchaInput}
-                    onChange={e => setCaptchaInput(e.target.value)}
+                    onChange={e => setCaptchaInput(e.target.value.replace(/[^0-9]/g, ''))}
                     placeholder={t.captchaPlaceholder}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 text-center font-mono font-bold focus:outline-none focus:border-blue-500 transition shadow-2xs"
+                    className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 text-center font-mono font-bold focus:outline-none focus:border-blue-500 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
@@ -427,8 +429,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                   />
                   <span>{t.rememberMe}</span>
                 </label>
-
-                <span className="text-[11px] text-zinc-400 font-mono">SOC 2 Compliant</span>
               </div>
             </div>
 
@@ -453,16 +453,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
         {/* ============================================================ */}
         {/* BOTTOM SECTION: 2 CUSTOM DROPDOWNS MATCHING DASHBOARD THEME   */}
         {/* ============================================================ */}
-        <div className="mt-8 pt-5 border-t border-zinc-200/80 dark:border-zinc-800/80">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            {/* Left: Quick Security Text */}
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-tight">
-              {t.securityNotice}
-            </p>
-
-            {/* Right: Custom Dropdowns matching TopNav Popovers */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Dropdown 1: Bahasa / Language */}
+        <div className="mt-8 pt-5 border-t border-zinc-200/80 dark:border-zinc-800/80 flex items-center justify-end">
+          {/* Right: Custom Dropdowns matching TopNav Popovers */}
+          <div className="flex items-center gap-2">
+            {/* Dropdown 1: Bahasa / Language */}
               <div className="relative" ref={langRef}>
                 <button
                   type="button"
@@ -608,7 +602,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                 )}
               </div>
             </div>
-          </div>
         </div>
       </div>
     </div>
