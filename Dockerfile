@@ -33,6 +33,10 @@ RUN npm ci
 
 COPY . .
 
+# Build-time argument untuk Vite env vars (tidak tersimpan di image layer final)
+ARG VITE_RECAPTCHA_SITE_KEY
+ENV VITE_RECAPTCHA_SITE_KEY=$VITE_RECAPTCHA_SITE_KEY
+
 # Build React frontend dengan Vite
 RUN npx vite build
 

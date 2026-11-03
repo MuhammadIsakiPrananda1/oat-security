@@ -37,9 +37,12 @@ interface AuthViewProps {
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
-// reCAPTCHA v2 Site Key — replace with your actual key from console.cloud.google.com
-// For testing/development use Google's test key: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
-const RECAPTCHA_SITE_KEY = '6LeOtg0uAAAAAL1eI2GgYu2PFSCFqSFkzIPN61mR';
+// reCAPTCHA v2 Site Key — diambil dari environment variable VITE_RECAPTCHA_SITE_KEY
+// Daftarkan di: https://www.google.com/recaptcha/admin/create
+// Fallback ke Google test key jika env belum diset (development only)
+const RECAPTCHA_SITE_KEY =
+  (import.meta.env.VITE_RECAPTCHA_SITE_KEY as string) ||
+  '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 
 export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant = 'modal' }) => {
   const { login } = useAuth();
@@ -489,8 +492,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                     type="button"
                     onClick={() => handleLanguageSelect('id')}
                     className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${lang === 'id'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                   >
                     <div className="flex items-center gap-2">
@@ -504,8 +507,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                     type="button"
                     onClick={() => handleLanguageSelect('en')}
                     className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${lang === 'en'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                   >
                     <div className="flex items-center gap-2">
@@ -555,8 +558,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                     type="button"
                     onClick={() => handleThemeSelect('dark')}
                     className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${theme === 'dark'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                   >
                     <div className="flex items-center gap-2">
@@ -570,8 +573,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                     type="button"
                     onClick={() => handleThemeSelect('light')}
                     className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${theme === 'light'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                   >
                     <div className="flex items-center gap-2">
@@ -585,8 +588,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
                     type="button"
                     onClick={() => handleThemeSelect('system')}
                     className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${theme === 'system'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                   >
                     <div className="flex items-center gap-2">
