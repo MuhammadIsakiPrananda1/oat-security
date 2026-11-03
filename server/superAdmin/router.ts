@@ -8,8 +8,8 @@ export const superAdminRouter = Router();
 // Helper to hash passwords in Super Admin operations
 import { hashPassword } from '../auth/jwt';
 
-// Strictly guard all endpoints in this router for 'Super Admin' role only
-superAdminRouter.use(requireRole('Super Admin'));
+// Strictly guard all endpoints in this router for 'Super Admin' or 'Admin' role
+superAdminRouter.use(requireRole('Super Admin', 'Admin'));
 
 /** Validates the optional SOC response tier assigned to an operator. */
 function normalizeSocTierInput(value: unknown): string | null {
