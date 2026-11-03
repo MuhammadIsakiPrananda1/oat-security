@@ -1,24 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Shield, 
-  Lock, 
-  Mail, 
-  AlertCircle, 
-  Eye, 
-  EyeOff, 
-  Loader2, 
-  CheckCircle2, 
-  Globe, 
-  Sun, 
-  Moon, 
+import {
+  Shield,
+  Lock,
+  Mail,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  CheckCircle2,
+  Globe,
+  Sun,
+  Moon,
   Monitor,
   ShieldCheck,
   Server,
   Activity,
   Check,
-  ChevronDown,
-  RefreshCw
+  ChevronDown
 } from 'lucide-react';
+
+// Extend window type for reCAPTCHA
+declare global {
+  interface Window {
+    grecaptcha: any;
+  }
+}
 import { useAuth } from '../../context/AuthContext';
 import type { User } from '../../types';
 import { getLanguage, setLanguage, type Language } from '../../i18n/translator';
@@ -31,17 +37,9 @@ interface AuthViewProps {
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
-interface MathCaptcha {
-  num1: number;
-  num2: number;
-  answer: number;
-}
-
-function generateMathCaptcha(): MathCaptcha {
-  const n1 = Math.floor(Math.random() * 8) + 2; // 2 to 9
-  const n2 = Math.floor(Math.random() * 7) + 1; // 1 to 7
-  return { num1: n1, num2: n2, answer: n1 + n2 };
-}
+// reCAPTCHA v2 Site Key — replace with your actual key from console.cloud.google.com
+// For testing/development use Google's test key: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
+const RECAPTCHA_SITE_KEY = '6LeOtg0uAAAAAL1eI2GgYu2PFSCFqSFkzIPN61mR';
 
 export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant = 'modal' }) => {
   const { login } = useAuth();
@@ -64,14 +62,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Captcha state
-  const [captcha, setCaptcha] = useState<MathCaptcha>(generateMathCaptcha);
-  const [captchaInput, setCaptchaInput] = useState('');
-
-  const refreshCaptcha = () => {
-    setCaptcha(generateMathCaptcha());
-    setCaptchaInput('');
-  };
+  // reCAPTCHA state
+  const recaptchaRef = useRef<HTMLDivElement>(null);
+  const recaptchaWidgetId = useRef<number | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   // Custom Dropdown Open States
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -87,7 +81,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
     try {
       const stored = localStorage.getItem('theme');
       if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
-    } catch {}
+    } catch { }
     return 'dark';
   });
 
@@ -97,7 +91,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
   useEffect(() => {
     try {
       localStorage.setItem('theme', theme);
-    } catch {}
+    } catch { }
 
     const root = document.documentElement;
     if (theme === 'system') {
@@ -110,6 +104,40 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
       root.classList.remove('dark');
     }
   }, [theme]);
+
+  // Initialize reCAPTCHA widget after mount
+  useEffect(() => {
+    const tryRender = () => {
+      if (
+        typeof window !== 'undefined' &&
+        window.grecaptcha &&
+        typeof window.grecaptcha.render === 'function' &&
+        recaptchaRef.current &&
+        recaptchaWidgetId.current === null
+      ) {
+        try {
+          recaptchaWidgetId.current = window.grecaptcha.render(recaptchaRef.current, {
+            sitekey: RECAPTCHA_SITE_KEY,
+            theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+            callback: (token: string) => setRecaptchaToken(token),
+            'expired-callback': () => setRecaptchaToken(null),
+            'error-callback': () => setRecaptchaToken(null)
+          });
+        } catch {
+          // widget already rendered
+        }
+        return true;
+      }
+      return false;
+    };
+
+    if (!tryRender()) {
+      const interval = setInterval(() => {
+        if (tryRender()) clearInterval(interval);
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   // Click outside to close dropdowns
   useEffect(() => {
@@ -136,14 +164,20 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
     setThemeDropdownOpen(false);
   };
 
+  const resetRecaptcha = () => {
+    if (typeof window !== 'undefined' && window.grecaptcha && recaptchaWidgetId.current !== null) {
+      window.grecaptcha.reset(recaptchaWidgetId.current);
+    }
+    setRecaptchaToken(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validate Captcha
-    if (parseInt(captchaInput.trim(), 10) !== captcha.answer) {
-      setError(lang === 'id' ? 'Hasil verifikasi keamanan (captcha) salah.' : 'Security captcha answer is incorrect.');
-      refreshCaptcha();
+    // Validate reCAPTCHA
+    if (!recaptchaToken) {
+      setError(lang === 'id' ? 'Selesaikan verifikasi reCAPTCHA terlebih dahulu.' : 'Please complete the reCAPTCHA verification.');
       return;
     }
 
@@ -158,13 +192,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
           localStorage.removeItem('oat-remember-email');
           localStorage.removeItem('oat-remember-me');
         }
-      } catch {}
+      } catch { }
 
       const authUser = await login(email.trim(), password);
       onSuccess(authUser);
     } catch (err: any) {
       setError(err?.message || (lang === 'id' ? 'Gagal masuk. Periksa kembali kredensial Anda.' : 'Sign in failed. Check your credentials.'));
-      refreshCaptcha();
+      resetRecaptcha();
     } finally {
       setLoading(false);
     }
@@ -173,7 +207,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
   const t = {
     badge: lang === 'id' ? 'PORTAL OPERASI KEAMANAN' : 'SECURITY OPERATIONS PORTAL',
     leftTitle: lang === 'id' ? 'Pusat Pertahanan & Kontrol SOC' : 'SOC Defense & Control Center',
-    leftSubtitle: lang === 'id' 
+    leftSubtitle: lang === 'id'
       ? 'Pantau telemetri real-time, mitigasi serangan WAF secara otonom, dan kelola perimeter jaringan dalam satu konsol terpadu.'
       : 'Monitor live telemetry, mitigate WAF threats autonomously, and govern your network perimeter in one unified console.',
     feat1Title: lang === 'id' ? 'Akses Terbatas Terverifikasi' : 'Strict Role-Based Access',
@@ -183,7 +217,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
     feat3Title: lang === 'id' ? 'Audit Trail Tidak Dapat Diubah' : 'Immutable Cryptographic Audit Trail',
     feat3Desc: lang === 'id' ? 'Setiap sesi dan riwayat perintah dicatat secara permanen.' : 'Every operator session and command history is permanently attested.',
     subHeading: lang === 'id' ? 'Masuk Dashboard' : 'Sign in to Dashboard',
-    subDesc: lang === 'id' 
+    subDesc: lang === 'id'
       ? 'Masukkan kredensial akun Anda untuk membuka konsol operasi keamanan.'
       : 'Enter your account credentials to access the security operations console.',
     userLabel: lang === 'id' ? 'Username / Email Operator' : 'Username / Operator Email',
@@ -191,8 +225,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
     passLabel: lang === 'id' ? 'Kata Sandi' : 'Password',
     passPlaceholder: lang === 'id' ? 'Masukkan kata sandi' : 'Enter your password',
     rememberMe: lang === 'id' ? 'Ingat akun saya' : 'Remember me',
-    captchaLabel: lang === 'id' ? 'Verifikasi Keamanan' : 'Human Verification',
-    captchaPlaceholder: lang === 'id' ? 'Jawaban' : 'Answer',
     submitBtn: lang === 'id' ? 'Masuk ke Dashboard' : 'Sign In to Dashboard',
     submitting: lang === 'id' ? 'Memverifikasi Akses...' : 'Verifying Access...',
     dark: lang === 'id' ? 'Mode Gelap' : 'Dark Mode',
@@ -381,41 +413,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
               </div>
             </div>
 
-            {/* Row: Captcha & Remember Me */}
+            {/* Row: reCAPTCHA & Remember Me */}
             <div className="pt-1 space-y-3">
-              {/* Captcha Verification Widget */}
-              <div className="p-3 rounded-xl border border-zinc-200/90 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-2xs">
-                    <span className="font-mono text-sm font-bold text-zinc-800 dark:text-zinc-200 tracking-wider select-none">
-                      {captcha.num1} + {captcha.num2} = ?
-                    </span>
-                    <button
-                      type="button"
-                      onClick={refreshCaptcha}
-                      title="Ganti soal captcha"
-                      className="ml-1 p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition rounded"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 hidden sm:inline">
-                    {t.captchaLabel}
-                  </span>
-                </div>
-
-                <div className="flex-1 sm:max-w-[120px]">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    required
-                    value={captchaInput}
-                    onChange={e => setCaptchaInput(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder={t.captchaPlaceholder}
-                    className="w-full px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 text-center font-mono font-bold focus:outline-none focus:border-blue-500 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
+              {/* Google reCAPTCHA v2 Widget */}
+              <div className="flex justify-center">
+                <div ref={recaptchaRef} />
               </div>
 
               {/* Remember Me Checkbox */}
@@ -457,151 +459,146 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
           {/* Right: Custom Dropdowns matching TopNav Popovers */}
           <div className="flex items-center gap-2">
             {/* Dropdown 1: Bahasa / Language */}
-              <div className="relative" ref={langRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLangDropdownOpen(prev => !prev);
-                    setThemeDropdownOpen(false);
-                  }}
-                  className={`
+            <div className="relative" ref={langRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setLangDropdownOpen(prev => !prev);
+                  setThemeDropdownOpen(false);
+                }}
+                className={`
                     h-8 sm:h-9 px-3 rounded-lg border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-2xs
-                    ${langDropdownOpen 
-                      ? 'border-zinc-400 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' 
-                      : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200'
-                    }
+                    ${langDropdownOpen
+                    ? 'border-zinc-400 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                    : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200'
+                  }
                   `}
-                >
-                  <Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span>{lang === 'id' ? 'Bahasa Indonesia' : 'English (US)'}</span>
-                  <ChevronDown className={`w-3 h-3 text-zinc-400 transition-transform duration-150 ${langDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
+              >
+                <Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span>{lang === 'id' ? 'Bahasa Indonesia' : 'English (US)'}</span>
+                <ChevronDown className={`w-3 h-3 text-zinc-400 transition-transform duration-150 ${langDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-                {/* Popover Menu: Styled exactly like TopNav User Menu */}
-                {langDropdownOpen && (
-                  <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800/80 mb-1">
-                      PILIH BAHASA
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleLanguageSelect('id')}
-                      className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                        lang === 'id'
-                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono">🇮🇩</span>
-                        <span>Bahasa Indonesia</span>
-                      </div>
-                      {lang === 'id' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleLanguageSelect('en')}
-                      className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                        lang === 'en'
-                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono">🇺🇸</span>
-                        <span>English (US)</span>
-                      </div>
-                      {lang === 'en' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
-                    </button>
+              {/* Popover Menu: Styled exactly like TopNav User Menu */}
+              {langDropdownOpen && (
+                <div className="absolute right-0 bottom-full mb-2 w-48 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800/80 mb-1">
+                    PILIH BAHASA
                   </div>
-                )}
-              </div>
-
-              {/* Dropdown 2: Tema / Theme */}
-              <div className="relative" ref={themeRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setThemeDropdownOpen(prev => !prev);
-                    setLangDropdownOpen(false);
-                  }}
-                  className={`
-                    h-8 sm:h-9 px-3 rounded-lg border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-2xs
-                    ${themeDropdownOpen 
-                      ? 'border-zinc-400 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' 
-                      : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200'
-                    }
-                  `}
-                >
-                  {theme === 'dark' ? (
-                    <Moon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  ) : theme === 'light' ? (
-                    <Sun className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                  ) : (
-                    <Monitor className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  )}
-                  <span>{theme === 'dark' ? t.dark : theme === 'light' ? t.light : t.system}</span>
-                  <ChevronDown className={`w-3 h-3 text-zinc-400 transition-transform duration-150 ${themeDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Popover Menu: Styled exactly like TopNav User Menu */}
-                {themeDropdownOpen && (
-                  <div className="absolute right-0 bottom-full mb-2 w-44 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800/80 mb-1">
-                      PILIH TEMA
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageSelect('id')}
+                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${lang === 'id'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono">🇮🇩</span>
+                      <span>Bahasa Indonesia</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleThemeSelect('dark')}
-                      className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                        theme === 'dark'
-                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Moon className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>{t.dark}</span>
-                      </div>
-                      {theme === 'dark' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
-                    </button>
+                    {lang === 'id' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleThemeSelect('light')}
-                      className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                        theme === 'light'
-                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageSelect('en')}
+                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${lang === 'en'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Sun className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>{t.light}</span>
-                      </div>
-                      {theme === 'light' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleThemeSelect('system')}
-                      className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${
-                        theme === 'system'
-                          ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
-                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Monitor className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>{t.system}</span>
-                      </div>
-                      {theme === 'system' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
-                    </button>
-                  </div>
-                )}
-              </div>
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono">🇺🇸</span>
+                      <span>English (US)</span>
+                    </div>
+                    {lang === 'en' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Dropdown 2: Tema / Theme */}
+            <div className="relative" ref={themeRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setThemeDropdownOpen(prev => !prev);
+                  setLangDropdownOpen(false);
+                }}
+                className={`
+                    h-8 sm:h-9 px-3 rounded-lg border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-2xs
+                    ${themeDropdownOpen
+                    ? 'border-zinc-400 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                    : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200'
+                  }
+                  `}
+              >
+                {theme === 'dark' ? (
+                  <Moon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                ) : theme === 'light' ? (
+                  <Sun className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                ) : (
+                  <Monitor className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                )}
+                <span>{theme === 'dark' ? t.dark : theme === 'light' ? t.light : t.system}</span>
+                <ChevronDown className={`w-3 h-3 text-zinc-400 transition-transform duration-150 ${themeDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Popover Menu: Styled exactly like TopNav User Menu */}
+              {themeDropdownOpen && (
+                <div className="absolute right-0 bottom-full mb-2 w-44 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 border-b border-zinc-100 dark:border-zinc-800/80 mb-1">
+                    PILIH TEMA
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleThemeSelect('dark')}
+                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${theme === 'dark'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Moon className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>{t.dark}</span>
+                    </div>
+                    {theme === 'dark' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleThemeSelect('light')}
+                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${theme === 'light'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sun className="w-3.5 h-3.5 text-zinc-500" />
+                      <span>{t.light}</span>
+                    </div>
+                    {theme === 'light' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleThemeSelect('system')}
+                    className={`w-full p-2 rounded-lg text-xs flex items-center justify-between transition cursor-pointer ${theme === 'system'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-semibold'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Monitor className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>{t.system}</span>
+                    </div>
+                    {theme === 'system' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
