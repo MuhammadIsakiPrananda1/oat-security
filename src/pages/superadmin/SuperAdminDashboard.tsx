@@ -6,6 +6,7 @@ import {
 } from './SuperAdminSidebar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faShieldHalved,
   faBolt,
   faServer,
   faMicrochip,
