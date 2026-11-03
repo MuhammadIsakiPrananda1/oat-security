@@ -56,6 +56,11 @@ export const EN_TO_ID: Record<string, string> = {
     'Switch Organization': 'Ganti Organisasi',
     'Active Organization': 'Organisasi Aktif',
     'No organizations yet': 'Belum ada organisasi',
+    'No Endpoints Enrolled': 'Belum Ada Endpoint Terdaftar',
+    'Enroll endpoint agent first': 'Daftarkan agen endpoint terlebih dahulu',
+    'None': 'Tidak Ada',
+    'Install and enroll an Endpoint Agent on the host machine to activate this organization workspace.':
+        'Pasang dan daftarkan Agen Endpoint pada mesin host untuk mengaktifkan ruang kerja organisasi ini.',
     'Enterprise Billing Invoices & Receipts': 'Faktur & Kuitansi Tagihan Enterprise',
     'Enterprise SLA, Quota': 'SLA & Kuota Enterprise',
     'Plan details will sync automatically from the billing system.': 'Detail paket akan disinkronkan otomatis dari sistem tagihan.',
