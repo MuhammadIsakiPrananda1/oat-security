@@ -26,12 +26,19 @@ import {
   faTriangleExclamation,
   faBars,
   faCircleExclamation,
-  faPlus
+  faPlus,
+  faTowerBroadcast,
+  faScroll,
+  faShieldVirus,
+  faSliders,
+  faWaveSquare,
+  faCloudArrowUp
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
-import { superAdminApi, SuperAdminOverviewData, globalRealtimeClient } from '../../services/api';
+import { superAdminApi, SuperAdminOverviewData } from '../../services/api';
 import { DASHBOARD_PATH } from '../../App';
 import { navigate } from '../../router';
+import { ModulePageHeader, ModulePageBadge } from '../../components/common/ModulePageHeader';
 
 function formatRelative(val: string | null | undefined): string {
   if (!val) return 'Never';
@@ -375,8 +382,94 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
         </header>
 
         {/* Content Scroll View with custom scrollbar */}
-        <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 lg:p-8 custom-scrollbar">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-7 custom-scrollbar">
           <div className="max-w-7xl mx-auto w-full space-y-5">
+            {/* Standard Dashboard Theme Header */}
+            <ModulePageHeader
+              icon={
+                currentTab === 'users' ? <FontAwesomeIcon icon={faUsers} /> :
+                currentTab === 'tenants' ? <FontAwesomeIcon icon={faBuilding} /> :
+                currentTab === 'events' ? <FontAwesomeIcon icon={faBolt} /> :
+                currentTab === 'traffic' ? <FontAwesomeIcon icon={faTowerBroadcast} /> :
+                currentTab === 'fleet' ? <FontAwesomeIcon icon={faServer} /> :
+                currentTab === 'audit-log' ? <FontAwesomeIcon icon={faScroll} /> :
+                currentTab === 'waf-cluster' ? <FontAwesomeIcon icon={faShieldVirus} /> :
+                currentTab === 'engines' ? <FontAwesomeIcon icon={faMicrochip} /> :
+                currentTab === 'engine-config' ? <FontAwesomeIcon icon={faSliders} /> :
+                currentTab === 'telemetry' ? <FontAwesomeIcon icon={faWaveSquare} /> :
+                currentTab === 'maintenance' ? <FontAwesomeIcon icon={faCloudArrowUp} /> :
+                <FontAwesomeIcon icon={faShieldHalved} />
+              }
+              title={
+                currentTab === 'users' ? 'Users & RBAC' :
+                currentTab === 'tenants' ? 'Tenant Directory' :
+                currentTab === 'events' ? 'Security Events' :
+                currentTab === 'traffic' ? 'Live Traffic' :
+                currentTab === 'fleet' ? 'Agent Fleet' :
+                currentTab === 'audit-log' ? 'Global Audit' :
+                currentTab === 'waf-cluster' ? 'WAF Cluster' :
+                currentTab === 'engines' ? 'Engine Health' :
+                currentTab === 'engine-config' ? 'Engine Config' :
+                currentTab === 'telemetry' ? 'Telemetry Stream' :
+                currentTab === 'maintenance' ? 'Platform Maintenance' :
+                'SuperAdmin Command'
+              }
+              titleTail={
+                currentTab === 'users' ? 'Management' :
+                currentTab === 'tenants' ? 'Overview' :
+                currentTab === 'events' ? 'Telemetry' :
+                currentTab === 'traffic' ? 'Stream' :
+                currentTab === 'fleet' ? 'Infrastructure' :
+                currentTab === 'audit-log' ? 'Logs' :
+                currentTab === 'waf-cluster' ? 'Monitoring' :
+                currentTab === 'engines' ? 'Diagnostics' :
+                currentTab === 'engine-config' ? 'Settings' :
+                currentTab === 'telemetry' ? 'Pipeline' :
+                currentTab === 'maintenance' ? 'Controls' :
+                'Center'
+              }
+              badge={
+                <ModulePageBadge>
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  Global Clearance
+                </ModulePageBadge>
+              }
+              subtitle="Full visibility, user accounts provisioning, role assignment, and multi-tenant security operations."
+              actions={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fetchOverview()}
+                    title="Refresh data"
+                    className="h-8.5 px-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                  >
+                    <FontAwesomeIcon icon={faRotateRight} className={`text-[11px] ${loading ? 'animate-spin text-indigo-500' : ''}`} />
+                    <span>Sync</span>
+                  </button>
+                  {currentTab === 'users' && (
+                    <button
+                      type="button"
+                      onClick={() => setUserModalOpen(true)}
+                      className="h-8.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                    >
+                      <FontAwesomeIcon icon={faUserPlus} className="text-xs" />
+                      <span>Create User</span>
+                    </button>
+                  )}
+                  {currentTab === 'tenants' && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(DASHBOARD_PATH)}
+                      className="h-8.5 px-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 text-xs font-semibold inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                    >
+                      <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
+                      <span>Tenant Console</span>
+                    </button>
+                  )}
+                </div>
+              }
+            />
+
             {error && (
               <div className="rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 p-4 text-xs text-rose-800 dark:text-rose-300 flex items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2">
@@ -938,7 +1031,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                                   <select
                                     value={u.soc_tier || ''}
                                     onChange={e => handleUpdateUserSocTier(u.id, e.target.value)}
-                                    className="h-6 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-1.5 text-[10px] font-mono text-zinc-700 dark:text-zinc-300 outline-none focus:border-indigo-500 cursor-pointer"
+                                    className="h-6.5 rounded-md border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-2 text-[10px] font-mono text-zinc-700 dark:text-zinc-300 outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
                                     title="SOC incident visibility scope"
                                   >
                                     <option value="">All SOC tiers</option>
@@ -957,7 +1050,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteUser(u.id, u.name)}
-                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                                  className="h-7 w-7 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer inline-flex items-center justify-center border border-transparent hover:border-rose-200 dark:hover:border-rose-900/60"
                                   title="Delete Account"
                                 >
                                   <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
