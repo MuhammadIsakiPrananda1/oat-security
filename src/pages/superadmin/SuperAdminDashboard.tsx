@@ -29,7 +29,7 @@ import {
   faPlus
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
-import { superAdminApi, SuperAdminOverviewData } from '../../services/api';
+import { superAdminApi, SuperAdminOverviewData, globalRealtimeClient } from '../../services/api';
 import { DASHBOARD_PATH } from '../../App';
 import { navigate } from '../../router';
 
@@ -123,6 +123,17 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
   });
   const [roleForm, setRoleForm] = useState({ name: '', description: '' });
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const handleUpdateUserRole = async (id: string, newRole: string) => {
+    try {
+      await superAdminApi.updateUserRole(id, newRole);
+      setActionFeedback(`User role updated to ${newRole}`);
+      setTimeout(() => setActionFeedback(null), 4000);
+      fetchUsersAndRoles();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update user role');
+    }
+  };
 
   const fetchUsersAndRoles = useCallback(async () => {
     try {
@@ -905,13 +916,22 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex flex-col items-start gap-1.5">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${
-                                  u.role === 'Super Admin'
-                                    ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400'
-                                    : 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400'
-                                }`}>
-                                  {u.role}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <select
+                                    value={u.role || ''}
+                                    onChange={e => handleUpdateUserRole(u.id, e.target.value)}
+                                    className={`h-6.5 rounded-md border px-2 text-[11px] font-semibold outline-none focus:border-indigo-500 cursor-pointer shadow-2xs ${
+                                      u.role === 'Super Admin'
+                                        ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-400'
+                                        : 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900/60 dark:text-indigo-400'
+                                    }`}
+                                    title="Ubah Role Akun"
+                                  >
+                                    {managedRoles.map(r => (
+                                      <option key={r.id} value={r.name}>{r.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
                                 {u.role === 'Super Admin' ? (
                                   <span className="text-[10px] font-mono text-zinc-400">All SOC tiers</span>
                                 ) : (

@@ -320,6 +320,22 @@ superAdminRouter.put('/users/:id/soc-tier', (req: AuthenticatedRequest, res: Res
   }
 });
 
+superAdminRouter.put('/users/:id/role', (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { role } = req.body || {};
+    if (!role || !String(role).trim()) {
+      return res.status(400).json({ error: 'Role is required' });
+    }
+    const target = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id) as any;
+    if (!target?.id) return res.status(404).json({ error: 'User not found' });
+
+    db.prepare('UPDATE users SET role = ? WHERE id = ?').run(String(role).trim(), req.params.id);
+    return res.json({ ok: true, role: String(role).trim() });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to update user role' });
+  }
+});
+
 superAdminRouter.delete('/users/:id', (req: AuthenticatedRequest, res: Response) => {
   try {
     const targetId = req.params.id;

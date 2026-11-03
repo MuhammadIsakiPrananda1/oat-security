@@ -1639,6 +1639,11 @@ export const superAdminApi = {
       method: 'PUT',
       body: JSON.stringify({ socTier })
     }),
+  updateUserRole: (id: string, role: string) =>
+    request<{ ok: boolean; role: string }>(`/api/super-admin/users/${id}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role })
+    }),
   deleteUser: (id: string) => request<{ ok: boolean }>(`/api/super-admin/users/${id}`, { method: 'DELETE' }),
   getRoles: () => request<{ roles: Array<{ id: string; name: string; description?: string }> }>('/api/super-admin/roles'),
   createRole: (data: { name: string; description?: string }) =>

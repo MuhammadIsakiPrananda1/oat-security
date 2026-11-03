@@ -21,7 +21,11 @@ import {
   faRightFromBracket,
   faShieldHalved,
   faSun,
-  faMoon
+  faMoon,
+  faHouseLaptop,
+  faUserGear,
+  faDiagramProject,
+  faFileShield
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
 import { DASHBOARD_PATH } from '../../App';
@@ -65,6 +69,15 @@ export interface SuperAdminNavGroup {
 
 export const SUPERADMIN_NAV_GROUPS: SuperAdminNavGroup[] = [
   {
+    group: 'Tenant & User Control',
+    icon: createFaIcon(faUserGear),
+    items: [
+      { id: 'users', label: 'Users & RBAC Control', icon: createFaIcon(faUsers) },
+      { id: 'tenants', label: 'Tenant Directory', icon: createFaIcon(faBuilding) },
+      { id: 'audit-log', label: 'Global Audit Logs', icon: createFaIcon(faScroll) }
+    ]
+  },
+  {
     group: 'Global Operations',
     icon: createFaIcon(faTableColumns),
     items: [
@@ -83,16 +96,7 @@ export const SUPERADMIN_NAV_GROUPS: SuperAdminNavGroup[] = [
     ]
   },
   {
-    group: 'Tenancy & Access',
-    icon: createFaIcon(faBuilding),
-    items: [
-      { id: 'tenants', label: 'Tenant Directory', icon: createFaIcon(faBuilding) },
-      { id: 'users', label: 'Accounts & RBAC', icon: createFaIcon(faUsers) },
-      { id: 'audit-log', label: 'Global Audit Logs', icon: createFaIcon(faScroll) }
-    ]
-  },
-  {
-    group: 'System',
+    group: 'Platform & Engine',
     icon: createFaIcon(faSliders),
     items: [
       { id: 'engine-config', label: 'Engine Configuration', icon: createFaIcon(faSliders) },
@@ -512,17 +516,17 @@ export const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
         {/* Footer info & Profile bar matching tenant layout */}
         <footer className={`shrink-0 border-t border-zinc-200/80 dark:border-zinc-800 p-3 space-y-2.5 ${railActive ? 'flex flex-col items-center !p-2' : ''}`}>
-          {/* Switch to Tenant Workspace Button */}
+          {/* Quick Action: Control Regular Dashboard */}
           <button
             type="button"
             onClick={() => navigate(DASHBOARD_PATH)}
-            title="Switch to Tenant Workspace"
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition cursor-pointer ${
+            title="Switch to Tenant Workspace (Buka Dashboard Biasa)"
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 dark:text-indigo-300 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 dark:border-indigo-800/60 transition cursor-pointer shadow-2xs ${
               railActive ? 'justify-center !px-0 !w-10 !h-10' : ''
             }`}
           >
-            <FontAwesomeIcon icon={faArrowLeft} className="text-xs shrink-0" />
-            {!railActive && <span className="truncate">Switch to Tenant Workspace</span>}
+            <FontAwesomeIcon icon={faHouseLaptop} className="text-xs shrink-0" />
+            {!railActive && <span className="truncate">Buka Dashboard Biasa</span>}
           </button>
 
           {/* Theme switcher segmented control */}

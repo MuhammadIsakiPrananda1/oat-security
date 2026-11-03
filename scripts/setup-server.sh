@@ -13,7 +13,7 @@ NC='\033[0m'
 echo -e "${CYAN}"
 echo "======================================================"
 echo "   OAT Security — Server Setup Script"
-echo "   Domain: aotsecurity.neverlandstudio.ai.id"
+echo "   Domain: oatsecurity.neverlandstudio.ai.id"
 echo "======================================================"
 echo -e "${NC}"
 

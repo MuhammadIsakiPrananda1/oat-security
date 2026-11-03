@@ -25,7 +25,7 @@ import {
 
 interface LandingPageProps {
   onEnterDashboard: () => void;
-  onOpenAuth: (view: 'login' | 'register') => void;
+  onOpenAuth: (view?: 'login') => void;
   onOpenContact?: () => void;
 }
 
@@ -194,7 +194,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, onOp
             Mulai Melindungi Infrastruktur
           </button>
           <button
-            onClick={() => onOpenAuth('register')}
+            onClick={() => onOpenAuth('login')}
             className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-sm font-semibold text-zinc-700 hover:text-zinc-900 bg-white hover:bg-zinc-50 border border-zinc-200 dark:text-slate-200 dark:hover:text-white dark:bg-slate-900/90 dark:hover:bg-slate-800 dark:border-slate-700 transition flex items-center justify-center gap-2 cursor-pointer"
           >
             Jadwalkan Konsultasi
@@ -475,7 +475,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, onOp
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
               <button
-                onClick={() => onOpenAuth('register')}
+                onClick={() => onOpenAuth('login')}
                 className="px-6 py-3 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition shadow-lg whitespace-nowrap w-full sm:w-auto cursor-pointer"
               >
                 Jadwalkan Konsultasi Teknis
