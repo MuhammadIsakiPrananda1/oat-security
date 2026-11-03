@@ -413,10 +413,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 </span>
                 <div className="min-w-0 flex-1 leading-tight">
                   <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                    {organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'Pilih Organisasi'}
+                    {organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'Belum ada endpoint'}
                   </div>
                   <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 tabular-nums hidden sm:block">
-                    {organizations.length > 0 && currentOrg?.domain ? `${currentOrg.domain} • ${currentOrg.tier}` : 'Pilih website pada endpoint'}
+                    {organizations.length > 0 && currentOrg?.domain ? `${currentOrg.domain} • ${currentOrg.tier}` : 'Daftarkan endpoint agent dahulu'}
                   </div>
                 </div>
               </div>
@@ -431,15 +431,16 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
               <div className="absolute left-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-2.5 z-50">
                 <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1.5 flex items-center justify-between">
                   <span>Switch Organization</span>
-                  <span className="text-[11px] text-zinc-400 tabular-nums">{organizations.length} Tenant</span>
+                  <span className="text-[11px] text-zinc-400 tabular-nums">{organizations.length > 0 ? `${organizations.length} Tenant` : 'Belum ada'}</span>
                 </div>
 
                 <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                   {organizations.length === 0 ? (
-                    <div className="px-3 py-5 text-center text-xs text-zinc-500 dark:text-zinc-400">
-                      <div className="font-medium text-zinc-700 dark:text-zinc-200">Belum ada organisasi</div>
-                      <div className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
-                        Pilih website pada modul Endpoint Agents terlebih dahulu untuk mengaktifkan organisasi.
+                    <div className="px-3 py-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="mb-2 text-2xl">🖥️</div>
+                      <div className="font-semibold text-zinc-700 dark:text-zinc-200 mb-1">Belum ada endpoint terdaftar</div>
+                      <div className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
+                        Install dan daftarkan <strong>Endpoint Agent</strong> di perangkat yang ingin dipantau untuk mengaktifkan organisasi.
                       </div>
                     </div>
                   ) : (

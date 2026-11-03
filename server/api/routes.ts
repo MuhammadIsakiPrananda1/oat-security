@@ -215,11 +215,19 @@ apiRouter.get('/organizations', (req: AuthenticatedRequest, res) => {
   }
 
   // Regular users (e.g. admin, admin2) only see their own organization workspace
+  // BUT only if it has at least one enrolled (non-revoked) agent.
+  // Workspace orgs created at registration have no agents yet — they should not
+  // appear in the Switch Organization dropdown until an endpoint agent enrolls.
   const targetOrgId = req.user?.organizationId || req.organizationId;
   const records = db.prepare(`
     SELECT o.id, o.name, o.domain, o.industry, o.tier 
     FROM organizations o
     WHERE o.id = ?
+      AND EXISTS (
+        SELECT 1 FROM agents a
+        WHERE a.organization_id = o.id
+          AND (a.revoked_at IS NULL OR a.revoked_at = '')
+      )
   `).all(targetOrgId) as any[];
 
   res.json({
