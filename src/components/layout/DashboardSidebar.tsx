@@ -559,7 +559,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         ref={asideRef}
         data-slot="sidebar-container"
         style={{ width: `${railActive ? RAIL_WIDTH : width}px` }}
-        className={`relative m-3 shrink-0 flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100 select-none shadow-xs transition-all duration-200 h-[calc(100%-1.5rem)] max-lg:fixed max-lg:top-0 max-lg:bottom-0 max-lg:left-0 max-lg:z-50 max-lg:shadow-2xl ${mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-[130%]'}`}
+
         className={`relative m-3 shrink-0 flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100 select-none shadow-xs transition-all duration-200 h-[calc(100%-1.5rem)] max-lg:fixed max-lg:top-0 max-lg:bottom-0 max-lg:left-0 max-lg:m-0 max-lg:h-full max-lg:w-72 max-lg:max-w-[85vw] max-lg:rounded-r-2xl max-lg:rounded-l-none max-lg:z-50 max-lg:shadow-2xl ${mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'}`}
       >
         {/* Collapse / expand toggle */}
@@ -677,7 +677,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                             <button
                               key={item.id}
                               type="button"
-                              onClick={() => onSelectView(item.id)}
+
                               onClick={() => {
                                 onSelectView(item.id);
                                 if (onMobileClose) onMobileClose();
