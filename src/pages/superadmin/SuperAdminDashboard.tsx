@@ -6,7 +6,6 @@ import {
 } from './SuperAdminSidebar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faShieldHalved,
   faBolt,
   faServer,
   faMicrochip,
@@ -366,21 +365,6 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
         {/* Content Scroll View with custom scrollbar */}
         <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 lg:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto w-full space-y-5">
-            {/* Notice / Status Banner */}
-            <div className="rounded-2xl border border-indigo-200/60 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-950/20 p-3.5 sm:p-4 text-xs text-zinc-700 dark:text-zinc-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-              <div className="flex items-start sm:items-center gap-3">
-                <span className="w-7 h-7 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                  <FontAwesomeIcon icon={faShieldHalved} className="text-xs" />
-                </span>
-                <p className="leading-relaxed">
-                  <strong className="font-semibold text-zinc-950 dark:text-white">Global Super Admin Monitoring Scope:</strong> Viewing aggregated telemetry across all enrolled servers, agent heartbeats, and core security engines. Segregated rule modification remains managed within individual tenant workspaces.
-                </p>
-              </div>
-              <span className="self-end sm:self-auto shrink-0 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-[11px] font-mono shadow-2xs">
-                Platform Uptime: {Math.floor((summary?.systemUptimeSeconds || 0) / 3600)}h {Math.floor(((summary?.systemUptimeSeconds || 0) % 3600) / 60)}m
-              </span>
-            </div>
-
             {error && (
               <div className="rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 p-4 text-xs text-rose-800 dark:text-rose-300 flex items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2">
