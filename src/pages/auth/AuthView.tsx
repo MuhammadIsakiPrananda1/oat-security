@@ -1,23 +1,17 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, AlertCircle, Eye, EyeOff, Loader2, User as UserIcon, Sparkles } from 'lucide-react';
+import { Shield, Lock, Mail, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import type { User } from '../../types';
 import { getLanguage, setLanguage } from '../../i18n/translator';
 
-export type AuthMode = 'login' | 'register';
-
 interface AuthViewProps {
-  initialMode?: AuthMode;
   onSuccess: (user?: User) => void;
   onCancel?: () => void;
   variant?: 'modal' | 'page';
 }
 
-export const AuthView: React.FC<AuthViewProps> = ({ initialMode = 'login', onSuccess, onCancel, variant = 'modal' }) => {
-  const { login, register } = useAuth();
-  const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
+export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant = 'modal' }) => {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,20 +26,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ initialMode = 'login', onSuc
     setError(null);
     setLoading(true);
     try {
-      if (mode === 'login') {
-        const authUser = await login(email.trim(), password);
-        onSuccess(authUser);
-      } else {
-        const authUser = await register({
-          name: name.trim(),
-          email: email.trim(),
-          username: username.trim() || undefined,
-          password
-        });
-        onSuccess(authUser);
-      }
+      const authUser = await login(email.trim(), password);
+      onSuccess(authUser);
     } catch (err: any) {
-      setError(err?.message || (mode === 'login' ? 'Gagal masuk. Periksa kembali kredensial Anda.' : 'Gagal mendaftar akun baru.'));
+      setError(err?.message || 'Gagal masuk. Periksa kembali kredensial Anda.');
     } finally {
       setLoading(false);
     }
@@ -83,48 +67,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ initialMode = 'login', onSuc
           </div>
         </div>
 
-        {/* Tab Toggle: Masuk vs Daftar Akun Baru */}
-        <div className="flex p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 mb-6">
-          <button
-            type="button"
-            onClick={() => {
-              setMode('login');
-              setError(null);
-            }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
-              mode === 'login'
-                ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
-            }`}
-          >
-            Masuk
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('register');
-              setError(null);
-            }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              mode === 'register'
-                ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs'
-                : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3 h-3 text-emerald-500" />
-            <span>Daftar Akun Baru</span>
-          </button>
-        </div>
-
         {/* Heading */}
-        <div className="mb-5">
+        <div className="mb-6">
           <h1 className="text-lg font-bold text-zinc-900 dark:text-white tracking-tight">
-            {mode === 'login' ? 'Masuk ke Konsol Keamanan' : 'Daftar & Buat Workspace'}
+            Masuk ke Konsol Keamanan
           </h1>
           <p className="text-xs text-zinc-500 dark:text-slate-400 mt-1 leading-relaxed">
-            {mode === 'login'
-              ? 'Gunakan kredensial akun Anda untuk mengakses dashboard keamanan.'
-              : 'Akun baru akan mendapatkan workspace terisolasi dengan sensor dan WAF tersendiri.'}
+            Gunakan kredensial akun Anda untuk mengakses dashboard keamanan.
           </p>
         </div>
 
@@ -135,71 +84,30 @@ export const AuthView: React.FC<AuthViewProps> = ({ initialMode = 'login', onSuc
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-left">
-          {mode === 'register' && (
-            <>
-              {/* Nama Lengkap */}
-              <div>
-                <label htmlFor="auth-name" className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 mb-1">
-                  Nama Lengkap
-                </label>
-                <div className="relative">
-                  <UserIcon className="w-4 h-4 text-zinc-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    id="auth-name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="Nama Lengkap Anda"
-                    className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:outline-none focus:border-zinc-400 dark:focus:border-white/30 transition"
-                  />
-                </div>
-              </div>
-
-              {/* Username (Opsional) */}
-              <div>
-                <label htmlFor="auth-username" className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 mb-1">
-                  Username
-                </label>
-                <div className="relative">
-                  <span className="text-xs font-mono text-zinc-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2">@</span>
-                  <input
-                    id="auth-username"
-                    type="text"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    placeholder="username_anda"
-                    className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:outline-none focus:border-zinc-400 dark:focus:border-white/30 transition"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Email */}
+        <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          {/* Email / Username */}
           <div>
-            <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 mb-1">
-              {mode === 'login' ? 'Username / Email' : 'Alamat Email'}
+            <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 mb-1.5">
+              Username / Email
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-zinc-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 id="auth-email"
-                type={mode === 'register' ? 'email' : 'text'}
+                type="text"
                 required
-                autoComplete={mode === 'login' ? 'username' : 'email'}
+                autoComplete="username"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder={mode === 'login' ? 'Masukkan username atau email' : 'contoh@perusahaan.com'}
-                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:outline-none focus:border-zinc-400 dark:focus:border-white/30 transition"
+                placeholder="Masukkan username atau email Anda"
+                className="w-full pl-9 pr-3 py-2.5 bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:outline-none focus:border-zinc-400 dark:focus:border-white/30 transition"
               />
             </div>
           </div>
 
           {/* Password */}
           <div>
-            <label htmlFor="auth-password" className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 mb-1">
+            <label htmlFor="auth-password" className="block text-xs font-semibold text-zinc-700 dark:text-slate-300 mb-1.5">
               Kata Sandi
             </label>
             <div className="relative">
@@ -208,12 +116,11 @@ export const AuthView: React.FC<AuthViewProps> = ({ initialMode = 'login', onSuc
                 id="auth-password"
                 type={showPassword ? 'text' : 'password'}
                 required
-                minLength={6}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder={mode === 'login' ? 'Masukkan kata sandi' : 'Minimal 6 karakter'}
-                className="w-full pl-9 pr-10 py-2 bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:outline-none focus:border-zinc-400 dark:focus:border-white/30 transition"
+                placeholder="Masukkan kata sandi Anda"
+                className="w-full pl-9 pr-10 py-2.5 bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200 dark:border-white/10 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-slate-500 focus:outline-none focus:border-zinc-400 dark:focus:border-white/30 transition"
               />
               <button
                 type="button"
@@ -235,21 +142,19 @@ export const AuthView: React.FC<AuthViewProps> = ({ initialMode = 'login', onSuc
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{mode === 'login' ? 'Memverifikasi...' : 'Mendaftarkan Workspace...'}</span>
+                <span>Memverifikasi...</span>
               </>
             ) : (
-              <span>{mode === 'login' ? 'Masuk ke Konsol' : 'Daftar & Buka Workspace Terisolasi'}</span>
+              <span>Masuk ke Konsol</span>
             )}
           </button>
         </form>
 
         <p className="mt-5 pt-4 border-t border-zinc-200 dark:border-white/10 text-[11px] text-zinc-400 dark:text-slate-500 leading-relaxed">
-          {mode === 'login'
-            ? 'Akses dipantau dan tercatat. Pastikan Anda hanya memasukkan kredensial pada server resmi OAT Security.'
-            : 'Workspace Anda terlindungi dengan enkripsi AES-256 dan terisolasi dari organisasi operator lain.'}
+          Akses dipantau dan tercatat. Pastikan Anda hanya memasukkan kredensial pada server resmi OAT Security. Akun dan hak akses dikelola oleh Super Administrator.
         </p>
 
-        {/* Language access before login */}
+        {/* Language switcher */}
         <div className="mt-3 flex items-center justify-center gap-2 text-[11px]">
           <button
             type="button"
