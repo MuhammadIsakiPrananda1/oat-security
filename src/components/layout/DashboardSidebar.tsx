@@ -847,11 +847,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           <div
             onPointerDown={handleRailPointerDown}
             onDoubleClick={() => onWidthChange(SIDEBAR_WIDTH_DEFAULT)}
-            className="absolute inset-y-0 -right-1.5 w-3.5 cursor-col-resize rounded-full transition-colors hover:bg-blue-500/30 active:bg-blue-500/40 z-30 touch-none flex items-center justify-center group/resizer"
-            title="Drag to resize width"
-          >
-            <div className="w-0.5 h-8 rounded-full bg-zinc-300 dark:bg-zinc-700 group-hover/resizer:bg-blue-500 transition-colors max-lg:block hidden" />
-          </div>
+            className="absolute inset-y-0 -right-1.5 w-3 cursor-col-resize z-30 touch-none flex items-center justify-center"
+          />
         )}
       </aside>
 

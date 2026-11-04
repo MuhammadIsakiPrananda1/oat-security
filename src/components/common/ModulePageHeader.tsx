@@ -66,8 +66,12 @@ export const ModulePageHeader: React.FC<ModulePageHeaderProps> = ({
 };
 
 /** Standard title chip (gray, bordered) — matches the dashboard tenant chip. */
-export const ModulePageBadge: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 truncate max-w-[240px]">
+export const ModulePageBadge: React.FC<{ children: React.ReactNode; isDimmed?: boolean }> = ({ children, isDimmed }) => (
+  <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-md border truncate max-w-[240px] transition-colors ${
+    isDimmed
+      ? 'bg-zinc-100/60 dark:bg-zinc-800/40 border-dashed border-zinc-300 dark:border-zinc-700/80 text-zinc-400 dark:text-zinc-500 italic'
+      : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700/80 text-zinc-700 dark:text-zinc-300'
+  }`}>
     {children}
   </span>
 );

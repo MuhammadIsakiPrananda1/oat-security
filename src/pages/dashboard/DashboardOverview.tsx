@@ -705,7 +705,7 @@ const EngineInspectorDrawer: React.FC<EngineInspectorDrawerProps> = ({ row, onCl
 };
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => {
-  const { currentOrg, isBackendOffline } = useAuth();
+  const { currentOrg, organizations, isBackendOffline } = useAuth();
   const liveState = useLiveConnectionState();
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
@@ -1325,7 +1325,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
         icon={<FontAwesomeIcon icon={faShieldHalved} />}
         title="Security Operations"
         titleTail="Overview"
-        badge={<ModulePageBadge>{currentOrg?.name ?? 'Enterprise Tenant'}</ModulePageBadge>}
+        badge={
+          <ModulePageBadge isDimmed={organizations.length === 0 || !currentOrg?.name}>
+            {organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'No Endpoints Enrolled'}
+          </ModulePageBadge>
+        }
         subtitle="Real-time perimeter monitoring, threat analytics, and active defense telemetry."
       />
 
