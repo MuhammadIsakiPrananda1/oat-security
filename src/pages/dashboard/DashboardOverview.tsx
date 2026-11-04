@@ -32,6 +32,7 @@ import { useLiveConnectionState } from '../../hooks/useRealtimeStatus';
 import { getCountryName } from '../../utils/ip';
 import { CountryFlag } from '../../components/common/CountryFlag';
 import { CloudflareGeoMap, CloudflareCountryList, CountryTrafficData } from '../../components/dashboard/CloudflareGeoMap';
+import { CloudflareEdgeAnalytics } from '../../components/dashboard/CloudflareEdgeAnalytics';
 import { CountUpNumber } from '../../components/common/CountUpNumber';
 
 interface DashboardOverviewProps {
@@ -2056,6 +2057,11 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
               totalTraffic={trafficSummary.totalTraffic}
             />
           </div>
+        </div>
+
+        {/* Real-time Edge Web Analytics & Latency Box (Cloudflare Style, Auto-Syncing) */}
+        <div className="mt-4">
+          <CloudflareEdgeAnalytics liveEventTick={recentEvents.length} />
         </div>
       </SectionShell>
 
