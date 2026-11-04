@@ -733,7 +733,19 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
   // excludes that series from the recap table (excluded series reads "—").
   type TrafficDisplayMode = 'chart' | 'table';
   const [trafficDisplayMode, setTrafficDisplayMode] = useState<TrafficDisplayMode>('chart');
+  const [trafficModeDropdownOpen, setTrafficModeDropdownOpen] = useState(false);
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
+  const trafficModeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (trafficModeRef.current && !trafficModeRef.current.contains(e.target as Node)) {
+        setTrafficModeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
 
   type TrafficSeriesKey = 'allowed' | 'blocked' | 'suspicious';
   const [hiddenSeries, setHiddenSeries] = useState<Record<TrafficSeriesKey, boolean>>({
@@ -1449,50 +1461,84 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
               </div>
 
               <div className="flex items-center gap-3 flex-wrap sm:justify-end">
-                {/* View Mode Toggle: Chart / Table */}
-                <div className="inline-flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-0.5 text-xs">
+                {/* View Mode Dropdown: Chart / Table */}
+                <div className="relative" ref={trafficModeRef}>
                   <button
                     type="button"
-                    onClick={() => setTrafficDisplayMode('chart')}
-                    className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
-                      trafficDisplayMode === 'chart'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs'
-                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                    }`}
-                    title="Cloudflare Line Chart"
+                    onClick={() => setTrafficModeDropdownOpen(prev => !prev)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
                   >
-                    <ChartLineIcon className="w-3.5 h-3.5" />
-                    <span>Chart</span>
+                    {trafficDisplayMode === 'chart' ? (
+                      <>
+                        <ChartLineIcon className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Chart</span>
+                      </>
+                    ) : (
+                      <>
+                        <TableIcon className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Table</span>
+                      </>
+                    )}
+                    <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${trafficModeDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setTrafficDisplayMode('table')}
-                    className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
-                      trafficDisplayMode === 'table'
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs'
-                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-                    }`}
-                    title="Recap Table"
-                  >
-                    <TableIcon className="w-3.5 h-3.5" />
-                    <span>Table</span>
-                  </button>
+
+                  {trafficModeDropdownOpen && (
+                    <div className="absolute right-0 mt-1.5 w-36 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-xl p-1 z-30 space-y-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTrafficDisplayMode('chart');
+                          setTrafficModeDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                          trafficDisplayMode === 'chart'
+                            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
+                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <ChartLineIcon className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Chart</span>
+                        </span>
+                        {trafficDisplayMode === 'chart' && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTrafficDisplayMode('table');
+                          setTrafficModeDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
+                          trafficDisplayMode === 'table'
+                            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold'
+                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-900 dark:hover:text-zinc-100'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <TableIcon className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Table</span>
+                        </span>
+                        {trafficDisplayMode === 'table' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Legends — clickable toggles: click a chip to strike it out and toggle series */}
-                <div className="flex items-center gap-1.5 text-xs font-mono flex-wrap">
+                <div className="flex items-center gap-3 text-xs font-mono flex-wrap">
                   <button
                     type="button"
                     onClick={() => toggleTrafficSeries('allowed')}
                     aria-pressed={!hiddenSeries.allowed}
                     title={hiddenSeries.allowed ? 'Show Allowed' : 'Hide Allowed'}
-                    className={`flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors cursor-pointer select-none ${
+                    className={`flex items-center gap-1.5 transition-opacity cursor-pointer select-none ${
                       hiddenSeries.allowed
-                        ? 'text-zinc-400 dark:text-zinc-600 bg-zinc-100/70 dark:bg-zinc-800/40'
-                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70'
+                        ? 'opacity-40 text-zinc-400 dark:text-zinc-500'
+                        : 'text-zinc-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400'
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full shrink-0 bg-blue-500 ${hiddenSeries.allowed ? 'opacity-40' : ''}`} />
+                    <span className="w-2 h-2 rounded-full shrink-0 bg-blue-500" />
                     <span className={hiddenSeries.allowed ? 'line-through' : ''}>
                       Allowed {trafficSummary.totalAllowed.toLocaleString()}
                     </span>
@@ -1502,13 +1548,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                     onClick={() => toggleTrafficSeries('blocked')}
                     aria-pressed={!hiddenSeries.blocked}
                     title={hiddenSeries.blocked ? 'Show Blocked' : 'Hide Blocked'}
-                    className={`flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors cursor-pointer select-none ${
+                    className={`flex items-center gap-1.5 transition-opacity cursor-pointer select-none ${
                       hiddenSeries.blocked
-                        ? 'text-zinc-400 dark:text-zinc-600 bg-zinc-100/70 dark:bg-zinc-800/40'
-                        : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50/80 dark:hover:bg-rose-950/40'
+                        ? 'opacity-40 text-zinc-400 dark:text-zinc-500'
+                        : 'text-rose-600 dark:text-rose-400 hover:text-rose-500'
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full shrink-0 bg-rose-500 ${hiddenSeries.blocked ? 'opacity-40' : ''}`} />
+                    <span className="w-2 h-2 rounded-full shrink-0 bg-rose-500" />
                     <span className={hiddenSeries.blocked ? 'line-through' : ''}>
                       Blocked {trafficSummary.totalBlocked.toLocaleString()} ({trafficSummary.blockedRate}%)
                     </span>
@@ -1518,13 +1564,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                     onClick={() => toggleTrafficSeries('suspicious')}
                     aria-pressed={!hiddenSeries.suspicious}
                     title={hiddenSeries.suspicious ? 'Show Suspicious' : 'Hide Suspicious'}
-                    className={`flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors cursor-pointer select-none ${
+                    className={`flex items-center gap-1.5 transition-opacity cursor-pointer select-none ${
                       hiddenSeries.suspicious
-                        ? 'text-zinc-400 dark:text-zinc-600 bg-zinc-100/70 dark:bg-zinc-800/40'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/70'
+                        ? 'opacity-40 text-zinc-400 dark:text-zinc-500'
+                        : 'text-zinc-500 dark:text-zinc-400 hover:text-amber-500 dark:hover:text-amber-400'
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full shrink-0 bg-amber-400 ${hiddenSeries.suspicious ? 'opacity-40' : ''}`} />
+                    <span className="w-2 h-2 rounded-full shrink-0 bg-amber-400" />
                     <span className={hiddenSeries.suspicious ? 'line-through' : ''}>
                       Suspicious {trafficSummary.totalSuspicious.toLocaleString()}
                     </span>
@@ -1535,13 +1581,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
 
             <div className="pt-3 flex-1 min-h-0">
               {trafficHistory.length === 0 && trafficRows.length === 0 ? (
-                <div className="h-48 flex flex-col items-center justify-center text-center p-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
-                  <div className="text-zinc-600 dark:text-zinc-300 font-semibold uppercase tracking-wider text-xs">
-                    MONITORING ACTIVE — AWAITING TELEMETRY
-                  </div>
-                  <div className="text-[11px] text-zinc-400 mt-1 max-w-xs">
-                    Per-minute metrics populate automatically as network packets stream in.
-                  </div>
+                <div className="h-48 flex items-center justify-center text-center p-6 border border-dashed border-zinc-200/80 dark:border-zinc-800 rounded-lg">
+                  <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500 font-mono">
+                    No Data
+                  </span>
                 </div>
               ) : trafficDisplayMode === 'chart' ? (
                 /* Cloudflare Inspired Crisp SVG Timeseries Chart */

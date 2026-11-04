@@ -304,9 +304,3 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(1 0 0 / 30%);
 }
-
-/* ── Toast notification progress bar ─────────────────────────────────────── */
-@keyframes toast-shrink {
-  from { width: 100%; }
-  to   { width: 0%; }
-}

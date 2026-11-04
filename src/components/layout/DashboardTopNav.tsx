@@ -969,6 +969,9 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         </div>
       </header>
 
+      {/* Toast Notification Container (Top Anchored Stacked Toasts) */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
       {/* Edit Profile Modal */}
       {showEditProfileModal && (
         <EditProfileModal
