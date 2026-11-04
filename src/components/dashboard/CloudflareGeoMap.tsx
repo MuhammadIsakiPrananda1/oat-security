@@ -204,7 +204,7 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
           </g>
         </svg>
 
-        {/* Custom React Floating Tooltip with IP & Threat Details */}
+        {/* Custom React Floating Tooltip (Clean: Country Name & Requests) */}
         {tooltip.visible && (
           <div
             className="pointer-events-none absolute z-30 transition-all duration-75"
@@ -214,7 +214,7 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               transform: 'translate(-50%, -100%)'
             }}
           >
-            <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/95 border border-zinc-700/80 shadow-2xl backdrop-blur-md min-w-[170px] space-y-1">
+            <div className="px-3 py-2 rounded-xl bg-zinc-950/95 border border-zinc-700/80 shadow-2xl backdrop-blur-md min-w-[140px] space-y-1">
               <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-1">
                 <span className="font-bold text-white text-xs leading-tight">
                   {tooltip.countryName}
@@ -226,27 +226,13 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               <div className="text-[11px] font-mono">
                 {tooltip.count > 0 ? (
                   <div className="flex items-center justify-between text-blue-400 font-medium">
-                    <span>Traffic Volume</span>
-                    <span>{tooltip.count.toLocaleString()} req</span>
+                    <span>Requests</span>
+                    <span>{tooltip.count.toLocaleString()}</span>
                   </div>
                 ) : (
                   <span className="text-zinc-500">0 requests</span>
                 )}
               </div>
-              {tooltip.lastAttackIp && (
-                <div className="pt-1 border-t border-zinc-800/80 text-[10px] font-mono space-y-0.5">
-                  <div className="flex items-center justify-between text-zinc-400">
-                    <span>Public IP</span>
-                    <span className="text-rose-400 font-semibold">{tooltip.lastAttackIp}</span>
-                  </div>
-                  {tooltip.lastAttackType && (
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span>Threat Type</span>
-                      <span className="text-amber-400">{tooltip.lastAttackType}</span>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         )}
