@@ -2273,22 +2273,33 @@ const handleGetEventsAggregates = (req: AuthenticatedRequest, res: Response) => 
   `).all(orgId, limit) as Array<{ application: string; count: number }>;
 
   // Country aggregates for Cloudflare-style Geo Map: Ambil seluruh sebaran negara dari database
-  const countryMap = new Map<string, { country: string; code: string; count: number }>();
+  const countryMap = new Map<string, { country: string; code: string; count: number; lastAttackIp?: string; lastAttackType?: string; lastAttackTime?: number }>();
   const allIpRows = db.prepare(`
-    SELECT source_ip, COUNT(*) as count
+    SELECT source_ip, threat_name, event_type, MAX(timestamp) as last_seen, COUNT(*) as count
     FROM security_events
     WHERE organization_id = ? AND source_ip IS NOT NULL AND source_ip != ''
-    GROUP BY source_ip
+    GROUP BY source_ip, threat_name, event_type
     ORDER BY count DESC
     LIMIT 500
-  `).all(orgId) as Array<{ source_ip: string; count: number }>;
+  `).all(orgId) as Array<{ source_ip: string; threat_name?: string; event_type?: string; last_seen?: string; count: number }>;
 
   for (const r of allIpRows) {
     const geo = lookupIpLocation(r.source_ip);
     const code = (geo.code || 'ID').toUpperCase();
     const country = geo.country || 'Indonesia';
-    const existing = countryMap.get(code) || { country, code, count: 0 };
+    const existing = countryMap.get(code) || {
+      country,
+      code,
+      count: 0,
+      lastAttackIp: r.source_ip,
+      lastAttackType: r.threat_name || r.event_type || 'Inbound Scan',
+      lastAttackTime: r.last_seen ? new Date(r.last_seen).getTime() : Date.now()
+    };
     existing.count += Number(r.count) || 0;
+    if (!existing.lastAttackIp && r.source_ip) {
+      existing.lastAttackIp = r.source_ip;
+      existing.lastAttackType = r.threat_name || r.event_type;
+    }
     countryMap.set(code, existing);
   }
   const topCountries = Array.from(countryMap.values()).sort((a, b) => b.count - a.count);

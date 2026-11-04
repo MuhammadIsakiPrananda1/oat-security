@@ -987,18 +987,29 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
         }
 
         // Update live country traffic data
-        if (evt.sourceCountryCode && evt.sourceCountryCode !== 'SYS' && evt.sourceCountryCode !== 'LAN' && evt.sourceCountryCode !== 'UN') {
+        const countryCode = (evt.sourceCountryCode || '').toUpperCase().trim();
+        const countryName = evt.sourceCountry || (countryCode === 'ID' || countryCode === 'SYS' || countryCode === 'LAN' ? 'Indonesia' : countryCode);
+        if (countryCode && countryCode !== 'UN') {
+          const resolvedCode = (countryCode === 'SYS' || countryCode === 'LAN') ? 'ID' : countryCode;
           setCountryTrafficData(prev => {
             const list = Array.isArray(prev) ? [...prev] : [];
-            const idx = list.findIndex(c => (c.code || '').toUpperCase() === evt.sourceCountryCode.toUpperCase());
+            const idx = list.findIndex(c => (c.code || '').toUpperCase() === resolvedCode);
             if (idx >= 0) {
-              list[idx] = { ...list[idx], count: (list[idx].count || 0) + 1 };
+              list[idx] = {
+                ...list[idx],
+                count: (list[idx].count || 0) + 1,
+                lastAttackIp: evt.sourceIp || list[idx].lastAttackIp,
+                lastAttackType: evt.threat || evt.threatName || evt.eventType || list[idx].lastAttackType,
+                lastAttackTime: Date.now()
+              };
             } else {
               list.push({
-                code: evt.sourceCountryCode.toUpperCase(),
-                name: evt.sourceCountry || evt.sourceCountryCode,
+                code: resolvedCode,
+                country: countryName,
                 count: 1,
-                percentage: 0
+                lastAttackIp: evt.sourceIp,
+                lastAttackType: evt.threat || evt.threatName || evt.eventType,
+                lastAttackTime: Date.now()
               });
             }
             return list.sort((a, b) => b.count - a.count);

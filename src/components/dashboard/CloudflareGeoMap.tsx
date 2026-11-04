@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import * as d3 from 'd3';
 import am5geodata_worldHigh from '@amcharts/amcharts5-geodata/worldHigh';
 
@@ -6,6 +6,9 @@ export interface CountryTrafficData {
   country: string;
   code: string;
   count: number;
+  lastAttackIp?: string;
+  lastAttackType?: string;
+  lastAttackTime?: number;
 }
 
 interface CloudflareGeoMapProps {
@@ -30,6 +33,9 @@ interface TooltipState {
   y: number;
   countryName: string;
   count: number;
+  lastAttackIp?: string;
+  lastAttackType?: string;
+  lastAttackTime?: number;
 }
 
 const WIDTH = 960;
@@ -43,6 +49,7 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
+  const [recentlyHit, setRecentlyHit] = useState<Set<string>>(new Set());
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
     x: 0,
@@ -53,11 +60,25 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
 
   const activeList = useMemo(() => data ?? [], [data]);
 
-  // Lookup map: ISO2 code -> { name, count }
-  const countryMap = useMemo(() => {
-    const map = new Map<string, { name: string; count: number }>();
+  // Flash animation: track codes that just got a new hit
+  useEffect(() => {
+    const newCodes = new Set<string>();
     activeList.forEach(item => {
-      map.set(item.code.toUpperCase(), { name: item.country, count: item.count });
+      if (item.lastAttackTime && Date.now() - item.lastAttackTime < 3000) {
+        newCodes.add(item.code.toUpperCase());
+      }
+    });
+    if (newCodes.size === 0) return;
+    setRecentlyHit(newCodes);
+    const t = setTimeout(() => setRecentlyHit(new Set()), 2000);
+    return () => clearTimeout(t);
+  }, [activeList]);
+
+  // Lookup map: ISO2 code -> CountryTrafficData
+  const countryMap = useMemo(() => {
+    const map = new Map<string, CountryTrafficData>();
+    activeList.forEach(item => {
+      map.set(item.code.toUpperCase(), item);
     });
     return map;
   }, [activeList]);
@@ -86,16 +107,19 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
 
       return {
         id: code,
-        name: match ? match.name : rawName,
+        name: match ? match.country : rawName,
         d,
-        count: match ? match.count : 0
+        count: match ? match.count : 0,
+        lastAttackIp: match?.lastAttackIp,
+        lastAttackType: match?.lastAttackType,
+        lastAttackTime: match?.lastAttackTime
       };
     });
 
     return { featureData: fData };
   }, [features, countryMap]);
 
-  const handlePointerMove = (e: React.PointerEvent, item: { id: string; name: string; count: number }) => {
+  const handlePointerMove = (e: React.PointerEvent, item: { id: string; name: string; count: number; lastAttackIp?: string; lastAttackType?: string; lastAttackTime?: number }) => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return;
     setHoveredCode(item.id);
@@ -104,7 +128,10 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
       countryName: item.name,
-      count: item.count
+      count: item.count,
+      lastAttackIp: item.lastAttackIp,
+      lastAttackType: item.lastAttackType,
+      lastAttackTime: item.lastAttackTime
     });
   };
 
@@ -119,6 +146,10 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
         <h3 className="text-sm font-semibold tracking-tight text-zinc-200">
           Global Traffic Map
         </h3>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-mono text-emerald-400 tracking-widest">LIVE</span>
+        </div>
       </div>
 
       <div className="relative mt-2 w-full h-[320px] sm:h-[400px] lg:h-[440px] overflow-hidden rounded-lg">
@@ -134,21 +165,26 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               const isHovered = hoveredCode === item.id;
               const hasTraffic = item.count > 0;
               const isTop = item.count === maxVal && hasTraffic;
+              const isFlashing = recentlyHit.has(item.id);
 
               let fill = '#27272a'; // zinc-800 default
               let stroke = '#18181b'; // zinc-900 border
               let strokeWidth = 0.5;
 
-              if (hasTraffic) {
+              if (isFlashing) {
+                fill = '#ef4444'; // rose-500 attack flash
+                stroke = '#fca5a5';
+                strokeWidth = 1.2;
+              } else if (hasTraffic) {
                 fill = isTop ? '#3b82f6' : '#2563eb';
                 stroke = '#60a5fa';
                 strokeWidth = 0.8;
               }
 
               if (isHovered) {
-                fill = '#3b82f6';
-                stroke = '#93c5fd';
-                strokeWidth = 1.2;
+                fill = isFlashing ? '#f87171' : '#3b82f6';
+                stroke = isFlashing ? '#fecaca' : '#93c5fd';
+                strokeWidth = 1.4;
               }
 
               return (
@@ -168,7 +204,7 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
           </g>
         </svg>
 
-        {/* Custom React Floating Tooltip */}
+        {/* Custom React Floating Tooltip with IP & Threat Details */}
         {tooltip.visible && (
           <div
             className="pointer-events-none absolute z-30 transition-all duration-75"
@@ -178,19 +214,39 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               transform: 'translate(-50%, -100%)'
             }}
           >
-            <div className="px-3 py-2 rounded-lg bg-zinc-950/95 border border-zinc-700/80 shadow-2xl backdrop-blur-xs min-w-[130px]">
-              <div className="font-semibold text-white text-xs leading-tight">
-                {tooltip.countryName}
+            <div className="px-3.5 py-2.5 rounded-xl bg-zinc-950/95 border border-zinc-700/80 shadow-2xl backdrop-blur-md min-w-[170px] space-y-1">
+              <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-1">
+                <span className="font-bold text-white text-xs leading-tight">
+                  {tooltip.countryName}
+                </span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                  {hoveredCode}
+                </span>
               </div>
-              <div className="text-[11px] font-mono mt-0.5">
+              <div className="text-[11px] font-mono">
                 {tooltip.count > 0 ? (
-                  <span className="text-blue-400 font-medium">
-                    {tooltip.count.toLocaleString()} requests
-                  </span>
+                  <div className="flex items-center justify-between text-blue-400 font-medium">
+                    <span>Traffic Volume</span>
+                    <span>{tooltip.count.toLocaleString()} req</span>
+                  </div>
                 ) : (
-                  <span className="text-zinc-400">0 requests</span>
+                  <span className="text-zinc-500">0 requests</span>
                 )}
               </div>
+              {tooltip.lastAttackIp && (
+                <div className="pt-1 border-t border-zinc-800/80 text-[10px] font-mono space-y-0.5">
+                  <div className="flex items-center justify-between text-zinc-400">
+                    <span>Public IP</span>
+                    <span className="text-rose-400 font-semibold">{tooltip.lastAttackIp}</span>
+                  </div>
+                  {tooltip.lastAttackType && (
+                    <div className="flex items-center justify-between text-zinc-400">
+                      <span>Threat Type</span>
+                      <span className="text-amber-400">{tooltip.lastAttackType}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
