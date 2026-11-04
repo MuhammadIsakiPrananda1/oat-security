@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 
@@ -12,207 +12,376 @@ export interface ToastItem {
   onNavigate?: () => void;
 }
 
-interface SingleToastProps {
-  toast: ToastItem;
-  onDismiss: (id: string) => void;
-  /** Duration in ms before auto-dismiss. Default: 6000 */
-  duration?: number;
+interface ToastInternal extends ToastItem {
+  closing: boolean;
 }
-
-function severityConfig(severity: string) {
-  const s = severity?.toUpperCase?.() || '';
-  if (s === 'SUCCESS' || s === 'RESOLVED') {
-    return {
-      bar: 'bg-emerald-500',
-      iconSvg: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-emerald-600 dark:fill-emerald-400 shrink-0 mt-0.5" viewBox="0 0 330 330" aria-hidden="true">
-          <path d="M165 0C74.019 0 0 74.019 0 165s74.019 165 165 165 165-74.019 165-165S255.981 0 165 0m0 300c-74.44 0-135-60.561-135-135S90.56 30 165 30s135 60.561 135 135-60.561 135-135 135" />
-          <path d="m226.872 106.664-84.854 84.853-38.89-38.891c-5.857-5.857-15.355-5.858-21.213-.001-5.858 5.858-5.858 15.355 0 21.213l49.496 49.498a15 15 0 0 0 10.606 4.394h.001c3.978 0 7.793-1.581 10.606-4.393l95.461-95.459c5.858-5.858 5.858-15.355 0-21.213s-15.355-5.859-21.213-.001" />
-        </svg>
-      ),
-      badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      label: 'Success',
-    };
-  }
-  if (s === 'CRITICAL' || s === 'ERROR' || s === 'HIGH') {
-    return {
-      bar: 'bg-rose-500',
-      iconSvg: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-rose-600 dark:fill-rose-400 shrink-0 mt-0.5" viewBox="0 0 512 512" aria-hidden="true">
-          <path d="M256 0C114.508 0 0 114.497 0 256c0 141.493 114.497 256 256 256 141.492 0 256-114.497 256-256C512 114.507 397.503 0 256 0m0 472c-119.384 0-216-96.607-216-216 0-119.385 96.607-216 216-216 119.384 0 216 96.607 216 216 0 119.385-96.607 216-216 216" />
-          <path d="M343.586 315.302 284.284 256l59.302-59.302c7.81-7.81 7.811-20.473.001-28.284-7.812-7.811-20.475-7.81-28.284 0L256 227.716l-59.303-59.302c-7.809-7.811-20.474-7.811-28.284 0s-7.81 20.474.001 28.284L227.716 256l-59.302 59.302c-7.811 7.811-7.812 20.474-.001 28.284 7.813 7.812 20.476 7.809 28.284 0L256 284.284l59.303 59.302c7.808 7.81 20.473 7.811 28.284 0s7.81-20.474-.001-28.284" />
-        </svg>
-      ),
-      badge: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-      label: s === 'CRITICAL' ? 'Critical' : s === 'HIGH' ? 'High' : 'Error',
-    };
-  }
-  if (s === 'MEDIUM' || s === 'WARNING' || s === 'WARN') {
-    return {
-      bar: 'bg-amber-500',
-      iconSvg: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-amber-600 dark:fill-amber-400 shrink-0 mt-0.5" viewBox="0 0 486.463 486.463" aria-hidden="true">
-          <path d="M243.225 333.382c-13.6 0-25 11.4-25 25s11.4 25 25 25c13.1 0 25-11.4 24.4-24.4.6-14.3-10.7-25.6-24.4-25.6" />
-          <path d="M474.625 421.982c15.7-27.1 15.8-59.4.2-86.4l-156.6-271.2c-15.5-27.3-43.5-43.5-74.9-43.5s-59.4 16.3-74.9 43.4l-156.8 271.5c-15.6 27.3-15.5 59.8.3 86.9 15.6 26.8 43.5 42.9 74.7 42.9h312.8c31.3 0 59.4-16.3 75.2-43.6m-34-19.6c-8.7 15-24.1 23.9-41.3 23.9h-312.8c-17 0-32.3-8.7-40.8-23.4-8.6-14.9-8.7-32.7-.1-47.7l156.8-271.4c8.5-14.9 23.7-23.7 40.9-23.7 17.1 0 32.4 8.9 40.9 23.8l156.7 271.4c8.4 14.6 8.3 32.2-.3 47.1" />
-          <path d="M237.025 157.882c-11.9 3.4-19.3 14.2-19.3 27.3.6 7.9 1.1 15.9 1.7 23.8 1.7 30.1 3.4 59.6 5.1 89.7.6 10.2 8.5 17.6 18.7 17.6s18.2-7.9 18.7-18.2c0-6.2 0-11.9.6-18.2 1.1-19.3 2.3-38.6 3.4-57.9.6-12.5 1.7-25 2.3-37.5 0-4.5-.6-8.5-2.3-12.5-5.1-11.2-17-16.9-28.9-14.1" />
-        </svg>
-      ),
-      badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-      label: s === 'MEDIUM' ? 'Medium' : 'Warning',
-    };
-  }
-  return {
-    bar: 'bg-blue-500',
-    iconSvg: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-blue-600 dark:fill-blue-400 shrink-0 mt-0.5" viewBox="0 0 330 330" aria-hidden="true">
-        <path d="M165 0C74.019 0 0 74.02 0 165.001S74.019 330 165 330s165-74.018 165-164.999S255.981 0 165 0m0 300c-74.44 0-135-60.56-135-134.999S90.56 30 165 30s135 60.562 135 135.001S239.439 300 165 300" />
-        <path d="M164.998 70c-11.026 0-19.996 8.976-19.996 20.009 0 11.023 8.97 19.991 19.996 19.991s19.996-8.968 19.996-19.991c0-11.033-8.97-20.009-19.996-20.009m.002 70c-8.284 0-15 6.716-15 15v90c0 8.284 6.716 15 15 15s15-6.716 15-15v-90c0-8.284-6.716-15-15-15" />
-      </svg>
-    ),
-    badge: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-    label: s === 'LOW' ? 'Low' : 'Info',
-  };
-}
-
-const SingleToast: React.FC<SingleToastProps> = ({ toast, onDismiss, duration = 6000 }) => {
-  const [visible, setVisible] = useState(false);
-  const [exiting, setExiting] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Slide in on mount
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 20);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Auto-dismiss
-  useEffect(() => {
-    timerRef.current = setTimeout(() => startExit(), duration);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [duration]);
-
-  const startExit = () => {
-    setExiting(true);
-    setTimeout(() => onDismiss(toast.id), 400);
-  };
-
-  const handleDismiss = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    startExit();
-  };
-
-  const style = severityConfig(toast.severity);
-
-  const translateClass =
-    visible && !exiting ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0';
-
-  return (
-    <div
-      role="alert"
-      aria-live="assertive"
-      className={`
-        relative bg-white dark:bg-[#0c0c0e] p-3.5 rounded-xl shadow-xl dark:shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-slate-200 dark:border-zinc-800
-        w-[360px] max-w-[calc(100vw-32px)] transition-all duration-[350ms] ease-out
-        ${translateClass}
-      `}
-    >
-      <div className="flex items-start gap-2.5">
-        {/* Severity SVG Icon */}
-        {style.iconSvg}
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 pr-1">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${style.badge}`}>
-              {style.label}
-            </span>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500 ml-auto shrink-0 font-mono">
-              {new Date(toast.timestamp).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}
-            </span>
-          </div>
-
-          <p className="text-sm text-slate-900 font-semibold dark:text-zinc-100 leading-snug truncate" title={toast.title}>
-            {toast.title}
-          </p>
-
-          <p className="text-xs mt-0.5 text-slate-600 dark:text-zinc-400 leading-relaxed line-clamp-2">
-            {toast.desc}
-          </p>
-
-          {toast.onNavigate && (
-            <button
-              type="button"
-              onClick={() => {
-                toast.onNavigate?.();
-                handleDismiss();
-              }}
-              className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-            >
-              Lihat detail <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
-            </button>
-          )}
-        </div>
-
-        {/* Dismiss button */}
-        <button
-          type="button"
-          onClick={handleDismiss}
-          aria-label="Dismiss alert"
-          className="ml-auto p-1 opacity-70 hover:opacity-100 text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-200 rounded transition cursor-pointer"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="size-2.5 fill-current"
-            aria-hidden="true"
-            viewBox="0 0 329.269 329"
-          >
-            <path d="M194.8 164.77 323.013 36.555c8.343-8.34 8.343-21.825 0-30.164-8.34-8.34-21.825-8.34-30.164 0L164.633 134.605 36.422 6.391c-8.344-8.34-21.824-8.34-30.164 0-8.344 8.34-8.344 21.824 0 30.164l128.21 128.215L6.259 292.984c-8.344 8.34-8.344 21.825 0 30.164a21.27 21.27 0 0 0 15.082 6.25c5.46 0 10.922-2.09 15.082-6.25l128.21-128.214 128.216 128.214a21.27 21.27 0 0 0 15.082 6.25c5.46 0 10.922-2.09 15.082-6.25 8.343-8.34 8.343-21.824 0-30.164zm0 0" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Subtle bottom progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] rounded-b-xl overflow-hidden bg-slate-100 dark:bg-zinc-800/80">
-        <div
-          className={`h-full ${style.bar} opacity-70`}
-          style={{
-            animation: `toast-shrink ${duration}ms linear forwards`,
-          }}
-        />
-      </div>
-    </div>
-  );
-};
-
-// ─── Container ────────────────────────────────────────────────────────────────
 
 interface ToastContainerProps {
   toasts: ToastItem[];
   onDismiss: (id: string) => void;
 }
 
-export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => {
-  if (toasts.length === 0) return null;
+const PEEK = 10;
+const GAP = 8;
+const FOLD = 2;
+const LIFE = 6000;
+const MAX = 5;
 
-  // Strictly 1 toast visible at a time to prevent popup stacking
-  const visible = toasts.slice(0, 1);
+function severityConfig(severity: string) {
+  const s = severity?.toUpperCase?.() || '';
+  if (s === 'SUCCESS' || s === 'RESOLVED') {
+    return {
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      iconSvg: (
+        <svg className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="m16 9-5.5 5.5L8 12" />
+        </svg>
+      )
+    };
+  }
+  if (s === 'CRITICAL' || s === 'ERROR' || s === 'HIGH') {
+    return {
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+      iconSvg: (
+        <svg className="size-5 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      )
+    };
+  }
+  if (s === 'MEDIUM' || s === 'WARNING' || s === 'WARN') {
+    return {
+      dot: 'bg-amber-500',
+      badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      iconSvg: (
+        <svg className="size-5 shrink-0 text-amber-500 dark:text-amber-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      )
+    };
+  }
+  return {
+    dot: 'bg-blue-500',
+    badge: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    iconSvg: (
+      <svg className="size-5 shrink-0 text-blue-500 dark:text-blue-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+    )
+  };
+}
+
+export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incomingToasts, onDismiss }) => {
+  const [itemsList, setItemsList] = useState<ToastInternal[]>([]);
+  const [open, setOpen] = useState(false);
+
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLOListElement | null>(null);
+  const itemRefs = useRef<Record<string, HTMLElement | null>>({});
+  const flags = useRef({ pointer: false, focus: false, touched: false });
+  const clocks = useRef<Map<string, { left: number; since: number; timerId: any }>>(new Map());
+  const openRef = useRef(false);
+
+  // Sync incoming props into itemsList
+  useEffect(() => {
+    setItemsList(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      const nextItems: ToastInternal[] = [...prev];
+
+      incomingToasts.forEach(t => {
+        if (!existingIds.has(t.id)) {
+          nextItems.unshift({ ...t, closing: false });
+          // Start timer
+          clocks.current.set(t.id, { left: LIFE, since: Date.now(), timerId: 0 });
+        }
+      });
+
+      // Trim exceeding
+      const active = nextItems.filter(i => !i.closing);
+      if (active.length > MAX) {
+        const toDrop = active.slice(MAX);
+        toDrop.forEach(d => {
+          const entry = clocks.current.get(d.id);
+          if (entry?.timerId) clearTimeout(entry.timerId);
+          clocks.current.delete(d.id);
+          onDismiss(d.id);
+        });
+      }
+
+      return nextItems.filter(i => !active.slice(MAX).some(d => d.id === i.id));
+    });
+  }, [incomingToasts, onDismiss]);
+
+  const live = itemsList.filter(t => !t.closing);
+
+  // Top-anchored stack layout
+  const layout = useCallback(() => {
+    if (!listRef.current) return;
+    const els = [...listRef.current.querySelectorAll<HTMLElement>('[data-toast]:not([data-closing])')];
+    if (els.length === 0) {
+      listRef.current.style.height = '0px';
+      return;
+    }
+
+    const heights = els.map(li => {
+      const child = li.firstElementChild as HTMLElement;
+      return child ? child.offsetHeight : 64;
+    });
+    const front = heights[0] || 0; // Top-most item is newest
+
+    let y = 0;
+    for (let d = 0; d < els.length; d++) {
+      const li = els[d];
+      const h = heights[d];
+      if (openRef.current) {
+        // Expanded: cascade downwards with GAP
+        li.style.translate = `0 ${y}px`;
+        li.style.scale = '1';
+        li.style.height = `${h}px`;
+        li.style.opacity = '1';
+        li.removeAttribute('data-folded');
+        y += h + GAP;
+      } else {
+        // Folded: older peek out below newest (downward offset + peek)
+        li.style.translate = `0 ${Math.min(d, FOLD) * PEEK}px`;
+        li.style.scale = String(1 - Math.min(d, FOLD + 1) * 0.05);
+        li.style.height = `${front}px`;
+        li.style.opacity = d > FOLD ? '0' : '1';
+        li.toggleAttribute('data-folded', d > 0);
+        // z-index: top item on front, older behind
+        li.style.zIndex = String(50 - d);
+      }
+    }
+
+    listRef.current.style.height = `${
+      openRef.current ? Math.max(0, y - GAP) : front + Math.min(els.length - 1, FOLD) * PEEK
+    }px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    openRef.current = open;
+    layout();
+  });
+
+  useEffect(() => {
+    if (!listRef.current) return;
+    const sizes = new ResizeObserver(() => layout());
+    listRef.current.querySelectorAll('[data-toast]').forEach(li => {
+      if (li.firstElementChild) sizes.observe(li.firstElementChild);
+    });
+    return () => sizes.disconnect();
+  }, [itemsList, layout]);
+
+  // Timers: pause on hover/focus, resume when unhovered
+  const run = (id: string) => {
+    const c = clocks.current.get(id);
+    if (!c || openRef.current || c.timerId) return;
+    c.since = Date.now();
+    c.timerId = setTimeout(() => dismiss(id), c.left);
+  };
+
+  const hold = (id: string) => {
+    const c = clocks.current.get(id);
+    if (!c || !c.timerId) return;
+    clearTimeout(c.timerId);
+    c.timerId = 0;
+    c.left = Math.max(0, c.left - (Date.now() - c.since));
+  };
+
+  useEffect(() => {
+    clocks.current.forEach((_, id) => (open ? hold(id) : run(id)));
+  }, [open]);
+
+  useEffect(() => {
+    // Initial start for new toasts
+    clocks.current.forEach((_, id) => {
+      if (!openRef.current) run(id);
+    });
+  }, [itemsList]);
+
+  const sync = () => {
+    const f = flags.current;
+    openRef.current = f.pointer || f.focus || f.touched;
+    setOpen(openRef.current);
+  };
+
+  useEffect(() => {
+    const onDown = (event: PointerEvent) => {
+      if (!flags.current.touched || !boxRef.current || boxRef.current.contains(event.target as Node)) return;
+      flags.current.touched = false;
+      sync();
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, []);
+
+  const dismiss = (id: string) => {
+    hold(id);
+    clocks.current.delete(id);
+    setItemsList(prev => prev.map(t => (t.id === id ? { ...t, closing: true } : t)));
+    setTimeout(() => {
+      setItemsList(prev => prev.filter(t => t.id !== id));
+      onDismiss(id);
+    }, 250);
+  };
+
+  const clearAll = () => {
+    clocks.current.forEach(c => {
+      if (c.timerId) clearTimeout(c.timerId);
+    });
+    clocks.current.clear();
+    const ids = itemsList.map(t => t.id);
+    setItemsList(prev => prev.map(t => ({ ...t, closing: true })));
+    setTimeout(() => {
+      setItemsList([]);
+      ids.forEach(id => onDismiss(id));
+    }, 250);
+  };
+
+  if (itemsList.length === 0) return null;
 
   return (
-    <div
-      aria-label="Notifikasi keamanan"
-      className="fixed top-[72px] right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
+    <section
+      aria-label="Notifikasi Keamanan"
+      className="pointer-events-none fixed top-[max(1rem,env(safe-area-inset-top))] sm:top-[max(1.25rem,env(safe-area-inset-top))] inset-x-4 sm:right-[max(1.5rem,env(safe-area-inset-right))] sm:left-auto sm:w-96 z-[9999]"
     >
-      {visible.map((t) => (
-        <div key={t.id} className="pointer-events-auto">
-          <SingleToast toast={t} onDismiss={onDismiss} duration={6000} />
+      <div
+        ref={boxRef}
+        id="toast-stack-box"
+        data-expanded={open ? '' : undefined}
+        onPointerEnter={event => {
+          if (event.pointerType !== 'mouse') return;
+          flags.current.pointer = true;
+          sync();
+        }}
+        onPointerLeave={event => {
+          if (event.pointerType !== 'mouse') return;
+          flags.current.pointer = false;
+          sync();
+        }}
+        onPointerDown={event => {
+          if (event.pointerType === 'mouse') return;
+          flags.current.touched = true;
+          sync();
+        }}
+        onFocus={() => {
+          flags.current.focus = true;
+          sync();
+        }}
+        onBlur={event => {
+          if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+          flags.current.focus = false;
+          sync();
+        }}
+        className="pointer-events-auto relative w-full"
+      >
+        {/* Count and Clear bar displayed above the stack */}
+        <div className="mb-2 flex items-center justify-end gap-2">
+          <p
+            id="toast-stack-count"
+            className="inline-flex h-7 items-center rounded-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 px-2.5 text-xs font-medium whitespace-nowrap text-zinc-600 dark:text-zinc-400 tabular-nums shadow-xs"
+          >
+            {`${live.length} notifikasi`}
+          </p>
+          <button
+            type="button"
+            onClick={clearAll}
+            className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 px-2.5 text-xs font-medium whitespace-nowrap text-zinc-700 dark:text-zinc-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors shadow-xs"
+          >
+            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+            Tutup Semua
+          </button>
         </div>
-      ))}
-    </div>
+
+        {/* Stack list */}
+        <div role="status" aria-atomic="false">
+          <ol
+            ref={listRef}
+            id="toast-stack-list"
+            className="relative transition-[height] duration-300 ease-out"
+          >
+            {itemsList.map(toast => {
+              const style = severityConfig(toast.severity);
+              return (
+                <li
+                  key={toast.id}
+                  ref={el => {
+                    itemRefs.current[toast.id] = el;
+                  }}
+                  data-toast=""
+                  data-closing={toast.closing ? '' : undefined}
+                  onKeyDown={event => event.key === 'Escape' && dismiss(toast.id)}
+                  className="group/toast absolute inset-x-0 top-0 origin-top rounded-2xl bg-white dark:bg-[#0c0c0e] border border-zinc-200/90 dark:border-zinc-800 shadow-xl dark:shadow-[0_12px_36px_rgba(0,0,0,0.85)] transition-[translate,scale,height,opacity] duration-300 ease-out data-closing:opacity-0 data-folded:overflow-hidden select-none"
+                >
+                  <div className="flex items-start gap-3 p-3.5 transition-opacity duration-200 group-data-folded/toast:opacity-0">
+                    {style.iconSvg}
+
+                    <div className="min-w-0 grow basis-40 text-sm break-words">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${style.badge}`}>
+                          {toast.severity}
+                        </span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono ml-auto">
+                          {new Date(toast.timestamp).toLocaleTimeString('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </span>
+                      </div>
+
+                      <p className="font-semibold text-zinc-900 dark:text-zinc-100 text-[13px] leading-snug truncate">
+                        {toast.title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2">
+                        {toast.desc}
+                      </p>
+
+                      {toast.onNavigate && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            toast.onNavigate?.();
+                            dismiss(toast.id);
+                          }}
+                          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                        >
+                          Lihat detail <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      data-dismiss=""
+                      onClick={() => dismiss(toast.id)}
+                      aria-label="Close notification"
+                      className="-mt-1 -mr-1 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                    >
+                      <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
+    </section>
   );
 };

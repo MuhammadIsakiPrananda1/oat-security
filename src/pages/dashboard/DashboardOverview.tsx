@@ -1459,10 +1459,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                         ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs'
                         : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                     }`}
-                    title="Grafik Garis Cloudflare"
+                    title="Cloudflare Line Chart"
                   >
                     <ChartLineIcon className="w-3.5 h-3.5" />
-                    <span>Grafik</span>
+                    <span>Chart</span>
                   </button>
                   <button
                     type="button"
@@ -1472,10 +1472,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                         ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-2xs'
                         : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                     }`}
-                    title="Tabel Rekapitulasi"
+                    title="Recap Table"
                   >
                     <TableIcon className="w-3.5 h-3.5" />
-                    <span>Tabel</span>
+                    <span>Table</span>
                   </button>
                 </div>
 
@@ -1534,7 +1534,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             </div>
 
             <div className="pt-3 flex-1 min-h-0">
-              {trafficHistory.length === 0 ? (
+              {trafficHistory.length === 0 && trafficRows.length === 0 ? (
                 <div className="h-48 flex flex-col items-center justify-center text-center p-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
                   <div className="text-zinc-600 dark:text-zinc-300 font-semibold uppercase tracking-wider text-xs">
                     MONITORING ACTIVE — AWAITING TELEMETRY
@@ -1547,7 +1547,18 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                 /* Cloudflare Inspired Crisp SVG Timeseries Chart */
                 (() => {
                   // Timeline points in chronological order (oldest to newest, left to right)
-                  const chronological = [...trafficRows].reverse();
+                  const rawChronological = trafficRows.length > 0
+                    ? [...trafficRows].reverse()
+                    : Array.from({ length: 60 }).map((_, i) => {
+                        const d = new Date(Date.now() - (59 - i) * 60_000);
+                        return {
+                          hour: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+                          allowed: 0,
+                          blocked: 0,
+                          suspicious: 0
+                        };
+                      });
+                  const chronological = rawChronological;
                   const totalPoints = chronological.length;
 
                   // Compute max value for vertical scaling
@@ -1871,7 +1882,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             </div>
 
             <div className="pt-3 flex flex-wrap items-center justify-between text-[11px] text-zinc-400 border-t border-zinc-200/80 dark:border-zinc-800 mt-3">
-              <span>Arahkan kursor ke grafik untuk inspeksi titik menit. Klik legenda untuk menyembunyikan/menampilkan seri. Rekap diperbarui otomatis.</span>
+              <span>Hover over graph for minute inspection. Click legend to show/hide series. Recap refreshes automatically.</span>
               <button
                 onClick={() => onNavigate('analytics')}
                 className="text-blue-600 dark:text-blue-400 hover:underline font-medium inline-flex items-center gap-1 cursor-pointer"

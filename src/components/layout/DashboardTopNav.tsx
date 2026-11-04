@@ -308,9 +308,9 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
         setNotifications(prev => [newNotif, ...prev.slice(0, 99)]);
 
-        // ── Single Toast pop-up with burst throttle: only 1 popup every 6s ───
+        // ── Single Toast pop-up with burst throttle: stack up to 5 toasts ───
         const nowMs = Date.now();
-        if (nowMs - lastGlobalToastTime >= 6000) {
+        if (nowMs - lastGlobalToastTime >= 1500) {
           lastGlobalToastTime = nowMs;
           const toastItem: ToastItem = {
             id: newNotif.id,
@@ -320,7 +320,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             timestamp: newNotif.timestamp,
             onNavigate: () => onNavigateView(newNotif.view),
           };
-          setToasts([toastItem]); // Strictly 1 toast visible
+          setToasts(prev => [toastItem, ...prev.slice(0, 4)]);
           playNotificationSound();
         }
       },
@@ -362,7 +362,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         severity: detail.severity || 'Medium',
         timestamp: detail.timestamp || Date.now(),
       };
-      setToasts([toast]);
+      setToasts(prev => [toast, ...prev.slice(0, 4)]);
     };
     window.addEventListener('oat:notify', handler);
     return () => window.removeEventListener('oat:notify', handler);

@@ -687,6 +687,10 @@ export const EN_TO_ID: Record<string, string> = {
     'Weighted risk model': 'Model risiko berbobot',
     'TRAFFIC & THREAT ANALYTICS': 'ANALITIK LALU LINTAS & ANCAMAN',
     'Ingress Traffic Recap (Per Minute)': 'Rekap Lalu Lintas Masuk (Per Menit)',
+    'Hover over graph for minute inspection. Click legend to show/hide series. Recap refreshes automatically.':
+        'Arahkan kursor ke grafik untuk inspeksi titik menit. Klik legenda untuk menyembunyikan/menampilkan seri. Rekap diperbarui otomatis.',
+    'Arahkan kursor ke grafik untuk inspeksi titik menit. Klik legenda untuk menyembunyikan/menampilkan seri. Rekap diperbarui otomatis.':
+        'Hover over graph for minute inspection. Click legend to show/hide series. Recap refreshes automatically.',
     'Showing the latest stored telemetry. Live updates resume automatically when a monitored endpoint agent reconnects.':
         'Menampilkan telemetri tersimpan terbaru. Pembaruan langsung pulih otomatis saat agen endpoint yang dipantau terhubung kembali.',
     'MONITORING ACTIVE — AWAITING TELEMETRY': 'PEMANTAUAN AKTIF — MENUNGGU TELEMETRI',
