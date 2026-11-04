@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faTable, 
@@ -10,6 +10,7 @@ import {
   faGaugeHigh, 
   faCircleCheck 
 } from '@fortawesome/free-solid-svg-icons';
+import { securityApi } from '../../services/api';
 
 interface WebSecurityMetric {
   id: string;
@@ -101,45 +102,99 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
   const [metrics, setMetrics] = useState<WebSecurityMetric[]>(INITIAL_METRICS);
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
-  // Real-time micro updates without requiring any user page reload
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMetrics(prev =>
-        prev.map(m => {
-          if (m.id === 'ddos_syn') return m;
-          const delta = (Math.random() - 0.49) * 0.4;
-          const nextVal = Math.min(99.9, Math.max(80, Number((m.numericVal + delta).toFixed(1))));
-          const nextHistory = [...m.history.slice(1), nextVal];
-          return {
-            ...m,
-            numericVal: nextVal,
-            value: `${nextVal}%`,
-            history: nextHistory
-          };
-        })
-      );
-    }, 4500);
-
-    return () => clearInterval(interval);
+  // Real-time synchronization directly from the server analytics API
+  const syncServerAnalytics = useCallback(async () => {
+    try {
+      const res = await securityApi.getAnalytics();
+      const sec = res?.webSecurity;
+      if (sec) {
+        setMetrics([
+          {
+            id: 'https_tls',
+            name: 'HTTPS / TLS 1.3 Ingress',
+            category: 'Encryption & Protocol',
+            value: `${sec.httpsRate}%`,
+            numericVal: sec.httpsRate,
+            history: sec.history?.https || INITIAL_METRICS[0].history,
+            subtext: 'Encrypted via ECDSA / TLS 1.3 edge cipher',
+            status: 'optimal',
+            targetLabel: 'Threshold > 98%'
+          },
+          {
+            id: 'waf_mitigation',
+            name: 'WAF Rule Precision',
+            category: 'Perimeter Defense',
+            value: `${sec.wafPrecision}%`,
+            numericVal: sec.wafPrecision,
+            history: sec.history?.waf || INITIAL_METRICS[1].history,
+            subtext: 'Zero false-positive rate on verified OWASP rules',
+            status: 'optimal',
+            targetLabel: 'Accuracy target 99.5%'
+          },
+          {
+            id: 'bot_challenge',
+            name: 'Bot & Automated Scanner Pass',
+            category: 'Bot Management',
+            value: `${sec.botPassRate}%`,
+            numericVal: sec.botPassRate,
+            history: sec.history?.bot || INITIAL_METRICS[2].history,
+            subtext: 'Malicious scraper requests deflected by edge heuristics',
+            status: 'optimal',
+            targetLabel: 'Challenge deflection rate'
+          },
+          {
+            id: 'origin_shield',
+            name: 'Origin Shield & Cache Offload',
+            category: 'Edge Caching',
+            value: `${sec.originShieldRate}%`,
+            numericVal: sec.originShieldRate,
+            history: sec.history?.origin || INITIAL_METRICS[3].history,
+            subtext: 'Static assets & sanitized requests served at edge',
+            status: 'optimal',
+            targetLabel: 'Target offload > 85%'
+          },
+          {
+            id: 'ddos_syn',
+            name: 'DDoS SYN Flood Resistance',
+            category: 'L3 / L4 Protection',
+            value: `${sec.ddosResistance}%`,
+            numericVal: sec.ddosResistance,
+            history: sec.history?.ddos || INITIAL_METRICS[4].history,
+            subtext: 'Hardware nftables syncookie filter engaged',
+            status: 'optimal',
+            targetLabel: 'Zero origin congestion'
+          },
+          {
+            id: 'http2_quic',
+            name: 'HTTP/2 & HTTP/3 (QUIC)',
+            category: 'Transport Performance',
+            value: `${sec.http2Rate}%`,
+            numericVal: sec.http2Rate,
+            history: sec.history?.http2 || INITIAL_METRICS[5].history,
+            subtext: 'Multiplexed zero-RTT connection handshake',
+            status: 'optimal',
+            targetLabel: 'Multiplexing ratio'
+          }
+        ]);
+      }
+    } catch {
+      // Graceful fallback to initial values if server is momentarily unreachable
+    }
   }, []);
 
-  // Micro-adjustment on live security event updates
+  // Initial load and periodic server polling every 5 seconds (real-time stream)
+  useEffect(() => {
+    syncServerAnalytics();
+    const interval = setInterval(syncServerAnalytics, 5000);
+    return () => clearInterval(interval);
+  }, [syncServerAnalytics]);
+
+  // Immediate sync when incoming security events trigger liveEventTick
   useEffect(() => {
     if (liveEventTick > 0) {
-      setMetrics(prev =>
-        prev.map(m => {
-          if (m.id === 'ddos_syn') return m;
-          const jitter = (Math.random() - 0.5) * 0.2;
-          const nextVal = Math.min(99.9, Math.max(80, Number((m.numericVal + jitter).toFixed(1))));
-          return {
-            ...m,
-            numericVal: nextVal,
-            value: `${nextVal}%`
-          };
-        })
-      );
+      syncServerAnalytics();
     }
-  }, [liveEventTick]);
+  }, [liveEventTick, syncServerAnalytics]);
 
   // Sparkline builder for percentage curves
   const renderSparkline = (history: number[]) => {

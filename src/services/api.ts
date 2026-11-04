@@ -1090,6 +1090,22 @@ export const securityApi = {
       responseCodes: Array<{ code: string; count: number; pct: string; color: string }>;
       actions: Array<{ action: string; count: number; pct: string; color: string }>;
       timeline: Array<{ hour: string; total: number; blocked: number }>;
+      webSecurity?: {
+        httpsRate: number;
+        wafPrecision: number;
+        botPassRate: number;
+        originShieldRate: number;
+        ddosResistance: number;
+        http2Rate: number;
+        history: {
+          https: number[];
+          waf: number[];
+          bot: number[];
+          origin: number[];
+          ddos: number[];
+          http2: number[];
+        };
+      };
     }>('/api/analytics');
   },
 
