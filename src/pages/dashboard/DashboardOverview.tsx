@@ -174,57 +174,51 @@ const EnhancedKpiCard: React.FC<EnhancedKpiCardProps> = ({
 }) => {
   const isDanger = accent === 'danger';
   const baseClass = [
-    'relative group text-left p-4 pl-5 rounded-xl border min-h-[144px] flex flex-col justify-between transition-all w-full shadow-2xs',
+    'group text-left p-3.5 sm:p-4 rounded-xl border flex flex-col justify-between transition-all w-full select-none',
     isDanger
-      ? 'border-rose-200 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20'
-      : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/60',
-    onClick ? 'cursor-pointer hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-xs' : ''
+      ? 'border-rose-500/25 dark:border-rose-900/40 bg-rose-500/[0.03] dark:bg-rose-950/15'
+      : 'border-zinc-200/80 dark:border-zinc-800/90 bg-white dark:bg-[#0c0c0e] hover:border-zinc-300 dark:hover:border-zinc-700/80',
+    onClick ? 'cursor-pointer hover:shadow-sm' : ''
   ].join(' ');
 
   const content = (
-    <>
-      {/* Left accent bar */}
-      <span
-        className={`absolute left-0 top-3.5 bottom-3.5 w-1 rounded-r-full transition-colors ${isDanger ? 'bg-rose-500' : 'bg-zinc-200 dark:bg-zinc-700 group-hover:bg-blue-600 dark:group-hover:bg-blue-400'
-          }`}
-      />
-
-      {/* Header: Label + Icon */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="text-[11px] font-semibold tracking-wider text-zinc-500 dark:text-zinc-400 uppercase leading-tight">
+    <div className="flex flex-col justify-between h-full min-h-[118px]">
+      {/* Top row: Label + Status Dot/Icon */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-semibold truncate">
           {label}
         </span>
-        <span className={`shrink-0 transition-colors ${iconColors[iconColor]}`}>
+        <span className={`shrink-0 opacity-80 group-hover:opacity-100 transition-opacity ${iconColors[iconColor]}`}>
           {icon}
         </span>
       </div>
 
-      {/* Main Value */}
-      <div className="min-w-0 mb-2">
-        <div className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${isDanger ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
+      {/* Middle row: Big Metric Value */}
+      <div className="my-1.5 min-w-0">
+        <div className={`text-2xl sm:text-[28px] font-bold font-mono tracking-tight leading-none ${isDanger ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-900 dark:text-zinc-100'}`}>
           {value}
         </div>
       </div>
 
-      {/* Trend Indicator */}
-      {trend && (
-        <div className="flex items-center gap-1.5 mb-2">
-          <FontAwesomeIcon
-            icon={trend.positive ? faArrowTrendUp : faTriangleExclamation}
-            className={`text-[10px] ${trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}
-          />
-          <span className={`text-[11px] font-mono font-medium ${trend.positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-            {trend.value}
-          </span>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{trend.label}</span>
-        </div>
-      )}
-
-      {/* Meta */}
-      <div className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400 truncate">
-        {meta}
+      {/* Bottom row: Trend badge + Meta info */}
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/70 text-[11px] font-mono">
+        {trend ? (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className={`font-semibold ${trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}>
+              {trend.value}
+            </span>
+            <span className="text-zinc-400 dark:text-zinc-500 text-[10px]">
+              {trend.label}
+            </span>
+          </div>
+        ) : (
+          <span className="text-zinc-400 dark:text-zinc-500 text-[10px]">—</span>
+        )}
+        <span className="text-zinc-400 dark:text-zinc-500 text-[11px] truncate max-w-[50%] text-right font-sans">
+          {meta}
+        </span>
       </div>
-    </>
+    </div>
   );
 
   if (onClick) {

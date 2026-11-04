@@ -49,7 +49,6 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
-  const [recentlyHit, setRecentlyHit] = useState<Set<string>>(new Set());
   const [tooltip, setTooltip] = useState<TooltipState>({
     visible: false,
     x: 0,
@@ -59,20 +58,6 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
   });
 
   const activeList = useMemo(() => data ?? [], [data]);
-
-  // Flash animation: track codes that just got a new hit
-  useEffect(() => {
-    const newCodes = new Set<string>();
-    activeList.forEach(item => {
-      if (item.lastAttackTime && Date.now() - item.lastAttackTime < 3000) {
-        newCodes.add(item.code.toUpperCase());
-      }
-    });
-    if (newCodes.size === 0) return;
-    setRecentlyHit(newCodes);
-    const t = setTimeout(() => setRecentlyHit(new Set()), 2000);
-    return () => clearTimeout(t);
-  }, [activeList]);
 
   // Lookup map: ISO2 code -> CountryTrafficData
   const countryMap = useMemo(() => {
@@ -165,26 +150,21 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               const isHovered = hoveredCode === item.id;
               const hasTraffic = item.count > 0;
               const isTop = item.count === maxVal && hasTraffic;
-              const isFlashing = recentlyHit.has(item.id);
 
               let fill = '#27272a'; // zinc-800 default
               let stroke = '#18181b'; // zinc-900 border
               let strokeWidth = 0.5;
 
-              if (isFlashing) {
-                fill = '#ef4444'; // rose-500 attack flash
-                stroke = '#fca5a5';
-                strokeWidth = 1.2;
-              } else if (hasTraffic) {
+              if (hasTraffic) {
                 fill = isTop ? '#3b82f6' : '#2563eb';
                 stroke = '#60a5fa';
                 strokeWidth = 0.8;
               }
 
               if (isHovered) {
-                fill = isFlashing ? '#f87171' : '#3b82f6';
-                stroke = isFlashing ? '#fecaca' : '#93c5fd';
-                strokeWidth = 1.4;
+                fill = '#3b82f6';
+                stroke = '#93c5fd';
+                strokeWidth = 1.2;
               }
 
               return (
