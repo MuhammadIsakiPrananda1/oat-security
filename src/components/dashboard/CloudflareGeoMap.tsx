@@ -41,12 +41,27 @@ interface TooltipState {
 const WIDTH = 960;
 const HEIGHT = 460;
 
+function useDarkMode(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    obs.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+  return isDark;
+}
+
 /**
  * Natural Earth Admin 0 World Map powered by D3.js
  * Crisp vector SVG, instant native hit-testing, zoom & pan, with direct hover over all countries and micro-states.
  */
 export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const isDark = useDarkMode();
 
   const [hoveredCode, setHoveredCode] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({
@@ -125,16 +140,21 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
     setTooltip(prev => ({ ...prev, visible: false }));
   };
 
+  // Theme-aware fill colors
+  const baseFill   = isDark ? '#27272a' : '#d4d4d8'; // zinc-800 / zinc-300
+  const baseStroke = isDark ? '#18181b' : '#a1a1aa'; // zinc-900 / zinc-400
+  const trafficFill      = isDark ? '#2563eb' : '#3b82f6';
+  const trafficFillTop   = isDark ? '#3b82f6' : '#2563eb';
+  const trafficStroke    = isDark ? '#60a5fa' : '#93c5fd';
+  const hoverFill        = isDark ? '#3b82f6' : '#2563eb';
+  const hoverStroke      = isDark ? '#93c5fd' : '#60a5fa';
+
   return (
-    <div className="relative rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-[#0c0c0e] text-zinc-100 p-4 sm:p-5 shadow-2xs select-none">
-      <div className="pb-3 border-b border-zinc-800/80 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold tracking-tight text-zinc-200">
+    <div className="relative rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-[#0c0c0e] text-zinc-800 dark:text-zinc-100 p-4 sm:p-5 shadow-2xs select-none">
+      <div className="pb-3 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-200">
           Global Traffic Map
         </h3>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-mono text-emerald-400 tracking-widest">LIVE</span>
-        </div>
       </div>
 
       <div className="relative mt-2 w-full h-[320px] sm:h-[400px] lg:h-[440px] overflow-hidden rounded-lg">
@@ -151,19 +171,19 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               const hasTraffic = item.count > 0;
               const isTop = item.count === maxVal && hasTraffic;
 
-              let fill = '#27272a'; // zinc-800 default
-              let stroke = '#18181b'; // zinc-900 border
+              let fill   = baseFill;
+              let stroke = baseStroke;
               let strokeWidth = 0.5;
 
               if (hasTraffic) {
-                fill = isTop ? '#3b82f6' : '#2563eb';
-                stroke = '#60a5fa';
+                fill = isTop ? trafficFillTop : trafficFill;
+                stroke = trafficStroke;
                 strokeWidth = 0.8;
               }
 
               if (isHovered) {
-                fill = '#3b82f6';
-                stroke = '#93c5fd';
+                fill = hoverFill;
+                stroke = hoverStroke;
                 strokeWidth = 1.2;
               }
 
@@ -194,23 +214,23 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
               transform: 'translate(-50%, -100%)'
             }}
           >
-            <div className="px-3 py-2 rounded-xl bg-zinc-950/95 border border-zinc-700/80 shadow-2xl backdrop-blur-md min-w-[140px] space-y-1">
-              <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 pb-1">
-                <span className="font-bold text-white text-xs leading-tight">
+            <div className="px-3 py-2 rounded-xl bg-white/95 dark:bg-zinc-950/95 border border-zinc-200 dark:border-zinc-700/80 shadow-2xl backdrop-blur-md min-w-[140px] space-y-1">
+              <div className="flex items-center justify-between gap-2 border-b border-zinc-200 dark:border-zinc-800/80 pb-1">
+                <span className="font-bold text-zinc-900 dark:text-white text-xs leading-tight">
                   {tooltip.countryName}
                 </span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-300">
                   {hoveredCode}
                 </span>
               </div>
               <div className="text-[11px] font-mono">
                 {tooltip.count > 0 ? (
-                  <div className="flex items-center justify-between text-blue-400 font-medium">
+                  <div className="flex items-center justify-between text-blue-500 dark:text-blue-400 font-medium">
                     <span>Requests</span>
                     <span>{tooltip.count.toLocaleString()}</span>
                   </div>
                 ) : (
-                  <span className="text-zinc-500">0 requests</span>
+                  <span className="text-zinc-400 dark:text-zinc-500">0 requests</span>
                 )}
               </div>
             </div>
