@@ -160,7 +160,7 @@ export function navGroupsForRole(_isSuperAdmin: boolean): NavGroup[] {
 // --- Width management ---
 export const SIDEBAR_WIDTH_DEFAULT = 252;
 export const SIDEBAR_WIDTH_MIN = 220;
-export const SIDEBAR_WIDTH_MAX = 320;
+export const SIDEBAR_WIDTH_MAX = 380;
 const WIDTH_STORAGE_KEY = 'oat-sidebar-width';
 
 // Icon-only rail width (collapsed state, like the reference)
@@ -168,7 +168,13 @@ const RAIL_WIDTH = 72;
 const RAIL_STORAGE_KEY = 'oat-sidebar-rail';
 
 function clampWidth(value: number) {
-  return Math.min(SIDEBAR_WIDTH_MAX, Math.max(SIDEBAR_WIDTH_MIN, Math.round(value)));
+  const maxAllowed = typeof window !== 'undefined' && window.innerWidth < 1024
+    ? Math.min(SIDEBAR_WIDTH_MAX, Math.floor(window.innerWidth * 0.9))
+    : SIDEBAR_WIDTH_MAX;
+  const minAllowed = typeof window !== 'undefined' && window.innerWidth < 1024
+    ? 200
+    : SIDEBAR_WIDTH_MIN;
+  return Math.min(maxAllowed, Math.max(minAllowed, Math.round(value)));
 }
 
 export function useSidebarWidth(): [number, (next: number) => void] {
@@ -470,11 +476,11 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [railCollapsed, railFlyout]);
 
-  // Rail resize handlers (pure drag to resize width, no close/toggle)
+  // Rail resize handlers (pure drag to resize width, desktop & mobile touch support)
   const dragRef = useRef<{ startX: number; startWidth: number; moved: boolean } | null>(null);
 
   const handleRailPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
     event.preventDefault();
     dragRef.current = { startX: event.clientX, startWidth: width, moved: false };
     document.body.dataset.sidebarResizing = 'true';
@@ -559,8 +565,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         ref={asideRef}
         data-slot="sidebar-container"
         style={{ width: `${railActive ? RAIL_WIDTH : width}px` }}
-
-        className={`relative m-3 shrink-0 flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100 select-none shadow-xs transition-all duration-200 h-[calc(100%-1.5rem)] max-lg:fixed max-lg:top-0 max-lg:bottom-0 max-lg:left-0 max-lg:m-0 max-lg:h-full max-lg:w-72 max-lg:max-w-[85vw] max-lg:rounded-r-2xl max-lg:rounded-l-none max-lg:z-50 max-lg:shadow-2xl ${mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'}`}
+        className={`relative m-3 shrink-0 flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100 select-none shadow-xs transition-all duration-200 h-[calc(100%-1.5rem)] max-lg:fixed max-lg:top-0 max-lg:bottom-0 max-lg:left-0 max-lg:m-0 max-lg:h-full max-lg:max-w-[88vw] max-lg:rounded-r-2xl max-lg:rounded-l-none max-lg:z-50 max-lg:shadow-2xl ${mobileOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'}`}
       >
         {/* Collapse / expand toggle */}
         <button
@@ -677,7 +682,6 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                             <button
                               key={item.id}
                               type="button"
-
                               onClick={() => {
                                 onSelectView(item.id);
                                 if (onMobileClose) onMobileClose();
@@ -838,14 +842,16 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </footer>
         )}
 
-        {/* Resize rail on right edge */}
+        {/* Resize rail on right edge (desktop & mobile) */}
         {!railActive && (
           <div
             onPointerDown={handleRailPointerDown}
             onDoubleClick={() => onWidthChange(SIDEBAR_WIDTH_DEFAULT)}
-            className="max-lg:hidden absolute inset-y-3 -right-1 w-2 cursor-col-resize rounded-full transition-colors hover:bg-blue-500/30 z-30"
+            className="absolute inset-y-0 -right-1.5 w-3.5 cursor-col-resize rounded-full transition-colors hover:bg-blue-500/30 active:bg-blue-500/40 z-30 touch-none flex items-center justify-center group/resizer"
             title="Drag to resize width"
-          />
+          >
+            <div className="w-0.5 h-8 rounded-full bg-zinc-300 dark:bg-zinc-700 group-hover/resizer:bg-blue-500 transition-colors max-lg:block hidden" />
+          </div>
         )}
       </aside>
 
