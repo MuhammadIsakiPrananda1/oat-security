@@ -5,8 +5,20 @@
  */
 export type LocalIpClass = 'SYS' | 'LAN' | null;
 
+export function extractIpOnly(raw?: string): string {
+  let s = String(raw || '').trim();
+  if (!s) return '0.0.0.0';
+  if (s.includes(': ') && !s.includes('::')) {
+    const after = s.split(': ').pop()?.trim();
+    if (after) s = after;
+  } else if (/^[a-zA-Z0-9_-]+:\s*[0-9.]+/.test(s)) {
+    s = s.replace(/^[a-zA-Z0-9_-]+:\s*/, '').trim();
+  }
+  return s;
+}
+
 export function classifyLocalIp(ip?: string): LocalIpClass {
-  const raw = String(ip || '').trim().toLowerCase();
+  const raw = extractIpOnly(ip).toLowerCase();
   if (!raw) return 'SYS';
   if (raw === '0.0.0.0' || raw === '::' || raw === '127.0.0.1' || raw === '::1') return 'SYS';
 

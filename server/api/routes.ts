@@ -48,6 +48,18 @@ import {
 
 export const apiRouter = Router();
 
+function cleanIpOnly(raw?: string): string {
+  let s = String(raw || '').trim();
+  if (!s) return '0.0.0.0';
+  if (s.includes(': ') && !s.includes('::')) {
+    const after = s.split(': ').pop()?.trim();
+    if (after) s = after;
+  } else if (/^[a-zA-Z0-9_-]+:\s*[0-9.]+/.test(s)) {
+    s = s.replace(/^[a-zA-Z0-9_-]+:\s*/, '').trim();
+  }
+  return s;
+}
+
 // Application connectivity health probe helper
 function probeApplicationHealth(domain: string, port: number = 443, timeoutMs: number = 1800, originIp?: string): Promise<{ status: 'ONLINE' | 'DEGRADED' | 'OFFLINE'; latencyMs: number }> {
   return new Promise((resolve) => {
@@ -732,12 +744,13 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
   `).all(orgId) as any[];
 
   const recentEvents = rawRecent.map(r => {
-    const geo = lookupIpLocation(r.source_ip);
+    const cleanIp = cleanIpOnly(r.source_ip);
+    const geo = lookupIpLocation(cleanIp);
     return {
       id: r.id,
       timestamp: r.timestamp,
       source: r.source,
-      sourceIp: r.source_ip || '0.0.0.0',
+      sourceIp: cleanIp,
       sourceCountry: geo.country,
       sourceCountryCode: geo.code,
       destination: r.destination_ip || '10.240.10.1',
@@ -2162,14 +2175,15 @@ const handleGetSecurityEvents = (req: AuthenticatedRequest, res: Response) => {
   const rows = db.prepare(query).all(...params) as any[];
 
   const events = rows.map(r => {
-    const geo = lookupIpLocation(r.source_ip);
+    const cleanIp = cleanIpOnly(r.source_ip);
+    const geo = lookupIpLocation(cleanIp);
     const meta = r.metadata ? JSON.parse(r.metadata) : undefined;
     const fullLogMessage = meta?.rawLog || meta?.logMessage || r.payload_snippet || r.threat_name;
     return {
       id: r.id,
       timestamp: r.timestamp,
       source: r.source,
-      sourceIp: r.source_ip || '0.0.0.0',
+      sourceIp: cleanIp,
       sourceCountry: geo.country,
       sourceCountryCode: geo.code,
       destination: r.destination_ip || '10.240.10.1',

@@ -810,35 +810,27 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               </div>
             </div>
 
-            {/* Light / Dark segmented control */}
-            <div className="flex items-center gap-1 p-1 rounded-full bg-zinc-100 dark:bg-zinc-800/60">
-              <button
-                type="button"
-                onClick={() => setThemeMode('light')}
-                title="Light Mode"
-                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-[11px] transition-all cursor-pointer ${
-                  !isDarkActive
-                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-semibold border border-zinc-200/80 dark:border-zinc-600 shadow-2xs'
-                    : 'text-zinc-500 dark:text-zinc-400 font-medium hover:text-zinc-700 dark:hover:text-zinc-200'
-                }`}
-              >
-                <FontAwesomeIcon icon={faSun} className="text-[10px]" />
-                <span>Light</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setThemeMode('dark')}
-                title="Dark Mode"
-                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-[11px] transition-all cursor-pointer ${
-                  isDarkActive
-                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 font-semibold border border-zinc-200/80 dark:border-zinc-600 shadow-2xs'
-                    : 'text-zinc-500 dark:text-zinc-400 font-medium hover:text-zinc-700 dark:hover:text-zinc-200'
-                }`}
-              >
-                <FontAwesomeIcon icon={faMoon} className="text-[10px]" />
-                <span>Dark</span>
-              </button>
-            </div>
+            {/* Light / Dark switch (Default 24px style) */}
+            <label className="flex cursor-pointer items-center justify-between rounded-xl border border-zinc-200/80 bg-zinc-50/70 p-2 text-xs font-medium text-neutral-950 has-disabled:cursor-not-allowed dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-neutral-50">
+              <span className="flex items-center gap-2">
+                <FontAwesomeIcon icon={isDarkActive ? faMoon : faSun} className="text-xs text-zinc-500 dark:text-zinc-400" />
+                <span className="text-[12px] text-zinc-700 dark:text-zinc-300">
+                  {isDarkActive ? 'Dark Mode' : 'Light Mode'}
+                </span>
+              </span>
+              <span className="group/sw relative inline-grid shrink-0 grid-cols-1 items-center has-disabled:opacity-50">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  name="dark-mode"
+                  aria-label="Toggle dark mode"
+                  checked={isDarkActive}
+                  onChange={(e) => setThemeMode(e.target.checked ? 'dark' : 'light')}
+                  className="col-start-1 row-start-1 h-6 w-10 cursor-pointer appearance-none rounded-full bg-neutral-200 ring-1 ring-neutral-400/80 transition-colors duration-150 ring-inset checked:bg-zinc-950 checked:ring-0 hover:bg-neutral-300 checked:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed motion-reduce:transition-none dark:bg-neutral-800 dark:ring-neutral-600 dark:checked:bg-zinc-50 dark:hover:bg-neutral-700 dark:checked:hover:bg-zinc-200 dark:focus-visible:outline-zinc-50"
+                />
+                <span className="pointer-events-none col-start-1 row-start-1 size-4 translate-x-1 rounded-full bg-neutral-500 group-has-checked/sw:size-5 group-has-checked/sw:translate-x-[18px] group-has-checked/sw:bg-white group-has-checked/sw:shadow-md motion-safe:transition-transform motion-safe:duration-150 dark:bg-neutral-400 dark:group-has-checked/sw:bg-neutral-950" />
+              </span>
+            </label>
           </footer>
         )}
 

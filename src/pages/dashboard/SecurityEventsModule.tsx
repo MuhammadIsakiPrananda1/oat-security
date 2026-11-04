@@ -1341,8 +1341,20 @@ export const SecurityEventsModule: React.FC = () => {
                 <dl className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white divide-y divide-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/20 dark:divide-zinc-800/70">
                   <div className="grid grid-cols-[112px_1fr] gap-3 px-3.5 py-2.5 sm:grid-cols-[136px_1fr]">
                     <dt className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Threat</dt>
-                    <dd className="break-words text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                      {selectedEvent.threat}
+                    <dd className="min-w-0 break-all text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                      {(() => {
+                        const raw = selectedEvent.threat || 'Security Incident';
+                        if (raw.startsWith('{') && raw.includes('"MESSAGE"')) {
+                          try {
+                            const parsed = JSON.parse(raw);
+                            return parsed.MESSAGE || parsed.message || raw;
+                          } catch {
+                            const m = raw.match(/"MESSAGE"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+                            if (m?.[1]) return m[1].replace(/\\"/g, '"');
+                          }
+                        }
+                        return raw;
+                      })()}
                     </dd>
                   </div>
                   <div className="grid grid-cols-[112px_1fr] gap-3 px-3.5 py-2.5 sm:grid-cols-[136px_1fr]">

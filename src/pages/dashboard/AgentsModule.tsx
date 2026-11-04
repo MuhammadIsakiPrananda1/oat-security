@@ -1268,38 +1268,43 @@ export const AgentsModule: React.FC = () => {
         const hasAssigned = !!newlyEnrolledAgent.applicationDomain;
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm dark:bg-black/85" onClick={() => setNewlyEnrolledAgent(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            <div className="fixed inset-0 bg-zinc-950/60 backdrop-blur-xs transition-opacity dark:bg-black/80" onClick={() => setNewlyEnrolledAgent(null)} />
             <div
               role="dialog"
               aria-modal="true"
-              className="relative w-full max-w-md overflow-hidden rounded-3xl border border-emerald-500/30 bg-white p-6 shadow-2xl dark:border-emerald-500/20 dark:bg-[#0c0c0e]"
+              className="relative w-full max-w-lg my-auto overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-xl dark:border-zinc-800 dark:bg-[#0c0c0e]"
             >
-              <div className="text-center">
-                <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
-                  <ShieldCheck className="h-7 w-7 text-emerald-500" />
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              {/* Header / Icon */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
+                  <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                  <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
                   </span>
                 </div>
-                <h3 className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-                  Endpoint Connected Successfully!
-                </h3>
-                <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  Host <strong className="font-semibold text-zinc-800 dark:text-zinc-200">{newlyEnrolledAgent.hostname || newlyEnrolledAgent.name}</strong> ({newlyEnrolledAgent.ip || 'Local host'}) is now active.
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <h3 className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                      Endpoint Connected Successfully!
+                    </h3>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed break-all">
+                    Host <strong className="font-semibold text-zinc-800 dark:text-zinc-200">{newlyEnrolledAgent.hostname || newlyEnrolledAgent.name}</strong> ({newlyEnrolledAgent.ip || 'Local host'}) is now active.
+                  </p>
+                </div>
               </div>
 
-              {/* Website Selection */}
-              <div className="mt-5 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-3.5 text-left dark:border-zinc-800 dark:bg-zinc-900/40">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              {/* Website Selection Card */}
+              <div className="mt-5 rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-3.5 text-left dark:border-zinc-800/80 dark:bg-zinc-900/40">
+                <div className="flex items-center justify-between mb-2.5 gap-2">
+                  <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-emerald-500" />
                     Select Target Website to Monitor
                   </span>
                   {hasAssigned && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                       <Check className="h-3 w-3" /> Selected
                     </span>
                   )}
@@ -1310,7 +1315,7 @@ export const AgentsModule: React.FC = () => {
                     Scanning web servers on host... You can also bind a website later in endpoint details.
                   </p>
                 ) : (
-                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5 custom-scrollbar">
                     {sites.map(site => {
                       const isSelected = newlyEnrolledAgent.applicationDomain === site.domain;
                       const known = applications.find(app => app.domain === site.domain);
@@ -1320,23 +1325,25 @@ export const AgentsModule: React.FC = () => {
                           type="button"
                           disabled={savingWebsite || isSelected}
                           onClick={() => assignWebsite(newlyEnrolledAgent.id, known?.id, site)}
-                          className={`w-full flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition cursor-pointer disabled:cursor-default ${
+                          className={`w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition cursor-pointer disabled:cursor-default ${
                             isSelected
                               ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                              : 'border-zinc-200 bg-white hover:border-zinc-300 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700'
+                              : 'border-zinc-200/80 bg-white hover:border-zinc-300 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-700'
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
+                          <div className="flex items-center gap-2 truncate min-w-0">
                             <Globe className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                            <span className="font-mono font-semibold truncate">{site.domain}</span>
-                            <span className="text-[10px] text-zinc-400">{site.serverType || `${site.protocol}:${site.port}`}</span>
+                            <span className="font-mono font-semibold truncate text-zinc-800 dark:text-zinc-200">{site.domain}</span>
+                            <span className="text-[10px] text-zinc-400 shrink-0 font-mono">
+                              {site.serverType ? `${site.serverType} • ${site.port}` : `${site.protocol}:${site.port}`}
+                            </span>
                           </div>
                           {isSelected ? (
-                            <span className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                               <Check className="h-3.5 w-3.5" /> Active
                             </span>
                           ) : (
-                            <span className="shrink-0 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">
+                            <span className="shrink-0 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
                               Select Website
                             </span>
                           )}
@@ -1346,13 +1353,21 @@ export const AgentsModule: React.FC = () => {
                   </div>
                 )}
                 {!hasAssigned && (
-                  <p className="mt-2 text-[10px] text-amber-600 dark:text-amber-400 leading-tight">
+                  <p className="mt-2.5 text-[11px] text-amber-600 dark:text-amber-400/90 leading-tight">
                     * An endpoint requires a target website so WAF, firewall, and traffic logs operate accurately.
                   </p>
                 )}
               </div>
 
-              <div className="mt-5 flex gap-2.5">
+              {/* Action buttons */}
+              <div className="mt-5 flex flex-col-reverse sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewlyEnrolledAgent(null)}
+                  className="w-full sm:w-auto px-4 h-9 rounded-xl border border-zinc-200/80 dark:border-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition cursor-pointer"
+                >
+                  Close
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -1360,16 +1375,9 @@ export const AgentsModule: React.FC = () => {
                     setNewlyEnrolledAgent(null);
                     openAgentDetail(target);
                   }}
-                  className="flex-1 h-9.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white transition cursor-pointer shadow-sm"
+                  className="flex-1 h-9 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 transition cursor-pointer shadow-xs"
                 >
                   {hasAssigned ? 'Open Details & Metrics' : 'Configure in Details'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewlyEnrolledAgent(null)}
-                  className="px-4 h-9.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition cursor-pointer"
-                >
-                  Close
                 </button>
               </div>
             </div>

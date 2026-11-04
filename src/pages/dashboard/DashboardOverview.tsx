@@ -2282,7 +2282,21 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                 <dl className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900/20">
                   <div className="grid grid-cols-[112px_1fr] gap-3 border-b border-zinc-100 px-3.5 py-2.5 dark:border-zinc-800/70 sm:grid-cols-[136px_1fr]">
                     <dt className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Threat</dt>
-                    <dd className="break-words text-[11px] font-medium text-rose-600 dark:text-rose-400">{selectedEvent.threat || 'Security Signature Match'}</dd>
+                    <dd className="min-w-0 break-all text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                      {(() => {
+                        const raw = selectedEvent.threat || 'Security Signature Match';
+                        if (raw.startsWith('{') && raw.includes('"MESSAGE"')) {
+                          try {
+                            const parsed = JSON.parse(raw);
+                            return parsed.MESSAGE || parsed.message || raw;
+                          } catch {
+                            const m = raw.match(/"MESSAGE"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+                            if (m?.[1]) return m[1].replace(/\\"/g, '"');
+                          }
+                        }
+                        return raw;
+                      })()}
+                    </dd>
                   </div>
                   <div className="grid grid-cols-[112px_1fr] gap-3 px-3.5 py-2.5 sm:grid-cols-[136px_1fr]">
                     <dt className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">What happened</dt>

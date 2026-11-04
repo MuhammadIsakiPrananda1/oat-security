@@ -9,7 +9,7 @@ import { StatusBadge } from '../../components/common/StatusBadge';
 import { BackendOfflineBanner } from '../../components/common/BackendOfflineBanner';
 import { useAuth } from '../../context/AuthContext';
 import { formatDateTime, formatTime } from '../../utils/dateTime';
-import { classifyLocalIp, getCountryName } from '../../utils/ip';
+import { classifyLocalIp, getCountryName, extractIpOnly } from '../../utils/ip';
 import { CountryFlag } from '../../components/common/CountryFlag';
 import { getLanguage } from '../../i18n/translator';
 
@@ -1117,7 +1117,7 @@ export const LiveTrafficModule: React.FC = () => {
                           {isInternal ? (
                             <span className="text-zinc-400 dark:text-zinc-500 italic">0.0.0.0 (Internal)</span>
                           ) : (
-                            <span className="font-medium text-zinc-700 dark:text-zinc-300">{evt.sourceIp}</span>
+                            <span className="font-medium text-zinc-700 dark:text-zinc-300">{extractIpOnly(evt.sourceIp)}</span>
                           )}
                         </td>
                         <td className="border-b border-zinc-100 px-2 py-2.5 text-center dark:border-zinc-800/60">
@@ -1449,7 +1449,9 @@ export const LiveTrafficModule: React.FC = () => {
                 <dl className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900/20">
                   <div className="grid grid-cols-[112px_1fr] gap-3 border-b border-zinc-100 px-3.5 py-2.5 dark:border-zinc-800/70 sm:grid-cols-[136px_1fr]">
                     <dt className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Threat</dt>
-                    <dd className="break-words text-[11px] font-medium text-rose-600 dark:text-rose-400">{selectedEvent.threat}</dd>
+                    <dd className="min-w-0 break-all text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                      {extractReadableMessage(selectedEvent.threat) || selectedEvent.threat || 'Security Signature Match'}
+                    </dd>
                   </div>
                   <div className="grid grid-cols-[112px_1fr] gap-3 px-3.5 py-2.5 sm:grid-cols-[136px_1fr]">
                     <dt className="font-mono text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">What happened</dt>

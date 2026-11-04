@@ -667,20 +667,25 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
           <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
             {/* Segmented WAF control bar — state is shown with dots, not colored pill chips */}
             <div className="inline-flex items-center rounded-xl border border-zinc-200/80 bg-white p-1 shadow-2xs dark:border-zinc-800 dark:bg-[#0c0c0e]">
-              {/* Engine toggle */}
-              <button
-                type="button"
-                onClick={handleToggleEngine}
-                disabled={isSyncingServer}
-                title={engineEnabled ? 'WAF engine is active — click to disable it' : 'WAF engine is disabled — click to enable it'}
-                className="inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-zinc-600 transition hover:bg-zinc-100 cursor-pointer disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              >
-                <span className={`h-2 w-2 shrink-0 rounded-full transition-colors ${engineEnabled ? 'bg-emerald-500 shadow-[0_0_5px] shadow-emerald-500/50' : 'bg-zinc-300 dark:bg-zinc-600'}`} />
+              {/* Engine switch (Default 24px style) */}
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-950 has-disabled:cursor-not-allowed dark:text-neutral-50 px-2 py-1">
+                <span className="group/sw relative inline-grid shrink-0 grid-cols-1 items-center has-disabled:opacity-50">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    aria-label="WAF Engine"
+                    checked={engineEnabled}
+                    onChange={handleToggleEngine}
+                    disabled={isSyncingServer}
+                    className="col-start-1 row-start-1 h-6 w-10 cursor-pointer appearance-none rounded-full bg-neutral-100 ring-1 ring-neutral-500 transition-colors duration-150 ring-inset checked:bg-zinc-950 checked:ring-0 hover:bg-neutral-200 checked:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:hover:bg-neutral-100 checked:disabled:hover:bg-zinc-950 motion-reduce:transition-none dark:bg-neutral-800 dark:checked:bg-zinc-50 dark:hover:bg-neutral-700 dark:checked:hover:bg-zinc-200 dark:focus-visible:outline-zinc-50 dark:disabled:hover:bg-neutral-800 dark:checked:disabled:hover:bg-zinc-50"
+                  />
+                  <span className="pointer-events-none col-start-1 row-start-1 size-4 translate-x-1 rounded-full bg-neutral-500 group-has-checked/sw:size-5 group-has-checked/sw:translate-x-[18px] group-has-checked/sw:bg-white group-has-checked/sw:shadow-md motion-safe:transition-transform motion-safe:duration-150 dark:bg-neutral-400 dark:group-has-checked/sw:bg-neutral-950" />
+                </span>
                 <span className="text-zinc-500 dark:text-zinc-400">Engine</span>
                 <span className={`font-mono font-semibold ${engineEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
                   {engineEnabled ? 'ON' : 'OFF'}
                 </span>
-              </button>
+              </label>
 
               <span className="mx-0.5 h-5 w-px bg-zinc-200 dark:bg-zinc-800" />
 

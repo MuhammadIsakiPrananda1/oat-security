@@ -82,6 +82,13 @@ function locationFor(code: string): IpLocation {
 function normalizeIp(raw?: string): string {
   let ip = String(raw || '').trim();
   if (!ip) return '';
+  // If interface prefix exists like "enp0s3: 10.10.10.3", strip interface name
+  if (ip.includes(': ') && !ip.includes('::')) {
+    const afterColon = ip.split(': ').pop()?.trim();
+    if (afterColon) ip = afterColon;
+  } else if (/^[a-zA-Z0-9_-]+:\s*[0-9.]+/.test(ip)) {
+    ip = ip.replace(/^[a-zA-Z0-9_-]+:\s*/, '').trim();
+  }
   if (ip.startsWith('[') && ip.endsWith(']')) ip = ip.slice(1, -1);
   const zoneIndex = ip.indexOf('%');
   if (zoneIndex >= 0) ip = ip.slice(0, zoneIndex);
