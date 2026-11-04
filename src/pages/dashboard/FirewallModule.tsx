@@ -10,7 +10,8 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Check,
-  Terminal
+  Terminal,
+  Scan
 } from 'lucide-react';
 import { securityApi, globalRealtimeClient, normalizeRealtimeSecurityEvent } from '../../services/api';
 import { FirewallRule, FirewallDeployment, NetworkInventory, NatRule } from '../../types';
@@ -36,6 +37,7 @@ export const FirewallModule: React.FC = () => {
   const [showLogModal, setShowLogModal] = useState(false);
   const [drawerTab, setDrawerTab] = useState<'logs' | 'diagnostics'>('logs');
   const [firewallAuditLogs, setFirewallAuditLogs] = useState<any[]>([]);
+  const [detectingServer, setDetectingServer] = useState(false);
 
   // Security Zone modal & CRUD state
   const [showAddZoneModal, setShowAddZoneModal] = useState(false);
@@ -441,6 +443,23 @@ export const FirewallModule: React.FC = () => {
     }
   };
 
+  const handleDetectServerFirewall = async () => {
+    setDetectingServer(true);
+    try {
+      const res = await securityApi.detectServerFirewall();
+      await fetchFirewall();
+      if (res?.importedCount && res.importedCount > 0) {
+        alert(`Berhasil mendeteksi & mengimpor ${res.importedCount} aturan firewall dari server.`);
+      } else {
+        alert('Deteksi selesai. Tidak ada aturan firewall server baru yang ditemukan.');
+      }
+    } catch {
+      alert('Gagal mendeteksi aturan firewall server.');
+    } finally {
+      setDetectingServer(false);
+    }
+  };
+
   if (isBackendOffline) {
     return <BackendOfflineBanner onRetry={fetchFirewall} />;
   }
@@ -517,6 +536,16 @@ export const FirewallModule: React.FC = () => {
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              type="button"
+              onClick={handleDetectServerFirewall}
+              disabled={detectingServer}
+              title="Deteksi aturan firewall aktif di server host (nftables / ufw / iptables)"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 disabled:opacity-50"
+            >
+              <Scan className={`w-3.5 h-3.5 text-zinc-500 ${detectingServer ? 'animate-spin' : ''}`} />
+              {detectingServer ? 'Mendeteksi...' : 'Sync Server'}
             </button>
             <button
               type="button"

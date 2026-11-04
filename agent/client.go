@@ -214,6 +214,7 @@ type enrollRequest struct {
 	OS            string            `json:"os"`
 	Arch          string            `json:"arch"`
 	Version       string            `json:"version"`
+	IP            string            `json:"ip,omitempty"`
 	Labels        map[string]string `json:"labels,omitempty"`
 	DetectedSites []DetectedSite    `json:"detectedSites,omitempty"`
 }
@@ -252,6 +253,7 @@ func enrollAgent(cfg *Config, token, name string) (*EnrollResponse, error) {
 		OS:            runtime.GOOS,
 		Arch:          runtime.GOARCH,
 		Version:       version,
+		IP:            hostIP(),
 		Labels:        cfg.Labels,
 		DetectedSites: detectedSites,
 	}

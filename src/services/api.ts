@@ -439,6 +439,17 @@ export const securityApi = {
     });
   },
 
+  async detectServerFirewall() {
+    return request<{
+      success: boolean;
+      importedCount: number;
+      rules: FirewallRule[];
+      deployment?: FirewallDeployment;
+    }>('/api/firewall/detect-server', {
+      method: 'POST'
+    });
+  },
+
   async getNatRules() {
     return request<{ rules: NatRule[] }>('/api/firewall/nat');
   },

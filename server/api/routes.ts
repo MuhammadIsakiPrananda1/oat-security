@@ -19,6 +19,7 @@ import { lookupIpLocation } from '../services/geoIpService';
 import { SecurityEventBus } from '../utils/eventBus';
 import { WafDeploymentService, normalizeWafPattern, serializeWafRule } from '../services/serverWafSync';
 import { FirewallDeploymentService } from '../services/firewallDeploy';
+import { detectAndSyncServerFirewall } from '../services/firewallDetector';
 import {
   addSignature as addMalwareSignature,
   getScan as getMalwareScan,
@@ -1204,7 +1205,16 @@ apiRouter.get('/firewall', (req: AuthenticatedRequest, res) => {
   const blockedConnections = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND source = 'firewall' AND action IN ('DENY', 'DROP', 'BLOCK')").get(orgId) as { count: number };
   const allowedConnections = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND source = 'firewall' AND action IN ('ALLOW', 'ALLOWED')").get(orgId) as { count: number };
 
-  const rules = db.prepare('SELECT * FROM firewall_rules WHERE organization_id = ? ORDER BY priority ASC').all(orgId);
+  let rules = db.prepare('SELECT * FROM firewall_rules WHERE organization_id = ? ORDER BY priority ASC').all(orgId);
+  // Auto-detect server firewall rules if no custom rules exist yet
+  if (rules.length === 0 && orgId) {
+    try {
+      const detectResult = detectAndSyncServerFirewall(orgId);
+      if (detectResult.importedCount > 0) {
+        rules = detectResult.rules;
+      }
+    } catch {}
+  }
   const networkZones = listNetworks(orgId);
   const deployment = FirewallDeploymentService.getDeployment(orgId);
 
@@ -1300,6 +1310,29 @@ apiRouter.post('/firewall/rules', (req: AuthenticatedRequest, res) => {
   const deployment = FirewallDeploymentService.publish(orgId, 'rule created');
 
   res.json({ success: true, rule: { id, priority, source, destination, port, protocol, action, enabled: 1 }, deployment });
+});
+
+apiRouter.post('/firewall/detect-server', (req: AuthenticatedRequest, res) => {
+  const orgId = req.organizationId || '';
+  try {
+    const result = detectAndSyncServerFirewall(orgId);
+    let deployment = null;
+    if (result.importedCount > 0) {
+      deployment = FirewallDeploymentService.publish(orgId, `imported ${result.importedCount} server rules`);
+      SecurityEventBus.publish('rule.updated', { ruleType: 'Firewall', action: 'server_rules_detected' }, orgId);
+    } else {
+      deployment = FirewallDeploymentService.getDeployment(orgId);
+    }
+
+    res.json({
+      success: true,
+      importedCount: result.importedCount,
+      rules: result.rules,
+      deployment
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to detect server firewall' });
+  }
 });
 
 apiRouter.post('/firewall/rules/toggle', (req: AuthenticatedRequest, res) => {

@@ -257,7 +257,7 @@ CREATE TABLE IF NOT EXISTS agents (
   os VARCHAR(64),
   arch VARCHAR(64),
   version VARCHAR(64),
-  ip VARCHAR(64),
+  ip VARCHAR(255),
   status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
   public_key TEXT NOT NULL,
   labels TEXT,

@@ -939,7 +939,19 @@ export const AgentsModule: React.FC = () => {
                       {osLabel(agent.os)}
                       <span className="ml-1 text-[10px] text-zinc-400 dark:text-zinc-500">{agent.arch}</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">{agent.ip || '—'}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                      {agent.ip ? (
+                        <div className="flex flex-col gap-0.5">
+                          {agent.ip.split(',').map((part, idx) => (
+                            <span key={idx} className="whitespace-nowrap">
+                              {part.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-zinc-500 dark:text-zinc-400" title={formatDate(agent.lastSeen)}>
                       {formatRelative(agent.lastSeen)}
                     </td>
@@ -1673,12 +1685,23 @@ export const AgentsModule: React.FC = () => {
 };
 
 function DetailItem({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  const isMulti = value && value.includes(',');
   return (
     <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{label}</div>
-      <div className={`mt-0.5 truncate text-zinc-700 dark:text-zinc-200 ${mono ? 'font-mono text-[11px]' : 'text-xs'}`} title={value}>
-        {value || '—'}
-      </div>
+      {isMulti ? (
+        <div className={`mt-0.5 flex flex-col gap-0.5 text-zinc-700 dark:text-zinc-200 ${mono ? 'font-mono text-[11px]' : 'text-xs'}`}>
+          {value.split(',').map((part, idx) => (
+            <span key={idx} className="truncate" title={part.trim()}>
+              {part.trim()}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className={`mt-0.5 truncate text-zinc-700 dark:text-zinc-200 ${mono ? 'font-mono text-[11px]' : 'text-xs'}`} title={value}>
+          {value || '—'}
+        </div>
+      )}
     </div>
   );
 }

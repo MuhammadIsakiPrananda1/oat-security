@@ -17,6 +17,7 @@ import { WafDeploymentService } from '../services/serverWafSync';
 import { FirewallDeploymentService } from '../services/firewallDeploy';
 import { pendingActionsForAgent, recordActionResult, scanAndRecord } from '../services/malwareScanner';
 import { broadcastEndpointStatus } from '../services/endpointConnectionService';
+import { getServerNetworkAddresses } from './networkUtils';
 
 export const agentRouter = Router();
 
@@ -534,6 +535,9 @@ agentRouter.post('/enroll', (req: AuthenticatedRequest, res: Response) => {
     autoCreatedApps.push(...syncDetectedApplications(organizationId, detectedSites, ip, agentId));
   }
 
+  const reportedIp = cleanString(body.ip || body.agent?.ip, 255);
+  const resolvedIp = reportedIp || (ip.startsWith('127.') || ip === '::1' || !ip ? getServerNetworkAddresses() : ip);
+
   try {
     insertAgent({
       agentId,
@@ -544,7 +548,7 @@ agentRouter.post('/enroll', (req: AuthenticatedRequest, res: Response) => {
       os,
       arch,
       version: version || AGENT_VERSION,
-      ip,
+      ip: resolvedIp,
       publicKey,
       labels,
       detectedSites,
@@ -677,6 +681,9 @@ agentRouter.post('/bootstrap', (req: AuthenticatedRequest, res: Response) => {
     // the choice is a single click.
     const application: ApplicationRef | null = null;
 
+    const reportedIp = cleanString(body.ip || body.agent?.ip, 255);
+    const resolvedIp = reportedIp || (ip.startsWith('127.') || ip === '::1' || !ip ? getServerNetworkAddresses() : ip);
+
     insertAgent({
       agentId,
       organizationId: organization.id,
@@ -686,7 +693,7 @@ agentRouter.post('/bootstrap', (req: AuthenticatedRequest, res: Response) => {
       os,
       arch,
       version: version || AGENT_VERSION,
-      ip,
+      ip: resolvedIp,
       publicKey,
       labels,
       detectedSites,
@@ -778,6 +785,9 @@ agentRouter.post('/heartbeat', (req: AuthenticatedRequest, res: Response) => {
   );
   const hasNewSite = detectedSites.some(site => !previousDomains.has(site.domain));
 
+  const reportedIp = cleanString(info.ip || metrics.ip, 255);
+  const resolvedIp = reportedIp || (agent.ip && !agent.ip.startsWith('127.') ? agent.ip : getServerNetworkAddresses());
+
   db.prepare(`
     UPDATE agents SET
       hostname = ?, os = ?, arch = ?, version = ?,
@@ -792,7 +802,7 @@ agentRouter.post('/heartbeat', (req: AuthenticatedRequest, res: Response) => {
     os,
     arch,
     version,
-    net.isIP(clientIp(req)) ? clientIp(req) : null,
+    resolvedIp || null,
     safeJson({
       ...storedInfo,
       hostname,
