@@ -78,30 +78,30 @@ export const SUPERADMIN_NAV_GROUPS: SuperAdminNavGroup[] = [
     ]
   },
   {
-    group: 'Global Operations',
+    group: 'Security & Telemetry',
     icon: createFaIcon(faTableColumns),
     items: [
       { id: 'overview', label: 'Cross-Tenant Overview', icon: createFaIcon(faTableColumns) },
-      { id: 'traffic', label: 'Global Live Traffic', icon: createFaIcon(faTowerBroadcast), live: true },
-      { id: 'events', label: 'Security Events', icon: createFaIcon(faBolt) }
+      { id: 'events', label: 'Security Events', icon: createFaIcon(faBolt) },
+      { id: 'traffic', label: 'Live Ingress Stream', icon: createFaIcon(faTowerBroadcast), live: true }
     ]
   },
   {
-    group: 'Fleet & Infrastructure',
+    group: 'Fleet & Engines',
     icon: createFaIcon(faServer),
     items: [
-      { id: 'fleet', label: 'Agents & Servers', icon: createFaIcon(faServer) },
-      { id: 'engines', label: 'Engine Health & Services', icon: createFaIcon(faMicrochip) },
-      { id: 'waf-cluster', label: 'WAF Cluster Monitoring', icon: createFaIcon(faShieldVirus) }
+      { id: 'fleet', label: 'Agent Fleet & Servers', icon: createFaIcon(faServer) },
+      { id: 'engines', label: 'Engine Health Diagnostics', icon: createFaIcon(faMicrochip) },
+      { id: 'waf-cluster', label: 'WAF Cluster Topology', icon: createFaIcon(faShieldVirus) }
     ]
   },
   {
-    group: 'Platform & Engine',
+    group: 'Platform Ops',
     icon: createFaIcon(faSliders),
     items: [
-      { id: 'engine-config', label: 'Engine Configuration', icon: createFaIcon(faSliders) },
-      { id: 'telemetry', label: 'Platform Telemetry', icon: createFaIcon(faWaveSquare) },
-      { id: 'maintenance', label: 'Maintenance & Backup', icon: createFaIcon(faCloudArrowUp) }
+      { id: 'engine-config', label: 'Daemon Configuration', icon: createFaIcon(faSliders) },
+      { id: 'telemetry', label: 'Platform Telemetry Bus', icon: createFaIcon(faWaveSquare) },
+      { id: 'maintenance', label: 'Maintenance & Backups', icon: createFaIcon(faCloudArrowUp) }
     ]
   }
 ];
