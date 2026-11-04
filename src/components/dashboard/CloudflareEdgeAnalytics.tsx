@@ -1,136 +1,157 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBolt, faTable, faChartLine, faCircleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faTable, 
+  faChartLine, 
+  faLock, 
+  faShieldHalved, 
+  faRobot, 
+  faServer, 
+  faGaugeHigh, 
+  faCircleCheck 
+} from '@fortawesome/free-solid-svg-icons';
 
-interface RegionMetric {
+interface WebSecurityMetric {
   id: string;
   name: string;
-  code: string;
-  p95: number;
-  history: number[]; // 14 days values
-  status: 'normal' | 'above';
-  target: number;
+  category: string;
+  value: string;
+  numericVal: number;
+  history: number[]; // 14 data points
+  subtext: string;
+  status: 'optimal' | 'warning';
+  targetLabel: string;
 }
 
 interface CloudflareEdgeAnalyticsProps {
-  /** Optional live request counter or events to trigger real-time micro-fluctuations */
+  /** Realtime tick count from security event updates */
   liveEventTick?: number;
 }
 
-const REGIONS_INITIAL: RegionMetric[] = [
+const INITIAL_METRICS: WebSecurityMetric[] = [
   {
-    id: 'fra1',
-    name: 'Frankfurt',
-    code: 'fra1',
-    p95: 145,
-    history: [142, 144, 146, 145, 143, 144, 145, 146, 144, 143, 145, 146, 144, 145],
-    status: 'normal',
-    target: 250
+    id: 'https_tls',
+    name: 'HTTPS / TLS 1.3 Ingress',
+    category: 'Encryption & Protocol',
+    value: '99.4%',
+    numericVal: 99.4,
+    history: [98.8, 99.0, 99.1, 99.3, 99.2, 99.4, 99.5, 99.3, 99.4, 99.5, 99.4, 99.5, 99.3, 99.4],
+    subtext: 'Encrypted via ECDSA / TLS 1.3 edge cipher',
+    status: 'optimal',
+    targetLabel: 'Threshold > 98%'
   },
   {
-    id: 'iad1',
-    name: 'Virginia',
-    code: 'iad1',
-    p95: 134,
-    history: [136, 135, 134, 133, 135, 134, 138, 136, 135, 133, 134, 135, 133, 134],
-    status: 'normal',
-    target: 250
+    id: 'waf_mitigation',
+    name: 'WAF Rule Precision',
+    category: 'Perimeter Defense',
+    value: '99.8%',
+    numericVal: 99.8,
+    history: [99.5, 99.6, 99.7, 99.8, 99.7, 99.9, 99.8, 99.7, 99.8, 99.9, 99.8, 99.7, 99.8, 99.8],
+    subtext: 'Zero false-positive rate on verified OWASP rules',
+    status: 'optimal',
+    targetLabel: 'Accuracy target 99.5%'
   },
   {
-    id: 'pdx1',
-    name: 'Oregon',
-    code: 'pdx1',
-    p95: 151,
-    history: [148, 150, 153, 151, 149, 152, 150, 151, 153, 149, 150, 152, 150, 151],
-    status: 'normal',
-    target: 250
+    id: 'bot_challenge',
+    name: 'Bot & Automated Scanner Pass',
+    category: 'Bot Management',
+    value: '94.2%',
+    numericVal: 94.2,
+    history: [91.2, 92.4, 93.0, 93.8, 94.5, 93.9, 94.1, 94.0, 93.8, 94.5, 94.1, 94.4, 93.9, 94.2],
+    subtext: 'Malicious scraper requests deflected by edge heuristics',
+    status: 'optimal',
+    targetLabel: 'Challenge deflection rate'
   },
   {
-    id: 'gru1',
-    name: 'São Paulo',
-    code: 'gru1',
-    p95: 238,
-    history: [228, 230, 232, 235, 231, 234, 239, 237, 236, 238, 235, 239, 237, 238],
-    status: 'normal',
-    target: 250
+    id: 'origin_shield',
+    name: 'Origin Shield & Cache Offload',
+    category: 'Edge Caching',
+    value: '88.6%',
+    numericVal: 88.6,
+    history: [85.0, 86.2, 87.1, 88.0, 87.5, 88.3, 89.0, 88.2, 88.5, 89.1, 88.4, 88.8, 88.3, 88.6],
+    subtext: 'Static assets & sanitized requests served at edge',
+    status: 'optimal',
+    targetLabel: 'Target offload > 85%'
   },
   {
-    id: 'sin1',
-    name: 'Singapore',
-    code: 'sin1',
-    p95: 279,
-    history: [242, 246, 252, 258, 263, 268, 271, 274, 276, 275, 277, 278, 276, 279],
-    status: 'above',
-    target: 250
+    id: 'ddos_syn',
+    name: 'DDoS SYN Flood Resistance',
+    category: 'L3 / L4 Protection',
+    value: '100%',
+    numericVal: 100,
+    history: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
+    subtext: 'Hardware nftables syncookie filter engaged',
+    status: 'optimal',
+    targetLabel: 'Zero origin congestion'
   },
   {
-    id: 'syd1',
-    name: 'Sydney',
-    code: 'syd1',
-    p95: 187,
-    history: [184, 186, 185, 183, 185, 186, 188, 187, 185, 186, 188, 187, 186, 187],
-    status: 'normal',
-    target: 250
+    id: 'http2_quic',
+    name: 'HTTP/2 & HTTP/3 (QUIC)',
+    category: 'Transport Performance',
+    value: '91.8%',
+    numericVal: 91.8,
+    history: [88.5, 89.2, 90.0, 90.8, 91.2, 91.5, 92.0, 91.4, 91.7, 92.1, 91.6, 92.0, 91.5, 91.8],
+    subtext: 'Multiplexed zero-RTT connection handshake',
+    status: 'optimal',
+    targetLabel: 'Multiplexing ratio'
   }
 ];
 
 export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = ({ liveEventTick = 0 }) => {
-  const [regions, setRegions] = useState<RegionMetric[]>(REGIONS_INITIAL);
+  const [metrics, setMetrics] = useState<WebSecurityMetric[]>(INITIAL_METRICS);
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
-  const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
 
-  // Real-time auto-sync simulation: smoothly updates edge metrics every 5 seconds
-  // without needing any user page reload
+  // Real-time micro updates without requiring any user page reload
   useEffect(() => {
-    const updateMetrics = () => {
-      setRegions(prev =>
-        prev.map(r => {
-          // Micro variation around genuine p95 (+/- 2ms)
-          const delta = (Math.random() - 0.48) * 3;
-          const nextVal = Math.max(80, Math.min(300, Math.round(r.p95 + delta)));
-          const nextHistory = [...r.history.slice(1), nextVal];
+    const interval = setInterval(() => {
+      setMetrics(prev =>
+        prev.map(m => {
+          if (m.id === 'ddos_syn') return m;
+          const delta = (Math.random() - 0.49) * 0.4;
+          const nextVal = Math.min(99.9, Math.max(80, Number((m.numericVal + delta).toFixed(1))));
+          const nextHistory = [...m.history.slice(1), nextVal];
           return {
-            ...r,
-            p95: nextVal,
-            history: nextHistory,
-            status: nextVal > r.target ? 'above' : 'normal'
+            ...m,
+            numericVal: nextVal,
+            value: `${nextVal}%`,
+            history: nextHistory
           };
         })
       );
-      setLastSyncTime(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    };
+    }, 4500);
 
-    const timer = setInterval(updateMetrics, 4000);
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, []);
 
-  // Also react to liveEventTick when incoming realtime telemetry events arrive
+  // Micro-adjustment on live security event updates
   useEffect(() => {
     if (liveEventTick > 0) {
-      setRegions(prev =>
-        prev.map(r => {
-          const shift = (Math.random() - 0.5) * 2;
-          const nextVal = Math.round(Math.max(80, Math.min(300, r.p95 + shift)));
+      setMetrics(prev =>
+        prev.map(m => {
+          if (m.id === 'ddos_syn') return m;
+          const jitter = (Math.random() - 0.5) * 0.2;
+          const nextVal = Math.min(99.9, Math.max(80, Number((m.numericVal + jitter).toFixed(1))));
           return {
-            ...r,
-            p95: nextVal,
-            status: nextVal > r.target ? 'above' : 'normal'
+            ...m,
+            numericVal: nextVal,
+            value: `${nextVal}%`
           };
         })
       );
     }
   }, [liveEventTick]);
 
-  // Sparkline builder for 0 to 300ms chart
-  const renderSparkline = (history: number[], isAbove: boolean) => {
+  // Sparkline builder for percentage curves
+  const renderSparkline = (history: number[]) => {
     const width = 260;
-    const height = 48;
-    const max = 300;
-    const targetY = height - (250 / max) * height;
+    const height = 46;
+    const min = Math.min(...history) - 1.5;
+    const max = Math.max(...history) + 1.5;
+    const range = Math.max(0.1, max - min);
 
     const points = history.map((val, i) => {
       const x = (i / (history.length - 1)) * width;
-      const y = height - (Math.min(max, val) / max) * height;
+      const y = height - ((val - min) / range) * height;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
 
@@ -138,24 +159,19 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
     const areaPath = `${linePath} L ${width},${height} L 0,${height} Z`;
 
     return (
-      <svg className="w-full h-12 overflow-visible select-none" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-        {/* Target 250ms threshold dashed line */}
-        <line
-          x1={0}
-          y1={targetY}
-          x2={width}
-          y2={targetY}
-          stroke="currentColor"
-          strokeDasharray="3 3"
-          strokeWidth="1"
-          className="text-zinc-400 dark:text-zinc-600"
-        />
+      <svg className="w-full h-11 overflow-visible select-none" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="secAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.0" />
+          </linearGradient>
+        </defs>
 
         {/* Shaded Area */}
         <path
           d={areaPath}
-          fill="currentColor"
-          className={isAbove ? 'text-amber-500/10 dark:text-amber-400/10' : 'text-zinc-200/70 dark:text-zinc-800/60'}
+          fill="url(#secAreaGrad)"
+          className="text-emerald-500/30 dark:text-emerald-400/20"
         />
 
         {/* Continuous Line */}
@@ -163,62 +179,40 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
           d={linePath}
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className={isAbove ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-800 dark:text-zinc-200'}
+          className="text-emerald-600 dark:text-emerald-400"
         />
       </svg>
     );
   };
 
-  const aboveRegion = regions.find(r => r.status === 'above');
+  const metricIcons: Record<string, any> = {
+    https_tls: faLock,
+    waf_mitigation: faShieldHalved,
+    bot_challenge: faRobot,
+    origin_shield: faServer,
+    ddos_syn: faShieldHalved,
+    http2_quic: faGaugeHigh
+  };
 
   return (
     <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-[#0c0c0e]">
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b border-zinc-200/80 dark:border-zinc-800">
         <div>
-          <div className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-            <span>API latency by region, p95, last 14 days</span>
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold lowercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              live sync
-            </span>
+          <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+            Web Security &amp; Protocol Analytics
           </div>
 
           <h3 className="mt-1 text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            {aboveRegion ? (
-              <span>
-                <strong className="text-zinc-900 dark:text-white font-extrabold">{aboveRegion.name}</strong> is currently above the latency target
-              </span>
-            ) : (
-              <span>All global edge regions are within optimal latency targets</span>
-            )}
+            Edge Security, TLS Encryption &amp; Ingress Protection
           </h3>
 
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
-            {aboveRegion ? (
-              <>
-                Its p95 has exceeded 250 ms across recent ingestion windows, currently peaking at{' '}
-                <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">{aboveRegion.p95} ms</strong>. Other edge points remain fully compliant under the perimeter SLA.
-              </>
-            ) : (
-              'Global edge routing, DNS resolution, and WAF inspection times are healthy across all regional ingress clusters.'
-            )}
+            Real-time telemetry measuring edge HTTPS encryption rates, automated bot mitigation, WAF rule accuracy, and transport protocol offload across protected websites.
           </p>
-
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
-            <span className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-              <span className="h-0.5 w-3 bg-zinc-800 dark:bg-zinc-200 inline-block" />
-              p95 latency
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-0.5 w-3 border-t border-dashed border-zinc-400 inline-block" />
-              250 ms target
-            </span>
-            <span>Every chart runs from 0 to 300 ms</span>
-          </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -233,43 +227,48 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
         </div>
       </div>
 
-      {/* Grid of Regional Cards */}
+      {/* Grid of Security Cards */}
       {viewMode === 'chart' ? (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {regions.map(r => {
-            const isAbove = r.status === 'above';
+          {metrics.map(m => {
+            const icon = metricIcons[m.id] || faLock;
             return (
               <div
-                key={r.id}
+                key={m.id}
                 className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-4 transition hover:border-zinc-300 dark:border-zinc-800/80 dark:bg-zinc-900/30 dark:hover:border-zinc-700 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      {r.name} <span className="text-zinc-400 font-mono text-[11px]">{r.code}</span>
+                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                      <FontAwesomeIcon icon={icon} className="text-emerald-600 dark:text-emerald-400 text-xs" />
+                      {m.name}
                     </span>
 
-                    {isAbove && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/25">
-                        <FontAwesomeIcon icon={faCircleExclamation} className="text-[9px]" />
-                        Above target
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                      <FontAwesomeIcon icon={faCircleCheck} className="text-[9px]" />
+                      OPTIMAL
+                    </span>
                   </div>
 
-                  <div className="mt-2 flex items-baseline justify-between">
+                  <div className="mt-2.5 flex items-baseline justify-between">
                     <div className="text-2xl font-bold font-mono tracking-tight text-zinc-900 dark:text-zinc-100">
-                      {r.p95} <span className="text-xs font-normal text-zinc-400">ms</span>
+                      {m.value}
                     </div>
-                    <span className="text-[11px] font-mono text-zinc-400">Live</span>
+                    <span className="text-[11px] font-mono text-zinc-400 dark:text-zinc-500">
+                      {m.targetLabel}
+                    </span>
                   </div>
+
+                  <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
+                    {m.subtext}
+                  </p>
                 </div>
 
                 <div className="mt-3 pt-2">
-                  {renderSparkline(r.history, isAbove)}
+                  {renderSparkline(m.history)}
                   <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-zinc-400">
-                    <span>14d ago</span>
-                    <span>Today</span>
+                    <span>14-day trend</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Healthy</span>
                   </div>
                 </div>
               </div>
@@ -282,29 +281,23 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
           <table className="w-full text-left text-xs font-mono">
             <thead>
               <tr className="border-b border-zinc-200/80 bg-zinc-50 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
-                <th className="py-2.5 px-3.5 font-semibold">REGION</th>
-                <th className="py-2.5 px-3.5 font-semibold">POP CODE</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right">P95 LATENCY</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right">TARGET</th>
+                <th className="py-2.5 px-3.5 font-semibold">SECURITY METRIC</th>
+                <th className="py-2.5 px-3.5 font-semibold">CATEGORY</th>
+                <th className="py-2.5 px-3.5 font-semibold text-right">CURRENT VALUE</th>
+                <th className="py-2.5 px-3.5 font-semibold text-right">BENCHMARK</th>
                 <th className="py-2.5 px-3.5 font-semibold text-center">STATUS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-              {regions.map(r => (
-                <tr key={r.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
-                  <td className="py-2 px-3.5 font-medium text-zinc-900 dark:text-zinc-100">{r.name}</td>
-                  <td className="py-2 px-3.5 text-zinc-400">{r.code}</td>
-                  <td className="py-2 px-3.5 text-right font-bold text-zinc-900 dark:text-zinc-100">{r.p95} ms</td>
-                  <td className="py-2 px-3.5 text-right text-zinc-400">{r.target} ms</td>
+              {metrics.map(m => (
+                <tr key={m.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
+                  <td className="py-2 px-3.5 font-medium text-zinc-900 dark:text-zinc-100">{m.name}</td>
+                  <td className="py-2 px-3.5 text-zinc-400">{m.category}</td>
+                  <td className="py-2 px-3.5 text-right font-bold text-zinc-900 dark:text-zinc-100">{m.value}</td>
+                  <td className="py-2 px-3.5 text-right text-zinc-400">{m.targetLabel}</td>
                   <td className="py-2 px-3.5 text-center">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                        r.status === 'above'
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      }`}
-                    >
-                      {r.status === 'above' ? 'ABOVE TARGET' : 'OPTIMAL'}
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                      OPTIMAL
                     </span>
                   </td>
                 </tr>
@@ -313,16 +306,6 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
           </table>
         </div>
       )}
-
-      {/* Footer info bar */}
-      <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-400 dark:text-zinc-500 border-t border-zinc-200/80 dark:border-zinc-800 font-mono">
-        <span className="flex items-center gap-1.5">
-          <FontAwesomeIcon icon={faBolt} className="text-amber-500 text-xs" />
-          OAT Cloud Edge · p95 API response times at the edge, real-time sync stream (UTC)
-        </span>
-        <span>Last synced: {lastSyncTime}</span>
-      </div>
     </div>
   );
 };
-
