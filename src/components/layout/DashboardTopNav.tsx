@@ -116,26 +116,26 @@ function isNotifiableIncident(evt: SecurityEvent): boolean {
   return isMitigation || isElevated;
 }
 
-function actionLabelFor(action?: string): string {
+function actionLabelFor(action?: string, isId: boolean = false): string {
   const act = String(action || '').toUpperCase();
-  if (['BLOCK', 'BLOCKED'].includes(act)) return 'Diblokir';
-  if (['DENY', 'DROP'].includes(act)) return 'Dijatuhkan';
-  if (act === 'CHALLENGE') return 'Ditantang';
-  if (act === 'RATE_LIMIT') return 'Dibatasi';
-  if (['ALLOW', 'ALLOWED'].includes(act)) return 'Diizinkan';
-  if (act === 'QUARANTINE') return 'Dikarantina';
-  if (act === 'ALERT') return 'Peringatan';
-  return 'Terdeteksi';
+  if (['BLOCK', 'BLOCKED'].includes(act)) return isId ? 'Diblokir' : 'Blocked';
+  if (['DENY', 'DROP'].includes(act)) return isId ? 'Dijatuhkan' : 'Dropped';
+  if (act === 'CHALLENGE') return isId ? 'Ditantang' : 'Challenged';
+  if (act === 'RATE_LIMIT') return isId ? 'Dibatasi' : 'Rate-limited';
+  if (['ALLOW', 'ALLOWED'].includes(act)) return isId ? 'Diizinkan' : 'Allowed';
+  if (act === 'QUARANTINE') return isId ? 'Dikarantina' : 'Quarantined';
+  if (act === 'ALERT') return isId ? 'Peringatan' : 'Alert';
+  return isId ? 'Terdeteksi' : 'Detected';
 }
 
-function timeAgo(timestamp: number): string {
+function timeAgo(timestamp: number, isId: boolean = false): string {
   const diffSec = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (diffSec < 60) return 'Baru saja';
+  if (diffSec < 60) return isId ? 'Baru saja' : 'Just now';
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m lalu`;
+  if (diffMin < 60) return isId ? `${diffMin}m lalu` : `${diffMin}m ago`;
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}j lalu`;
-  return `${Math.floor(diffHour / 24)}h lalu`;
+  if (diffHour < 24) return isId ? `${diffHour}j lalu` : `${diffHour}h ago`;
+  return isId ? `${Math.floor(diffHour / 24)}h lalu` : `${Math.floor(diffHour / 24)}d ago`;
 }
 
 function initialsOf(name?: string): string {
@@ -290,16 +290,22 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         const dedupKey = makeToastDedupKey(normalized);
         if (isToastDuplicateWithin(dedupKey)) return;
 
-        const srcIp = normalized.sourceIp || (normalized as any).source_ip || 'IP Eksternal';
+        const isId = getLanguage() === 'id';
+        const srcIp = normalized.sourceIp || (normalized as any).source_ip || (isId ? 'IP Eksternal' : 'External IP');
         const dest = normalized.destination || (normalized as any).destination_ip || 'Gateway';
         const rawThreat = normalized.threat || (normalized as any).threat_name || (normalized as any).signature || 'Perimeter Alert';
         const threatName = cleanThreatTitle(rawThreat);
         const srcName = normalized.source?.toUpperCase() || (normalized as any).category?.toUpperCase() || 'SECURITY';
 
+        const actionText = actionLabelFor(normalized.action, isId);
+        const descText = isId
+          ? `${actionText} • Dari ${srcIp} menuju ${dest}`
+          : `${actionText} • From ${srcIp} to ${dest}`;
+
         const newNotif: TopNotification = {
           id: normalized.id || `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           title: `[${srcName}] ${threatName}`,
-          desc: `${actionLabelFor(normalized.action)} • Dari ${srcIp} menuju ${dest}`,
+          desc: descText,
           timestamp: Date.now(),
           severity: normalized.severity || 'Medium',
           read: false,
@@ -528,7 +534,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 setShowOrgDropdown(false);
                 setShowUserDropdown(false);
               }}
-              title="Notifikasi & Pengaturan Suara"
+              title={activeLanguage === 'id' ? 'Notifikasi & Pengaturan Suara' : 'Notifications & Sound Settings'}
               className="h-8 sm:h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 relative transition shadow-2xs cursor-pointer shrink-0"
             >
               <FontAwesomeIcon icon={faBell} className="text-sm" />
@@ -547,10 +553,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 {/* Header: Title + Sound Control + Bulk Action */}
                 <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2 bg-zinc-50/50 dark:bg-zinc-900/50">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold">Notifikasi</span>
+                    <span className="text-sm font-bold">{activeLanguage === 'id' ? 'Notifikasi' : 'Notifications'}</span>
                     {unreadCount > 0 && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
-                        {unreadCount} baru
+                        {unreadCount} {activeLanguage === 'id' ? 'baru' : 'new'}
                       </span>
                     )}
                   </div>
@@ -560,7 +566,9 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                     <button
                       type="button"
                       onClick={() => setSoundEnabled(prev => !prev)}
-                      title={soundEnabled ? 'Suara notifikasi aktif (klik untuk membisukan)' : 'Suara notifikasi dibisukan (klik untuk menyalakan)'}
+                      title={soundEnabled
+                        ? (activeLanguage === 'id' ? 'Suara notifikasi aktif (klik untuk membisukan)' : 'Notification sound on (click to mute)')
+                        : (activeLanguage === 'id' ? 'Suara notifikasi dibisukan (klik untuk menyalakan)' : 'Notification sound muted (click to unmute)')}
                       className={`h-7 px-2 rounded-md border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                         soundEnabled
                           ? 'border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700'
@@ -568,14 +576,14 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                       }`}
                     >
                       <FontAwesomeIcon icon={soundEnabled ? faVolumeHigh : faVolumeXmark} className={`text-xs ${soundEnabled ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                      <span className="text-[11px]">{soundEnabled ? 'Suara' : 'Mute'}</span>
+                      <span className="text-[11px]">{soundEnabled ? (activeLanguage === 'id' ? 'Suara' : 'Sound') : 'Mute'}</span>
                     </button>
 
                     {unreadCount > 0 && (
                       <button
                         type="button"
                         onClick={() => setNotifications(prev => prev.map(item => ({ ...item, read: true })))}
-                        title="Tandai semua telah dibaca"
+                        title={activeLanguage === 'id' ? 'Tandai semua telah dibaca' : 'Mark all as read'}
                         className="h-7 w-7 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center transition cursor-pointer"
                       >
                         <FontAwesomeIcon icon={faCheckDouble} className="text-xs" />
@@ -596,7 +604,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                           : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
                       }`}
                     >
-                      Semua ({notifications.length})
+                      {activeLanguage === 'id' ? 'Semua' : 'All'} ({notifications.length})
                     </button>
                     <button
                       type="button"
@@ -607,7 +615,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                           : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
                       }`}
                     >
-                      Belum Dibaca ({unreadCount})
+                      {activeLanguage === 'id' ? 'Belum Dibaca' : 'Unread'} ({unreadCount})
                     </button>
                   </div>
 
@@ -823,10 +831,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                                 {n.desc}
                               </p>
                               <div className="flex items-center gap-2 mt-1.5 text-[10px] text-zinc-400 font-mono">
-                                <span>{timeAgo(n.timestamp)}</span>
+                                <span>{timeAgo(n.timestamp, activeLanguage === 'id')}</span>
                                 <span>•</span>
                                 <span className="text-blue-600 dark:text-blue-400 font-sans font-medium group-hover:underline">
-                                  Buka Modul →
+                                  {activeLanguage === 'id' ? 'Buka Modul →' : 'Open Module →'}
                                 </span>
                               </div>
                             </div>
@@ -837,7 +845,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                                 e.stopPropagation();
                                 setNotifications(prev => prev.filter(item => item.id !== n.id));
                               }}
-                              title="Hapus"
+                              title={activeLanguage === 'id' ? 'Hapus' : 'Delete'}
                               className="text-zinc-300 hover:text-rose-500 transition p-1"
                             >
                               <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
@@ -860,7 +868,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                     className="w-full py-1.5 px-3 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                   >
                     <FontAwesomeIcon icon={faExpand} className="text-[10px]" />
-                    <span>Lihat Riwayat Lengkap</span>
+                    <span>{activeLanguage === 'id' ? 'Lihat Riwayat Lengkap' : 'View Full History'}</span>
                   </button>
                 </div>
               </div>
@@ -1450,6 +1458,7 @@ function SimplifiedActivityModal({
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState<'all' | 'unread' | SeverityFilter>('all');
+  const isId = getLanguage() === 'id';
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -1478,10 +1487,10 @@ function SimplifiedActivityModal({
             </span>
             <div className="min-w-0">
               <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-                Pusat Notifikasi Keamanan
+                {isId ? 'Pusat Notifikasi Keamanan' : 'Security Notification Center'}
               </h3>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Peringatan perimeter langsung &amp; telemetri
+                {isId ? 'Peringatan perimeter langsung & telemetri' : 'Live perimeter alerts & telemetry'}
               </p>
             </div>
           </div>
@@ -1491,7 +1500,9 @@ function SimplifiedActivityModal({
             <button
               type="button"
               onClick={onToggleSound}
-              title={soundEnabled ? 'Suara notifikasi aktif (klik untuk membisukan)' : 'Suara notifikasi dibisukan (klik untuk menyalakan)'}
+              title={soundEnabled
+                ? (isId ? 'Suara notifikasi aktif (klik untuk membisukan)' : 'Notification sound on (click to mute)')
+                : (isId ? 'Suara notifikasi dibisukan (klik untuk menyalakan)' : 'Notification sound muted (click to unmute)')}
               className={`h-8 px-2.5 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                 soundEnabled
                   ? 'border-zinc-200/80 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700'
@@ -1502,12 +1513,12 @@ function SimplifiedActivityModal({
                 icon={soundEnabled ? faVolumeHigh : faVolumeXmark}
                 className={`text-xs ${soundEnabled ? 'text-emerald-500' : 'text-zinc-400'}`}
               />
-              <span className="text-[11px]">{soundEnabled ? 'Suara' : 'Mute'}</span>
+              <span className="text-[11px]">{soundEnabled ? (isId ? 'Suara' : 'Sound') : 'Mute'}</span>
             </button>
 
             <button
               onClick={onClose}
-              title="Tutup"
+              title={isId ? 'Tutup' : 'Close'}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
             >
               <FontAwesomeIcon icon={faXmark} className="text-xs" />
@@ -1683,7 +1694,7 @@ function SimplifiedActivityModal({
             </div>
 
             <span className="text-[11px] text-zinc-400 tabular-nums hidden sm:inline">
-              Menampilkan {filtered.length} dari {notifications.length}
+              {isId ? `Menampilkan ${filtered.length} dari ${notifications.length}` : `Showing ${filtered.length} of ${notifications.length}`}
             </span>
           </div>
 
@@ -1693,11 +1704,11 @@ function SimplifiedActivityModal({
               <button
                 type="button"
                 onClick={onMarkAllRead}
-                title="Tandai semua telah dibaca"
+                title={isId ? 'Tandai semua telah dibaca' : 'Mark all as read'}
                 className="h-8 px-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition cursor-pointer shadow-2xs flex items-center gap-1.5"
               >
                 <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
-                <span className="text-[11px] font-medium">Tandai Dibaca</span>
+                <span className="text-[11px] font-medium">{isId ? 'Tandai Dibaca' : 'Mark as Read'}</span>
               </button>
             )}
 
@@ -1705,11 +1716,11 @@ function SimplifiedActivityModal({
               <button
                 type="button"
                 onClick={onClearAll}
-                title="Bersihkan riwayat notifikasi"
+                title={isId ? 'Bersihkan riwayat notifikasi' : 'Clear notification history'}
                 className="h-8 px-2.5 rounded-lg text-xs text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition cursor-pointer flex items-center gap-1.5"
               >
                 <FontAwesomeIcon icon={faTrashCan} className="text-[10px]" />
-                <span className="text-[11px] font-medium">Bersihkan</span>
+                <span className="text-[11px] font-medium">{isId ? 'Bersihkan' : 'Clear'}</span>
               </button>
             )}
           </div>
@@ -1721,14 +1732,14 @@ function SimplifiedActivityModal({
             <div className="py-16 text-center">
               <FontAwesomeIcon icon={faBell} className="text-3xl text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
               <div className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                Tidak ada notifikasi yang sesuai
+                {isId ? 'Tidak ada notifikasi yang sesuai' : 'No matching notifications'}
               </div>
               <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
                 {filter === 'unread'
-                  ? 'Hebat! Anda telah membaca semua notifikasi keamanan.'
+                  ? (isId ? 'Hebat! Anda telah membaca semua notifikasi keamanan.' : "Great! You've read all security notifications.")
                   : filter === 'critical'
-                    ? 'Tidak ada insiden berstatus kritis saat ini.'
-                    : 'Semua sistem perimeter berjalan aman.'}
+                    ? (isId ? 'Tidak ada insiden berstatus kritis saat ini.' : 'No critical incidents at this time.')
+                    : (isId ? 'Semua sistem perimeter berjalan aman.' : 'All perimeter systems running normally.')}
               </p>
             </div>
           ) : (
@@ -1770,10 +1781,10 @@ function SimplifiedActivityModal({
                     </p>
 
                     <div className="flex items-center gap-3 mt-2 text-[11px] text-zinc-400 font-mono">
-                      <span>{timeAgo(n.timestamp)}</span>
+                      <span>{timeAgo(n.timestamp, isId)}</span>
                       <span>•</span>
                       <span className="text-zinc-500 font-sans">
-                        Modul tujuan: <strong className="uppercase">{n.view}</strong>
+                        {isId ? 'Modul tujuan:' : 'Target module:'} <strong className="uppercase">{n.view}</strong>
                       </span>
                     </div>
                   </div>
@@ -1789,7 +1800,7 @@ function SimplifiedActivityModal({
                       }}
                       className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-2xs"
                     >
-                      <span>Periksa &amp; Buka</span>
+                      <span>{isId ? 'Periksa & Buka' : 'Inspect & Open'}</span>
                       <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
                     </button>
 
@@ -1797,7 +1808,7 @@ function SimplifiedActivityModal({
                       <button
                         type="button"
                         onClick={() => onMarkRead(n.id)}
-                        title="Tandai telah dibaca"
+                        title={isId ? 'Tandai telah dibaca' : 'Mark as read'}
                         className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-emerald-600 transition flex items-center justify-center cursor-pointer shadow-2xs"
                       >
                         <FontAwesomeIcon icon={faCheck} className="text-xs" />
@@ -1807,7 +1818,7 @@ function SimplifiedActivityModal({
                     <button
                       type="button"
                       onClick={() => onDelete(n.id)}
-                      title="Hapus notifikasi"
+                      title={isId ? 'Hapus notifikasi' : 'Delete notification'}
                       className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-400 hover:text-rose-600 hover:border-rose-300 transition flex items-center justify-center cursor-pointer shadow-2xs"
                     >
                       <FontAwesomeIcon icon={faTrashCan} className="text-xs" />

@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { getLanguage } from '../../i18n/translator';
 
 export interface ToastItem {
   id: string;
@@ -320,7 +321,9 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
             id="toast-stack-count"
             className="inline-flex h-7 items-center rounded-full bg-white px-2.5 text-xs font-medium whitespace-nowrap text-neutral-600 tabular-nums shadow-md ring-1 ring-neutral-950/10 dark:bg-neutral-900 dark:text-neutral-400 dark:ring-neutral-800"
           >
-            {`${live.length} notification${live.length === 1 ? '' : 's'}`}
+            {getLanguage() === 'id'
+              ? `${live.length} notifikasi`
+              : `${live.length} notification${live.length === 1 ? '' : 's'}`}
           </p>
           <button
             type="button"
@@ -332,7 +335,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
               <path d="M18 6 6 18" />
               <path d="m6 6 12 12" />
             </svg>
-            Clear all
+            {getLanguage() === 'id' ? 'Hapus semua' : 'Clear all'}
           </button>
         </div>
 
@@ -373,7 +376,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
                           }}
                           className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                         >
-                          View detail <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
+                          {getLanguage() === 'id' ? 'Lihat detail' : 'View detail'} <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
                         </button>
                       )}
                     </div>
@@ -381,7 +384,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
                       type="button"
                       data-dismiss=""
                       onClick={() => dismiss(toast.id)}
-                      aria-label="Close notification"
+                      aria-label={getLanguage() === 'id' ? 'Tutup notifikasi' : 'Close notification'}
                       className="-mt-1 -mr-1 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-xl text-neutral-600 transition-colors duration-150 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 motion-reduce:transition-none dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-50 dark:focus-visible:outline-zinc-50"
                     >
                       <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
