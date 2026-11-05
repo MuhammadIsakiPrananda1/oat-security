@@ -921,13 +921,6 @@ export const FirewallModule: React.FC = () => {
                   IP addresses currently blocked by Fail2ban. Click "Unban" to restore network access.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={fetchFail2ban}
-                className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
-              >
-                Refresh
-              </button>
             </header>
 
             <div className="overflow-x-auto custom-scrollbar">

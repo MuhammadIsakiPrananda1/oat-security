@@ -499,16 +499,6 @@ Select an active incident to investigate, click a quick triage scenario below, o
             </span>
           )}
         </div>
-
-        <button
-          onClick={() => void loadTelemetry()}
-          disabled={telemetryLoading}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[11px] font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition cursor-pointer disabled:opacity-50 shrink-0"
-          title="Refresh Telemetry"
-        >
-          <RefreshCw className={`w-3 h-3 ${telemetryLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh Telemetry</span>
-        </button>
       </div>
 
       {/* Chat Container */}

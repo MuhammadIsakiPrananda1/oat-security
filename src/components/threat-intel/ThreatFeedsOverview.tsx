@@ -34,15 +34,6 @@ export const ThreatFeedsOverview: React.FC<ThreatFeedsOverviewProps> = ({
           <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-700">
             {serverStatus}
           </span>
-          <button
-            onClick={onSync}
-            disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white text-xs font-semibold cursor-pointer shadow-xs transition disabled:opacity-60"
-            title="Trigger on-demand feed synchronization"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-            <span>{syncing ? 'Syncing Feeds…' : 'Sync All Feeds'}</span>
-          </button>
         </div>
       </div>
 

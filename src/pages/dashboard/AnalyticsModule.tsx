@@ -220,19 +220,10 @@ export const AnalyticsModule: React.FC = () => {
         }
         subtitle="Every request, block and status code is aggregated from live WAF, firewall and endpoint telemetry — window: last 24 hours."
         actions={
-          <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 sm:inline-flex">
-              <Clock3 className="h-3 w-3" />
-              {data?.generatedAt ? new Date(data.generatedAt).toLocaleTimeString() : '—'}
-            </span>
-            <button
-              onClick={() => void fetchAnalytics()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Refresh Aggregates
-            </button>
-          </div>
+          <span className="hidden items-center gap-1.5 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 sm:inline-flex">
+            <Clock3 className="h-3 w-3" />
+            {data?.generatedAt ? new Date(data.generatedAt).toLocaleTimeString() : '—'}
+          </span>
         }
       />
 

@@ -145,21 +145,10 @@ export const ComplianceModule: React.FC = () => {
         titleTail="Control Verification"
         subtitle={`Technical control signals measured continuously from live perimeter telemetry${currentOrg?.name ? ` for ${currentOrg.name}` : ''}. Formal certification requires an external audit attestation — this page reports the measured state only.`}
         actions={
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE TELEMETRY SIGNALS
-            </span>
-            <button
-              type="button"
-              onClick={load}
-              disabled={loading}
-              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh Signals</span>
-            </button>
-          </div>
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            LIVE TELEMETRY SIGNALS
+          </span>
         }
       />
 

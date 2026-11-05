@@ -364,14 +364,6 @@ export const ContactModule: React.FC<ContactModuleProps> = ({
             {openCount} open
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadMessages()}
-          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 text-[11px] font-medium text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-        >
-          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
       </div>
 
       {messages.length === 0 ? (
@@ -499,16 +491,6 @@ export const ContactModule: React.FC<ContactModuleProps> = ({
         title="Contact &"
         titleTail="Support"
         subtitle="Message the security operations team. Requests are recorded in the platform and pushed to every open console in real time."
-        actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 text-[11px] font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        }
       />
 
       <SplitContactSection

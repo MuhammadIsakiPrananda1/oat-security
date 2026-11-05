@@ -376,31 +376,13 @@ export const ThreatIntelModule: React.FC = () => {
             : 'Threat telemetry from endpoint agents, global CERTs, banking ISACs, and honeynet nodes — synchronized in real time.'
         }
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Sync Feeds Button */}
-            <button
-              onClick={handleSyncFeeds}
-              disabled={syncing || loading}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 disabled:opacity-60 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-              title={getLanguage() === 'id' ? 'Sinkronkan feed intelijen ancaman' : 'Synchronize threat intelligence feeds'}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">
-                {syncing
-                  ? (getLanguage() === 'id' ? 'Menyinkronkan…' : 'Syncing…')
-                  : (getLanguage() === 'id' ? 'Sinkronkan feed' : 'Sync feeds')}
-              </span>
-            </button>
-
-            {/* Add Custom IOC Button */}
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>{getLanguage() === 'id' ? 'Tambah indikator' : 'Add indicator'}</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>{getLanguage() === 'id' ? 'Tambah indikator' : 'Add indicator'}</span>
+          </button>
         }
       />
 
