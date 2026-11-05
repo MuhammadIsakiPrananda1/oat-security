@@ -47,6 +47,7 @@ interface IncidentDetailWorkspaceProps {
   analysts?: User[];
   userEmail?: string;
   busy: boolean;
+  canExecute?: boolean;
 }
 
 export const IncidentDetailWorkspace: React.FC<IncidentDetailWorkspaceProps> = ({
@@ -73,7 +74,8 @@ export const IncidentDetailWorkspace: React.FC<IncidentDetailWorkspaceProps> = (
   assets = [],
   analysts = [],
   userEmail: _userEmail,
-  busy
+  busy,
+  canExecute = true,
 }) => {
   // Resolve real asset from the database directory
   const matchedAsset = (assets || []).find(
@@ -264,47 +266,53 @@ export const IncidentDetailWorkspace: React.FC<IncidentDetailWorkspaceProps> = (
             </div>
 
             {/* Quick Actions Buttons */}
-            <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full lg:w-auto">
-              <button
-                onClick={() => {
-                  const nextTier: SocTier = tier === 'L1' ? 'L2' : 'L3';
-                  onQuickPromoteTier(nextTier);
-                }}
-                disabled={busy}
-                className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>Escalate Tier</span>
-              </button>
-
-              <button
-                onClick={() => onOpenContainmentModal(incident.affectedAsset || '')}
-                disabled={busy}
-                className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              >
-                <Zap className="w-4 h-4" />
-                <span>Execute Containment</span>
-              </button>
-
-              {isClosed ? (
+            {canExecute ? (
+              <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 w-full lg:w-auto">
                 <button
-                  onClick={() => onUpdateStatus('INVESTIGATING', 'Incident reopened by operator')}
+                  onClick={() => {
+                    const nextTier: SocTier = tier === 'L1' ? 'L2' : 'L3';
+                    onQuickPromoteTier(nextTier);
+                  }}
                   disabled={busy}
-                  className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-xs font-semibold text-zinc-800 dark:text-zinc-200 cursor-pointer"
+                  className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                 >
-                  Reopen
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Escalate Tier</span>
                 </button>
-              ) : (
+
                 <button
-                  onClick={() => onUpdateStatus('MITIGATED', 'Threat neutralized and mitigated by SOC team')}
+                  onClick={() => onOpenContainmentModal(incident.affectedAsset || '')}
                   disabled={busy}
-                  className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Mark Mitigated</span>
+                  <Zap className="w-4 h-4" />
+                  <span>Execute Containment</span>
                 </button>
-              )}
-            </div>
+
+                {isClosed ? (
+                  <button
+                    onClick={() => onUpdateStatus('INVESTIGATING', 'Incident reopened by operator')}
+                    disabled={busy}
+                    className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-xs font-semibold text-zinc-800 dark:text-zinc-200 cursor-pointer"
+                  >
+                    Reopen
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onUpdateStatus('MITIGATED', 'Threat neutralized and mitigated by SOC team')}
+                    disabled={busy}
+                    className="w-full sm:w-auto justify-center px-3.5 py-2.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Mark Mitigated</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="px-3 py-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-medium flex items-center gap-1.5">
+                <span>View-only (Tier {tier} execution locked)</span>
+              </div>
+            )}
           </div>
 
           {/* Real Affected Asset Banner & Assigned Analyst */}

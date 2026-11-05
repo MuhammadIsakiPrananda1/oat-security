@@ -41,7 +41,7 @@ import {
   ExportIncidentModal
 } from '../../components/incidents';
 import { User } from '../../types';
-import { resolveUserSocScope, normalizeSocTier } from '../../utils/incidentFeed';
+import { resolveUserSocScope, normalizeSocTier, canUserExecuteTier } from '../../utils/incidentFeed';
 import { translate } from '../../i18n/translator';
 
 /**
@@ -63,6 +63,7 @@ function nextTierFor(tier: SocTier): SocTier | null {
 export const IncidentsModule: React.FC = () => {
   const { isBackendOffline, user } = useAuth();
   const socScope = useMemo(() => resolveUserSocScope(user), [user]);
+  const hasSocAccess = useMemo(() => canUserExecuteTier(user), [user]);
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [analysts, setAnalysts] = useState<User[]>([]);
@@ -561,26 +562,28 @@ export const IncidentsModule: React.FC = () => {
           </div>
         }
         actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setDraft({
-                  title: '',
-                  severity: 'High',
-                  tier: 'L2',
-                  affectedAsset: assets[0]?.name || '',
-                  assignedTo: user?.email || '',
-                  notes: '',
-                  immediateContainment: false
-                });
-                setShowDeclare(true);
-              }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-rose-600 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-500 cursor-pointer active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Declare Incident</span>
-            </button>
-          </div>
+          hasSocAccess ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setDraft({
+                    title: '',
+                    severity: 'High',
+                    tier: (socScope as SocTier) || 'L1',
+                    affectedAsset: assets[0]?.name || '',
+                    assignedTo: user?.email || '',
+                    notes: '',
+                    immediateContainment: false
+                  });
+                  setShowDeclare(true);
+                }}
+                className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-950 px-3.5 text-xs font-medium whitespace-nowrap text-white shadow-md transition-colors duration-150 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 motion-safe:active:translate-y-px motion-reduce:transition-none dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:outline-zinc-50 dark:active:bg-zinc-300"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Declare Incident</span>
+              </button>
+            </div>
+          ) : undefined
         }
       />
 
@@ -659,6 +662,7 @@ export const IncidentsModule: React.FC = () => {
           analysts={analysts}
           userEmail={user?.email}
           busy={busy}
+          canExecute={canUserExecuteTier(user, selectedTier)}
         />
       ) : activeSection === 'GUIDE' ? (
         /* KONDISI 2: PANDUAN RUNBOOK SOP & DIREKTORI TIM SOC */

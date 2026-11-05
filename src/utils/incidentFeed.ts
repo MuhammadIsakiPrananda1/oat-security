@@ -38,6 +38,34 @@ export function resolveUserSocScope(
   return null;
 }
 
+/**
+ * Checks whether the user has execution privileges for a given SOC tier or incident.
+ * - Super Admin can execute anything.
+ * - Non-SOC users (like Viewer, or users with no SOC tier assigned) cannot execute anything.
+ * - Users with SOC L1 can only execute L1 incidents/tasks.
+ * - Users with SOC L2 can only execute L2 incidents/tasks.
+ * - Users with SOC L3 can only execute L3 incidents/tasks.
+ */
+export function canUserExecuteTier(
+  user?: Pick<User, 'role' | 'socTier'> | null,
+  targetTier?: SocTier | null
+): boolean {
+  if (!user) return false;
+  if (user.role === 'Super Admin') return true;
+
+  const userTier = resolveUserSocScope(user);
+  // User with no SOC tier assigned has no execution permission in SOC console
+  if (!userTier) return false;
+
+  // If a specific tier is targeted, user can only execute their own tier
+  if (targetTier) {
+    return userTier === targetTier;
+  }
+
+  // General check: user must belong to at least one SOC tier (L1, L2, L3)
+  return ['L1', 'L2', 'L3'].includes(userTier);
+}
+
 /** SOC tier of an incident/threat row, falling back to severity like the API. */
 export function getItemSocTier(item: { tier?: string | null; severity?: string | null }): SocTier {
   const explicit = normalizeSocTier(item?.tier);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, ShieldCheck, Server, Clock, ChevronRight } from 'lucide-react';
+import { Search, X, ShieldCheck, Server, Clock, ChevronRight, ChevronDown } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 import { Incident, IncidentSection, AssetOption } from './types';
 import { SOC_TIER_META } from './constants';
@@ -49,10 +49,10 @@ export const IncidentQueueList: React.FC<IncidentQueueListProps> = ({
         </div>
       )}
 
-      {/* Bar Filter Sederhana & Bersih */}
+      {/* Bar Filter Sederhana & Bersih dengan Dropdown Standar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e]">
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             type="text"
             value={search}
@@ -67,27 +67,17 @@ export const IncidentQueueList: React.FC<IncidentQueueListProps> = ({
           )}
         </div>
 
-        <div className="flex items-center shrink-0">
-          <div className="grid grid-cols-3 sm:flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs w-full sm:w-auto text-center">
-            <button
-              onClick={() => onFilterStatusChange('ALL')}
-              className={`px-3 py-1.5 sm:py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'ALL' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
-            >
-              All ({totalSectionCount})
-            </button>
-            <button
-              onClick={() => onFilterStatusChange('ACTIVE')}
-              className={`px-3 py-1.5 sm:py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'ACTIVE' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
-            >
-              Active Only
-            </button>
-            <button
-              onClick={() => onFilterStatusChange('RESOLVED')}
-              className={`px-3 py-1.5 sm:py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'RESOLVED' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
-            >
-              Resolved
-            </button>
-          </div>
+        <div className="relative shrink-0">
+          <select
+            value={filterStatus}
+            onChange={e => onFilterStatusChange(e.target.value as 'ALL' | 'ACTIVE' | 'RESOLVED')}
+            className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-1.5 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer shadow-2xs transition"
+          >
+            <option value="ALL">Status: All ({totalSectionCount})</option>
+            <option value="ACTIVE">Status: Active Only</option>
+            <option value="RESOLVED">Status: Resolved</option>
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
