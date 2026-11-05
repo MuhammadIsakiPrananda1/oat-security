@@ -429,9 +429,9 @@ export const ThreatIntelModule: React.FC = () => {
       )}
 
       {/* Guide & Architecture Explainer Card */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-linear-to-r from-zinc-50 via-white to-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-linear-to-r dark:from-zinc-900/40 dark:via-zinc-900/10 dark:to-zinc-900/40 shadow-xs">
+      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/30 shadow-xs">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 border border-indigo-500/20">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
             <Info className="h-4 w-4" />
           </div>
           <div className="flex-1 space-y-3">
@@ -461,7 +461,7 @@ export const ThreatIntelModule: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-zinc-200/70 dark:border-zinc-800/80 text-xs">
               <div className="flex items-start gap-2">
-                <Globe className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
+                <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
                 <div>
                   <span className="font-semibold text-zinc-800 dark:text-zinc-200 block text-[11px]">
                     {getLanguage() === 'id' ? '1. Ingesti Multi-Feed' : '1. Multi-Feed Ingestion'}

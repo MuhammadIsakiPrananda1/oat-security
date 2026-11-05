@@ -47,8 +47,8 @@ export const IocLiveStreamTable: React.FC<IocLiveStreamTableProps> = ({
   return (
     <div className="space-y-4">
       {/* Controls Bar: Search, Filters, Add Button */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e]">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e]">
+        <div className="relative flex-1">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
@@ -64,20 +64,20 @@ export const IocLiveStreamTable: React.FC<IocLiveStreamTableProps> = ({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           {/* Type Filter */}
           <select
             value={typeFilter}
             onChange={e => onTypeFilterChange(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
+            className="flex-1 sm:flex-none px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
           >
             {typeOptions.map(t => (
-              <option key={t} value={t}>{t === 'ALL' ? 'All Indicator Types' : t}</option>
+              <option key={t} value={t}>{t === 'ALL' ? 'All Types' : t}</option>
             ))}
           </select>
 
           {/* Status Filter */}
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs">
+          <div className="grid grid-cols-4 sm:flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs w-full sm:w-auto text-center">
             {(['ALL', 'Active', 'Blocked', 'Monitored'] as const).map(s => (
               <button
                 key={s}
@@ -96,10 +96,10 @@ export const IocLiveStreamTable: React.FC<IocLiveStreamTableProps> = ({
           {/* Add Custom IOC Button */}
           <button
             onClick={onOpenAddModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold cursor-pointer shadow-sm transition active:scale-95"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white text-xs font-semibold cursor-pointer shadow-xs transition w-full sm:w-auto"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Custom IOC</span>
+            <span>Add IOC</span>
           </button>
         </div>
       </div>
