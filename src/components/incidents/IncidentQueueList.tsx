@@ -51,7 +51,7 @@ export const IncidentQueueList: React.FC<IncidentQueueListProps> = ({
 
       {/* Bar Filter Sederhana & Bersih */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e]">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
@@ -67,23 +67,23 @@ export const IncidentQueueList: React.FC<IncidentQueueListProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center shrink-0">
           <div className="grid grid-cols-3 sm:flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs w-full sm:w-auto text-center">
             <button
               onClick={() => onFilterStatusChange('ALL')}
-              className={`px-2.5 py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'ALL' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
+              className={`px-3 py-1.5 sm:py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'ALL' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
             >
               All ({totalSectionCount})
             </button>
             <button
               onClick={() => onFilterStatusChange('ACTIVE')}
-              className={`px-2.5 py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'ACTIVE' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
+              className={`px-3 py-1.5 sm:py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'ACTIVE' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
             >
               Active Only
             </button>
             <button
               onClick={() => onFilterStatusChange('RESOLVED')}
-              className={`px-2.5 py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'RESOLVED' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
+              className={`px-3 py-1.5 sm:py-1 rounded-md transition cursor-pointer text-xs ${filterStatus === 'RESOLVED' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs' : 'text-zinc-500'}`}
             >
               Resolved
             </button>
