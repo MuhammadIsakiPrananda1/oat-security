@@ -44,14 +44,14 @@ export const ThreatIntelMetrics: React.FC<ThreatIntelMetricsProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Ingestion context — the live channel chip lives in the page header. */}
+      {/* Ingestion context */}
       <div className="flex flex-col gap-1 px-1 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
           Indicators are enriched automatically from endpoint-agent telemetry and global feeds.
         </span>
         {lastSyncTime && (
           <span className="text-[11px] font-mono text-zinc-400 dark:text-zinc-500">
-            Last feed synchronization: <strong className="font-sans text-zinc-700 dark:text-zinc-300">{lastSyncTime}</strong>
+            Last update: <strong className="font-sans text-zinc-700 dark:text-zinc-300">{lastSyncTime}</strong>
           </span>
         )}
       </div>

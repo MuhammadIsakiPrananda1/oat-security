@@ -366,22 +366,23 @@ export const ThreatIntelModule: React.FC = () => {
       <ModulePageHeader
         icon={<FontAwesomeIcon icon={faGlobe} />}
         title={getLanguage() === 'id' ? 'Intelijen Ancaman' : 'Threat Intelligence'}
-        titleTail={getLanguage() === 'id' ? '& Aliran IOC Real-Time' : '& Real-Time IOC Stream'}
+        titleTail={getLanguage() === 'id' ? '& Aliran IOC' : '& IOC Stream'}
         badge={
           <ModulePageBadge>{indicators.length} IOCs</ModulePageBadge>
         }
         subtitle={
           getLanguage() === 'id'
-            ? 'Telemetri ancaman dari endpoint agent, CERT global, ISAC perbankan, dan node honeynet — disinkronkan secara real-time.'
-            : 'Threat telemetry from endpoint agents, global CERTs, banking ISACs, and honeynet nodes — synchronized in real time.'
+            ? 'Pusat pengumpulan ancaman dari endpoint agent, CERT global, ISAC perbankan, dan node honeynet.'
+            : 'Aggregated threat intelligence from endpoint agents, global CERTs, banking ISACs, and honeynet nodes.'
         }
         actions={
           <button
+            type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-950 px-3.5 text-sm font-medium whitespace-nowrap text-white shadow-md transition-colors duration-150 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 motion-safe:active:translate-y-px motion-reduce:transition-none dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:outline-zinc-50 dark:active:bg-zinc-300"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>{getLanguage() === 'id' ? 'Tambah indikator' : 'Add indicator'}</span>
+            <Plus className="size-4 shrink-0" />
+            <span>{getLanguage() === 'id' ? 'Tambah Indikator' : 'Add Indicator'}</span>
           </button>
         }
       />
@@ -626,11 +627,11 @@ export const ThreatIntelModule: React.FC = () => {
               <button
                 type="button"
                 onClick={toggleFeedsOverview}
-                className="inline-flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-200 font-medium py-1.5 px-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] hover:bg-zinc-50 dark:hover:bg-zinc-900 transition cursor-pointer shrink-0 shadow-2xs"
+                className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 text-xs font-medium whitespace-nowrap text-neutral-950 shadow-sm transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50 motion-safe:active:translate-y-px motion-reduce:transition-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800 dark:focus-visible:outline-zinc-50 dark:active:bg-neutral-700"
               >
-                <Layers className="w-3.5 h-3.5" />
+                <Layers className="size-4 shrink-0 text-neutral-600 dark:text-neutral-400" />
                 <span>{showFeedsOverview ? (isId ? 'Sembunyikan Grid Feed' : 'Hide Feeds Grid') : (isId ? 'Tampilkan Grid Feed' : 'Show Feeds Grid')}</span>
-                {showFeedsOverview ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {showFeedsOverview ? <ChevronUp className="size-3.5 shrink-0" /> : <ChevronDown className="size-3.5 shrink-0" />}
               </button>
             )}
           </div>

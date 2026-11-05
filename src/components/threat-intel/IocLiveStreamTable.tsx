@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Plus, Ban, ExternalLink } from 'lucide-react';
+import { Search, X, Plus, Ban, ExternalLink, ChevronDown } from 'lucide-react';
 import { CountryFlag } from '../common/CountryFlag';
 import { ThreatIntelligenceFeed } from './types';
 import { formatDateTime } from '../../utils/dateTime';
@@ -46,59 +46,65 @@ export const IocLiveStreamTable: React.FC<IocLiveStreamTableProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Controls Bar: Search, Filters, Add Button */}
+      {/* Controls Bar: Search, Dropdowns, Add Button */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e]">
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={e => onSearchChange(e.target.value)}
             placeholder="Search indicator, tag, country, or feed source..."
-            className="w-full pl-9 pr-8 py-1.5 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none"
+            className="w-full pl-10 pr-9 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition shadow-2xs"
           />
           {search && (
-            <button onClick={() => onSearchChange('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer">
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer p-0.5"
+            >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* Type Filter */}
-          <select
-            value={typeFilter}
-            onChange={e => onTypeFilterChange(e.target.value)}
-            className="flex-1 sm:flex-none px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
-          >
-            {typeOptions.map(t => (
-              <option key={t} value={t}>{t === 'ALL' ? 'All Types' : t}</option>
-            ))}
-          </select>
-
-          {/* Status Filter */}
-          <div className="grid grid-cols-4 sm:flex items-center bg-zinc-100 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-xs w-full sm:w-auto text-center">
-            {(['ALL', 'Active', 'Blocked', 'Monitored'] as const).map(s => (
-              <button
-                key={s}
-                onClick={() => onStatusFilterChange(s)}
-                className={`px-2.5 py-1 rounded-md transition cursor-pointer text-xs ${
-                  statusFilter === s
-                    ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold shadow-xs'
-                    : 'text-zinc-500'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Type Dropdown */}
+          <div className="relative flex-1 sm:flex-none">
+            <select
+              value={typeFilter}
+              onChange={e => onTypeFilterChange(e.target.value)}
+              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 cursor-pointer shadow-2xs transition"
+            >
+              {typeOptions.map(t => (
+                <option key={t} value={t}>{t === 'ALL' ? 'Type: All' : t}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Add Custom IOC Button */}
+          {/* Status Dropdown */}
+          <div className="relative flex-1 sm:flex-none">
+            <select
+              value={statusFilter}
+              onChange={e => onStatusFilterChange(e.target.value)}
+              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 cursor-pointer shadow-2xs transition"
+            >
+              <option value="ALL">Status: All</option>
+              <option value="Active">Active</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Monitored">Monitored</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Add Custom IOC Button — ReadymadeUI primary style */}
           <button
+            type="button"
             onClick={onOpenAddModal}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white text-xs font-semibold cursor-pointer shadow-xs transition w-full sm:w-auto"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-zinc-950 px-3.5 text-xs font-medium whitespace-nowrap text-white shadow-md transition-colors duration-150 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 motion-safe:active:translate-y-px motion-reduce:transition-none dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200 dark:focus-visible:outline-zinc-50 dark:active:bg-zinc-300 w-full sm:w-auto"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="size-3.5 shrink-0" />
             <span>Add IOC</span>
           </button>
         </div>
