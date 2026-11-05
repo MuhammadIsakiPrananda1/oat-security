@@ -28,6 +28,7 @@ import { BackendOfflineBanner } from '../../components/common/BackendOfflineBann
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeartPulse } from '@fortawesome/free-solid-svg-icons';
 import { ModulePageHeader } from '../../components/common/ModulePageHeader';
+import { getLanguage } from '../../i18n/translator';
 import { CountryFlag } from '../../components/common/CountryFlag';
 import { useAuth } from '../../context/AuthContext';
 import { formatDateTime, formatTime } from '../../utils/dateTime';
@@ -799,13 +800,13 @@ export const SecurityEventsModule: React.FC = () => {
             )}
 
             {/* Quick Search */}
-            <div className="relative w-full sm:ml-auto sm:w-auto sm:min-w-[220px]">
-              <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search IP, threat, app, or ID"
+                placeholder={getLanguage() === 'id' ? 'Cari...' : 'Search...'}
                 className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white pl-8 pr-3 text-xs text-zinc-800 placeholder-zinc-400 transition focus:outline-none focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:placeholder-zinc-500 dark:focus:border-zinc-600"
               />
             </div>
