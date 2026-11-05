@@ -289,30 +289,9 @@ export function serializeNetwork(row: any, stats?: NetworkStats) {
 }
 
 export function listNetworks(orgId: string) {
-  let rows = db.prepare(
+  const rows = db.prepare(
     'SELECT * FROM networks WHERE organization_id = ? ORDER BY created_at DESC'
   ).all(orgId) as any[];
-
-  if (rows.length === 0 && orgId) {
-    const baseline = [
-      { id: 'net_edge_dmz_' + Date.now(), name: 'Edge DMZ (Public Ingress)', cidr: '10.240.10.0/24', gateway: '10.240.10.1', iface: 'eth0', zone: 'DMZ', firewall: 'OAT NGFW', desc: 'Public-facing ingress DMZ terminating WAF and edge gateways' },
-      { id: 'net_core_cad_' + (Date.now() + 1), name: 'Core Application Network', cidr: '10.240.20.0/24', gateway: '10.240.20.1', iface: 'eth1', zone: 'Internal Core', firewall: 'OAT NGFW', desc: 'Secure internal backend workloads and zero-trust microservices' },
-      { id: 'net_management_' + (Date.now() + 2), name: 'Management & OOB', cidr: '10.240.30.0/24', gateway: '10.240.30.1', iface: 'eth2', zone: 'Corporate Office', firewall: 'OAT NGFW', desc: 'Out-of-band administrative and orchestration network' }
-    ];
-    try {
-      for (const item of baseline) {
-        db.prepare(`
-          INSERT INTO networks (id, organization_id, name, cidr, gateway, interface, zone, firewall, description, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Online')
-        `).run(item.id, orgId, item.name, item.cidr, item.gateway, item.iface, item.zone, item.firewall, item.desc);
-      }
-      rows = db.prepare(
-        'SELECT * FROM networks WHERE organization_id = ? ORDER BY created_at DESC'
-      ).all(orgId) as any[];
-    } catch (e) {
-      // Ignore if concurrent seed
-    }
-  }
 
   const stats = collectNetworkStats(orgId, rows);
   return rows.map(row => serializeNetwork(row, stats.get(String(row.id))));

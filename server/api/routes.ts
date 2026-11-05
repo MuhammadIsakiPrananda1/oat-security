@@ -3600,6 +3600,7 @@ apiRouter.post('/networks', (req: AuthenticatedRequest, res) => {
   });
 
   const row = getNetworkRow(orgId, id);
+  SecurityEventBus.publish('network.created', { id, orgId, name: value.name, cidr: value.cidr }, orgId);
   res.status(201).json({ success: true, network: serializeNetwork(row) });
 });
 
@@ -3647,6 +3648,7 @@ apiRouter.put('/networks/:id', (req: AuthenticatedRequest, res) => {
   });
 
   const row = getNetworkRow(orgId, networkId);
+  SecurityEventBus.publish('network.updated', { id: networkId, orgId, name: value.name, cidr: value.cidr }, orgId);
   res.json({ success: true, network: serializeNetwork(row) });
 });
 
@@ -3672,6 +3674,7 @@ apiRouter.delete('/networks/:id', (req: AuthenticatedRequest, res) => {
     userAgent: req.headers['user-agent']
   });
 
+  SecurityEventBus.publish('network.deleted', { id: networkId, orgId }, orgId);
   res.json({ success: true, message: 'Network subnet removed' });
 });
 

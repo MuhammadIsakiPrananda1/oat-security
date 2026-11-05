@@ -94,7 +94,7 @@ export const NetworksModule: React.FC = () => {
   // Keep derived telemetry (hosts, traffic, risk) fresh while the page is open.
   useEffect(() => {
     if (isBackendOffline) return;
-    const timer = window.setInterval(() => fetchNetworks(true), 20000);
+    const timer = window.setInterval(() => fetchNetworks(true), 5000);
     return () => window.clearInterval(timer);
   }, [fetchNetworks, isBackendOffline]);
 
@@ -105,6 +105,9 @@ export const NetworksModule: React.FC = () => {
     const unsubscribe = globalRealtimeClient.subscribe((msg: any) => {
       const type = String(msg?.type || '');
       const relevant =
+        type === 'network.updated' ||
+        type === 'network.created' ||
+        type === 'network.deleted' ||
         type === 'security_event' ||
         type === 'security_event.created' ||
         type === 'log.created' ||
@@ -115,7 +118,7 @@ export const NetworksModule: React.FC = () => {
       realtimeTimer.current = window.setTimeout(() => {
         realtimeTimer.current = null;
         fetchNetworks(true);
-      }, 4000);
+      }, 1000);
     });
 
     return () => {
