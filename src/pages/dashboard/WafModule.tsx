@@ -608,22 +608,13 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
         }
         subtitle="Signed rule delivery to enrolled agents — Apache and nftables are applied on the host automatically — no SSH credentials stored."
         actions={
-          <>
-            <button
-              onClick={() => void fetchWaf()}
-              title="Refresh metrics and deployment status"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Rule
-            </button>
-          </>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Rule
+          </button>
         }
       />
 
@@ -685,20 +676,29 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
               </span>
             </label>
 
-            {/* Enforcement Mode Button */}
-            <button
-              type="button"
-              onClick={handleToggleMode}
-              disabled={isSyncingServer || !engineEnabled}
-              title={mode === 'block' ? 'Requests matching a rule are blocked — click to switch to monitoring' : 'Suspicious traffic is only recorded — click to switch to blocking'}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-zinc-200/80 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 cursor-pointer disabled:opacity-50 shadow-2xs dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-300 dark:hover:bg-zinc-900"
+            {/* Enforcement Mode Switch */}
+            <label
+              title={mode === 'block' ? 'Requests matching a rule are blocked — toggle switch to switch to monitoring' : 'Suspicious traffic is only recorded — toggle switch to switch to blocking'}
+              className="inline-flex h-9 cursor-pointer items-center gap-2.5 rounded-xl border border-zinc-200/80 bg-white px-3 text-xs font-medium text-neutral-950 has-disabled:cursor-not-allowed shadow-2xs dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-neutral-50 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
             >
+              <span className="group/sw relative inline-grid shrink-0 grid-cols-1 items-center has-disabled:opacity-50">
+                <input
+                  type="checkbox"
+                  role="switch"
+                  aria-label="WAF Enforcement Mode"
+                  checked={mode === 'block'}
+                  onChange={handleToggleMode}
+                  disabled={isSyncingServer || !engineEnabled}
+                  className="col-start-1 row-start-1 h-6 w-10 cursor-pointer appearance-none rounded-full bg-neutral-100 ring-1 ring-neutral-500 transition-colors duration-150 ring-inset checked:bg-zinc-950 checked:ring-0 hover:bg-neutral-200 checked:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 disabled:cursor-not-allowed disabled:hover:bg-neutral-100 checked:disabled:hover:bg-zinc-950 motion-reduce:transition-none dark:bg-neutral-800 dark:checked:bg-zinc-50 dark:hover:bg-neutral-700 dark:checked:hover:bg-zinc-200 dark:focus-visible:outline-zinc-50 dark:disabled:hover:bg-neutral-800 dark:checked:disabled:hover:bg-zinc-50"
+                />
+                <span className="pointer-events-none col-start-1 row-start-1 size-4 translate-x-1 rounded-full bg-neutral-500 group-has-checked/sw:size-5 group-has-checked/sw:translate-x-[18px] group-has-checked/sw:bg-white group-has-checked/sw:shadow-md motion-safe:transition-transform motion-safe:duration-150 dark:bg-neutral-400 dark:group-has-checked/sw:bg-neutral-950" />
+              </span>
               <span className={`h-2 w-2 shrink-0 rounded-full transition-colors ${mode === 'block' ? 'bg-rose-500 shadow-[0_0_5px] shadow-rose-500/50' : 'bg-amber-500 shadow-[0_0_5px] shadow-amber-500/50'}`} />
-              <span className="text-zinc-500 dark:text-zinc-400">Mode</span>
+              <span className="text-zinc-600 dark:text-zinc-400">Mode</span>
               <span className={`font-mono font-semibold ${mode === 'block' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
                 {mode.toUpperCase()}
               </span>
-            </button>
+            </label>
 
             {/* Deployment diagnostics Logs Button */}
             <button

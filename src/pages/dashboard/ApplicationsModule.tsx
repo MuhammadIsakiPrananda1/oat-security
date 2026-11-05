@@ -334,22 +334,13 @@ export const ApplicationsModule: React.FC = () => {
         titleTail="Applications"
         subtitle="Monitored web applications, APIs, and microservices protected by OAT Security agents."
         actions={
-          <>
-            <button
-              onClick={() => fetchApps(true)}
-              title="Refresh application inventory"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100 shadow-2xs"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add Endpoint
-            </button>
-          </>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Endpoint
+          </button>
         }
       />
 

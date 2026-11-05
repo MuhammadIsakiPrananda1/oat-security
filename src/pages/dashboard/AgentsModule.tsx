@@ -708,20 +708,11 @@ export const AgentsModule: React.FC = () => {
         title="Endpoint Agents"
         subtitle="Manage and deploy OAT endpoint agents — heartbeats, metrics, events, and discovered websites stream into the console in real time."
         actions={
-          <>
-            <button
-              type="button"
-              onClick={() => fetchAgents(true)}
-              title="Refresh agents"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100 shadow-2xs"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              type="button"
-              onClick={openEnroll}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs"
-            >
+          <button
+            type="button"
+            onClick={openEnroll}
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 text-xs font-semibold text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white shadow-2xs"
+          >
               <Plus className="h-3.5 w-3.5" />
               {enrollment ? 'Resume deployment' : 'Deploy agent'}
               {enrollment && tokenTimeRemaining && (
@@ -730,7 +721,6 @@ export const AgentsModule: React.FC = () => {
                 </span>
               )}
             </button>
-          </>
         }
       />
 

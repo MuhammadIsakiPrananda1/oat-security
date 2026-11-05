@@ -412,13 +412,6 @@ export const ThreatsModule: React.FC<ThreatsModuleProps> = ({ onNavigate }) => {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => { void fetchThreats(); void fetchIncidents(); }}
-              title="Refresh correlated feed"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
               onClick={() => {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(displayRows, null, 2));
                 const downloadAnchor = document.createElement('a');

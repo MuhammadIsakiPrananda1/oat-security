@@ -73,16 +73,8 @@ export const AuditLogModule: React.FC = () => {
         titleTail="Audit Trail"
         subtitle="Immutable tamper-evident record of all operator actions, policy alterations, and authentication events stored in MySQL."
         actions={
-          <>
-            <button
-              onClick={fetchAuditLogs}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-              title="Refresh audit logs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={() => {
+          <button
+            onClick={() => {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(auditLogs, null, 2));
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
@@ -96,7 +88,6 @@ export const AuditLogModule: React.FC = () => {
               <Download className="w-3.5 h-3.5" />
               <span>Export Audit Trail (JSON)</span>
             </button>
-          </>
         }
       />
 

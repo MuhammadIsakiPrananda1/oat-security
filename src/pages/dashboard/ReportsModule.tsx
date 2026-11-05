@@ -160,14 +160,6 @@ export const ReportsModule: React.FC = () => {
         actions={
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchReports}
-              disabled={loading}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100 disabled:opacity-50"
-              title="Refresh reports list"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
               onClick={() => setShowConfigModal(true)}
               disabled={generating}
               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 shadow-sm"

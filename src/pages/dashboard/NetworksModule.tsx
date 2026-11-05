@@ -266,22 +266,13 @@ export const NetworksModule: React.FC = () => {
         title="Protected Networks & Subnet Zones"
         subtitle="Declare the corporate subnets, DMZ perimeters and VPC interconnects under firewall control. Hosts, traffic and risk are derived from real endpoint and firewall telemetry."
         actions={
-          <>
-            <button
-              onClick={() => fetchNetworks(true)}
-              title="Refresh network inventory"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200/80 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing || loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={openAdd}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Subnet
-            </button>
-          </>
+          <button
+            onClick={openAdd}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-xs font-medium text-white transition hover:bg-zinc-800 cursor-pointer dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Subnet
+          </button>
         }
       />
 
