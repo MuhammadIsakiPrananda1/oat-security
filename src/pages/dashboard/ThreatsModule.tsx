@@ -12,7 +12,9 @@ import {
   Target,
   WifiOff,
   Siren,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { securityApi, globalRealtimeClient, RealtimeStreamStatus } from '../../services/api';
 import { ThreatItem, SecurityEvent } from '../../types';
@@ -461,48 +463,67 @@ export const ThreatsModule: React.FC<ThreatsModuleProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Search & Filter Toolbar */}
-      <div className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="w-4 h-4 text-zinc-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Search & Filter Toolbar — ReadyMadeUI styled input with integrated clean select dropdowns */}
+      <div className="p-3 sm:p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs">
+        {/* Search Input Box */}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by Attacker IP, Target, Attack Type, Threat or Incident ID..."
-            className="w-full pl-9 pr-3 py-1.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 transition"
+            className="w-full pl-10 pr-9 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:border-zinc-400 dark:focus:border-zinc-600 transition shadow-2xs"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Severity */}
-        <select
-          value={filterSeverity}
-          onChange={e => setFilterSeverity(e.target.value)}
-          className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 font-mono cursor-pointer"
-        >
-          <option value="ALL">Severity: All</option>
-          <option value="Critical">Critical</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
-        </select>
+        {/* Filters Group */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+          {/* Severity Select Dropdown */}
+          <div className="relative flex-1 sm:flex-none">
+            <select
+              value={filterSeverity}
+              onChange={e => setFilterSeverity(e.target.value)}
+              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 cursor-pointer shadow-2xs transition"
+            >
+              <option value="ALL">Severity: All</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-        {/* Status */}
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          className="px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs text-zinc-900 dark:text-white focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-700 font-mono cursor-pointer"
-        >
-          <option value="ALL">Status: All</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="NEW">NEW (Incident)</option>
-          <option value="INVESTIGATING">INVESTIGATING</option>
-          <option value="CONTAINED">CONTAINED</option>
-          <option value="BLOCKED">BLOCKED</option>
-          <option value="MITIGATED">MITIGATED</option>
-          <option value="RESOLVED">RESOLVED</option>
-          <option value="CLOSED">CLOSED</option>
-        </select>
+          {/* Status Select Dropdown */}
+          <div className="relative flex-1 sm:flex-none">
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 cursor-pointer shadow-2xs transition"
+            >
+              <option value="ALL">Status: All</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="NEW">NEW (Incident)</option>
+              <option value="INVESTIGATING">INVESTIGATING</option>
+              <option value="CONTAINED">CONTAINED</option>
+              <option value="BLOCKED">BLOCKED</option>
+              <option value="MITIGATED">MITIGATED</option>
+              <option value="RESOLVED">RESOLVED</option>
+              <option value="CLOSED">CLOSED</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
       </div>
 
       {/* Threats Table View */}
