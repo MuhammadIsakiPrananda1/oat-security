@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Activity, Server, Cpu } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShield } from '@fortawesome/free-solid-svg-icons';
 import { ModulePageHeader } from '../../components/common/ModulePageHeader';
@@ -12,65 +12,86 @@ interface SecurityOverviewModuleProps {
   onNavigate: (view: DashboardView) => void;
 }
 
-interface DefenseLayer {
-  layer: string;
-  desc: string;
-  engine: string;
-  targetView: DashboardView;
-  measured: (metrics: any) => string;
-}
-
-interface EngineHealth {
+interface EngineMetadata {
   service_name: string;
-  status: string;
+  category: string;
+  desc: string;
+  targetView: DashboardView;
 }
 
-// The five concentric rings are fixed architecture, but their live state is read
-// from the server health probe and live ingestion counters — nothing on this
-// page is hard-coded, so a ring whose engine stops reporting shows as Offline.
-const DEFENSE_LAYERS: DefenseLayer[] = [
+const ENGINE_ROSTER: EngineMetadata[] = [
   {
-    layer: 'Global Anycast Perimeter',
-    desc: 'Stops large-scale attacks at the edge of the network, before they reach your services.',
-    engine: 'Next-Gen Firewall',
-    targetView: 'firewall' as DashboardView,
-    measured: m => `${(m?.protectedAppsCount ?? 0).toLocaleString()} protected applications behind the edge`
+    service_name: 'WAF Engine',
+    category: 'Application Security',
+    desc: 'Real-time HTTP payload inspection and rule matching for Web Application Attacks.',
+    targetView: 'waf' as DashboardView
   },
   {
-    layer: 'Web Application Firewall (WAF)',
-    desc: 'Checks every web request and blocks common attacks such as SQL injection and cross-site scripting.',
-    engine: 'WAF Engine',
-    targetView: 'waf' as DashboardView,
-    measured: m =>
-      `${(m?.blockedRequests ?? 0).toLocaleString()} blocked of ${(m?.requestsToday ?? 0).toLocaleString()} requests today`
+    service_name: 'Next-Gen Firewall',
+    category: 'Perimeter Defense',
+    desc: 'Network traffic filtering, DDoS mitigation, and edge IP rate limiting.',
+    targetView: 'firewall' as DashboardView
   },
   {
-    layer: 'Endpoint Threat Detection',
-    desc: 'Inspects host telemetry and web requests on monitored servers for attacks, policy violations, and suspicious behavior.',
-    engine: 'Endpoint Detection',
-    targetView: 'threats' as DashboardView,
-    measured: m => `${(m?.activeThreats ?? 0).toLocaleString()} correlated threat clusters`
+    service_name: 'Endpoint Detection',
+    category: 'Host Security',
+    desc: 'Fleet telemetry ingestion, host behavioral analysis, and threat hunting.',
+    targetView: 'agents' as DashboardView
   },
   {
-    layer: 'Network Segmentation',
-    desc: 'Separates internal systems into zones, so an attack on one zone cannot reach the core data.',
-    engine: 'Database Vault',
-    targetView: 'networks' as DashboardView,
-    measured: m => `${(m?.protectedNetworksCount ?? 0).toLocaleString()} segmented network zones`
+    service_name: 'Database Vault',
+    category: 'Data Protection',
+    desc: 'Database connection encryption, access auditing, and query inspection.',
+    targetView: 'networks' as DashboardView
   },
   {
-    layer: 'Security Monitoring & Logging',
-    desc: 'Collects security events from every layer, keeps a full audit trail, and raises alerts for the SOC team.',
-    engine: 'SIEM Monitor',
-    targetView: 'security-events' as DashboardView,
-    measured: m => `${(m?.securityEventsCount ?? 0).toLocaleString()} security events ingested`
+    service_name: 'API Gateway',
+    category: 'Edge Infrastructure',
+    desc: 'Authentication gateway, schema validation, and secure service routing.',
+    targetView: 'applications' as DashboardView
+  },
+  {
+    service_name: 'SIEM Monitor',
+    category: 'Telemetry & Logs',
+    desc: 'Unified security event pipeline, correlation engine, and alert dispatches.',
+    targetView: 'security-events' as DashboardView
+  },
+  {
+    service_name: 'WebSocket Stream',
+    category: 'Real-time Transport',
+    desc: 'Low-latency telemetry broadcast channel to active console clients.',
+    targetView: 'live-traffic' as DashboardView
+  },
+  {
+    service_name: 'Threat Intel',
+    category: 'Threat Intelligence',
+    desc: 'Global threat feed correlation, known malicious IP/domain intelligence.',
+    targetView: 'threat-intel' as DashboardView
   }
 ];
+
+interface EngineHealthRecord {
+  service_name: string;
+  status: string;
+  latency_ms: number | null;
+  last_check?: string;
+  details?: string;
+}
 
 const statusDot = (status: string) => {
   if (status === 'Operational') return 'bg-emerald-500';
   if (status === 'Degraded') return 'bg-amber-500';
   return 'bg-rose-500';
+};
+
+const statusBadge = (status: string) => {
+  if (status === 'Operational') {
+    return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  }
+  if (status === 'Degraded') {
+    return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  }
+  return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
 };
 
 interface SummaryStatProps {
@@ -82,7 +103,6 @@ interface SummaryStatProps {
 
 const SummaryStat: React.FC<SummaryStatProps> = ({ label, value, note, dot }) => (
   <div className="relative group rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-4 pl-5 min-h-[144px] flex flex-col justify-between shadow-2xs transition-colors">
-    {/* Left accent bar — same treatment as dashboard KPI cards */}
     <span className="absolute left-0 top-3.5 bottom-3.5 w-1 rounded-r-full bg-zinc-200 dark:bg-zinc-700 transition-colors group-hover:bg-blue-600 dark:group-hover:bg-blue-400" />
     <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-tight">
       {label}
@@ -105,7 +125,7 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
   const { currentOrg, isBackendOffline } = useAuth();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<any>(null);
-  const [engines, setEngines] = useState<EngineHealth[]>([]);
+  const [engines, setEngines] = useState<EngineHealthRecord[]>([]);
   const [threatOverview, setThreatOverview] = useState<{ critical: number; high: number; medium: number; low: number } | null>(null);
   const [trafficHistory, setTrafficHistory] = useState<any[]>([]);
 
@@ -164,13 +184,11 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
     };
   }, [currentOrg?.id, isBackendOffline]);
 
-  const engineStatus = (name: string) =>
-    engines.find(e => e.service_name === name)?.status || 'Offline';
-
-  const operational = DEFENSE_LAYERS.filter(l => engineStatus(l.engine) === 'Operational').length;
-  const needsAttention = DEFENSE_LAYERS.length - operational;
-
-  const num = (value: any) => (metrics ? (value ?? 0).toLocaleString() : '—');
+  const engineMap = new Map<string, EngineHealthRecord>(engines.map(e => [e.service_name, e]));
+  const operationalCount = ENGINE_ROSTER.filter(
+    e => (engineMap.get(e.service_name)?.status || 'Offline') === 'Operational'
+  ).length;
+  const attentionCount = ENGINE_ROSTER.length - operationalCount;
 
   // Last-hour totals from the per-minute traffic history returned by the dashboard endpoint.
   const hourTotals = trafficHistory.reduce(
@@ -193,78 +211,95 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
 
   return (
     <div className="space-y-5 pb-12">
-      {/* Page header — dashboard identity: solid FontAwesome glyph so the mark
-          reads exactly as heavy as the Overview page, one-line subtitle. */}
       <ModulePageHeader
         icon={<FontAwesomeIcon icon={faShield} />}
-        title="Defense in Depth"
-        titleTail="Security Architecture"
-        subtitle="Five defensive layers monitored in real time, from the network edge to the core data vault."
+        title="Security Infrastructure"
+        titleTail="Engine Telemetry"
+        subtitle="Real-time operational health and telemetry across core security engines and transport pipelines."
       />
 
-      {/* Plain summary — four numbers, nothing more. */}
+      {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <SummaryStat
-          label="Active Layers"
-          value={`${operational} / ${DEFENSE_LAYERS.length}`}
-          note={needsAttention > 0 ? `${needsAttention} ${needsAttention === 1 ? 'needs' : 'need'} attention` : 'All layers operating'}
-          dot={operational === DEFENSE_LAYERS.length ? 'bg-emerald-500' : operational > 0 ? 'bg-amber-500' : 'bg-rose-500'}
+          label="Engine Health"
+          value={`${operationalCount} / ${ENGINE_ROSTER.length}`}
+          note={attentionCount > 0 ? `${attentionCount} ${attentionCount === 1 ? 'engine needs' : 'engines need'} attention` : 'All engines operating normally'}
+          dot={operationalCount === ENGINE_ROSTER.length ? 'bg-emerald-500' : operationalCount > 0 ? 'bg-amber-500' : 'bg-rose-500'}
         />
         <SummaryStat
           label="Protected Applications"
           value={<CountUpNumber value={metrics?.protectedAppsCount ?? 0} />}
-          note="Behind the perimeter edge"
+          note="Active web applications secured"
         />
         <SummaryStat
           label="Requests Today"
           value={<CountUpNumber value={metrics?.requestsToday ?? 0} />}
-          note="Inspected at the network edge"
+          note="Inspected at the edge pipeline"
         />
         <SummaryStat
           label="Blocked Requests"
           value={<CountUpNumber value={metrics?.blockedRequests ?? 0} />}
-          note="Blocked by active mitigation"
+          note="Mitigated threats & anomalies"
         />
       </div>
 
-      {/* Layers of defense — one simple row per layer, ordered edge → core. */}
+      {/* Security Engines & System Health */}
       <section className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] overflow-hidden shadow-2xs">
-        <header className="px-4 sm:px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40">
-          <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide truncate">
-            Layers of Defense
-          </h2>
+        <header className="px-4 sm:px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/40 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Server className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide truncate">
+              Security Engines & System Health
+            </h2>
+          </div>
+          <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
+            {loading ? 'Polling signals…' : 'Live Telemetry'}
+          </span>
         </header>
 
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-          {DEFENSE_LAYERS.map((d, idx) => {
-            const status = engineStatus(d.engine);
+          {ENGINE_ROSTER.map((engine) => {
+            const live = engineMap.get(engine.service_name);
+            const status = live?.status || (loading ? 'Checking…' : 'Offline');
+            const latency = live?.latency_ms;
+            const details = live?.details;
+
             return (
               <div
-                key={d.layer}
+                key={engine.service_name}
                 className="px-4 sm:px-5 py-4 flex flex-col gap-3 transition md:flex-row md:items-center md:justify-between hover:bg-zinc-50/60 dark:hover:bg-zinc-900/30"
               >
                 <div className="flex min-w-0 items-start gap-3.5">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                    {idx + 1}
-                  </span>
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200/80 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/60 text-zinc-600 dark:text-zinc-300">
+                    <Cpu className="w-4 h-4" />
+                  </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{d.layer}</h3>
-                      <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                      <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{engine.service_name}</h3>
+                      <span className="text-xs px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium">
+                        {engine.category}
+                      </span>
+                      <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border font-medium ${statusBadge(status)}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${statusDot(status)}`} />
                         {status}
                       </span>
                     </div>
-                    <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">{d.desc}</p>
-                    <p className="mt-1.5 text-xs font-mono text-zinc-400 dark:text-zinc-500">
-                      {metrics ? d.measured(metrics) : loading ? 'Loading measurement…' : 'No telemetry available'}
-                    </p>
+                    <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400 leading-relaxed">{engine.desc}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs font-mono text-zinc-400 dark:text-zinc-500">
+                      {latency !== undefined && latency !== null && (
+                        <span className="flex items-center gap-1">
+                          <Activity className="w-3 h-3 text-emerald-500" />
+                          <span>{latency} ms latency</span>
+                        </span>
+                      )}
+                      {details && <span className="truncate max-w-md">{details}</span>}
+                    </div>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => onNavigate(d.targetView)}
+                  onClick={() => onNavigate(engine.targetView)}
                   className="shrink-0 self-start inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-[13px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 cursor-pointer dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100 md:self-auto"
                 >
                   Open Module
