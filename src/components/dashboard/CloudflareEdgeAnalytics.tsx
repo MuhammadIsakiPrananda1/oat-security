@@ -6,6 +6,7 @@ import {
   faCircleExclamation
 } from '@fortawesome/free-solid-svg-icons';
 import { securityApi } from '../../services/api';
+import { getLanguage } from '../../i18n/translator';
 
 interface WebSecurityMetricItem {
   id: string;
@@ -24,6 +25,33 @@ interface CloudflareEdgeAnalyticsProps {
   liveEventTick?: number;
 }
 
+const METRIC_TEXTS = {
+  https_tls: {
+    en: { name: 'HTTPS / TLS Ingress Rate', desc: 'Real ratio of HTTPS/TLS packets (port 443 / TLS ingress).' },
+    id: { name: 'HTTPS / TLS Ingress Rate', desc: 'Rasio riil paket HTTPS/TLS (port 443 / TLS ingress).' },
+  },
+  waf_precision: {
+    en: { name: 'WAF Rule Precision', desc: 'WAF mitigation accuracy rate against verified threats.' },
+    id: { name: 'Presisi Aturan WAF', desc: 'Tingkat akurasi mitigasi WAF terhadap ancaman terverifikasi.' },
+  },
+  bot_pass: {
+    en: { name: 'Bot & Scanner Filter Rate', desc: 'Interception ratio of automated crawlers and bot scanners.' },
+    id: { name: 'Filter Bot & Scanner', desc: 'Rasio penangkapan crawler liar / bot scanner.' },
+  },
+  origin_shield: {
+    en: { name: 'Origin Shield & Cache Rate', desc: 'Ratio of protected requests and origin cache offload.' },
+    id: { name: 'Origin Shield & Rasio Cache', desc: 'Rasio permintaan terproteksi & cache offload.' },
+  },
+  ddos_res: {
+    en: { name: 'DDoS Resistance Level', desc: 'L3/L4 hardware DDoS filter defense status.' },
+    id: { name: 'Tingkat Ketahanan DDoS', desc: 'Status pertahanan filter hardware DDoS L3/L4.' },
+  },
+  http2_quic: {
+    en: { name: 'HTTP/2 & QUIC Transport Rate', desc: 'Transport connection multiplexing ratio.' },
+    id: { name: 'Rasio Transport HTTP/2 & QUIC', desc: 'Rasio multiplexing koneksi transport.' },
+  },
+};
+
 const DEFAULT_METRICS: WebSecurityMetricItem[] = [
   {
     id: 'https_tls',
@@ -34,7 +62,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     target: 95.0,
     targetDirection: 'min',
     history: [98.8, 99.0, 99.1, 99.3, 99.2, 99.4, 99.5, 99.3, 99.4, 99.5, 99.4, 99.5, 99.3, 99.4],
-    description: 'Rasio riil paket HTTPS/TLS (port 443 / TLS ingress).'
+    description: 'HTTPS / TLS ingress packet verification ratio.'
   },
   {
     id: 'waf_precision',
@@ -45,7 +73,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     target: 98.0,
     targetDirection: 'min',
     history: [99.5, 99.6, 99.7, 99.8, 99.7, 99.9, 99.8, 99.7, 99.8, 99.9, 99.8, 99.7, 99.8, 99.8],
-    description: 'Tingkat akurasi mitigasi WAF terhadap ancaman terverifikasi.'
+    description: 'WAF mitigation accuracy rate against verified threats.'
   },
   {
     id: 'bot_pass',
@@ -56,7 +84,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     target: 90.0,
     targetDirection: 'min',
     history: [91.2, 92.4, 93.0, 93.8, 94.5, 93.9, 94.1, 94.0, 93.8, 94.5, 94.1, 94.4, 93.9, 94.2],
-    description: 'Rasio penangkapan crawler liar / bot scanner.'
+    description: 'Interception ratio of automated crawlers and bot scanners.'
   },
   {
     id: 'origin_shield',
@@ -67,7 +95,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     target: 80.0,
     targetDirection: 'min',
     history: [85.0, 86.2, 87.1, 88.0, 87.5, 88.3, 89.0, 88.2, 88.5, 89.1, 88.4, 88.8, 88.3, 88.6],
-    description: 'Rasio permintaan terproteksi & cache offload.'
+    description: 'Ratio of protected requests and origin cache offload.'
   },
   {
     id: 'ddos_res',
@@ -78,7 +106,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     target: 99.0,
     targetDirection: 'min',
     history: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-    description: 'Status pertahanan filter hardware DDoS L3/L4.'
+    description: 'L3/L4 hardware DDoS filter defense status.'
   },
   {
     id: 'http2_quic',
@@ -89,11 +117,12 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     target: 85.0,
     targetDirection: 'min',
     history: [88.5, 89.2, 90.0, 90.8, 91.2, 91.5, 92.0, 91.4, 91.7, 92.1, 91.6, 92.0, 91.5, 91.8],
-    description: 'Rasio multiplexing koneksi transport.'
+    description: 'Transport connection multiplexing ratio.'
   }
 ];
 
 export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = ({ liveEventTick = 0 }) => {
+  const isId = getLanguage() === 'id';
   const [metrics, setMetrics] = useState<WebSecurityMetricItem[]>(DEFAULT_METRICS);
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -114,7 +143,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             target: 95.0,
             targetDirection: 'min',
             history: sec.history?.https || DEFAULT_METRICS[0].history,
-            description: 'Rasio riil paket HTTPS/TLS (port 443 / TLS ingress).'
+            description: 'HTTPS / TLS ingress packet verification ratio.'
           },
           {
             id: 'waf_precision',
@@ -125,7 +154,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             target: 98.0,
             targetDirection: 'min',
             history: sec.history?.waf || DEFAULT_METRICS[1].history,
-            description: 'Tingkat akurasi mitigasi WAF terhadap ancaman terverifikasi.'
+            description: 'WAF mitigation accuracy rate against verified threats.'
           },
           {
             id: 'bot_pass',
@@ -136,7 +165,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             target: 90.0,
             targetDirection: 'min',
             history: sec.history?.bot || DEFAULT_METRICS[2].history,
-            description: 'Rasio penangkapan crawler liar / bot scanner.'
+            description: 'Interception ratio of automated crawlers and bot scanners.'
           },
           {
             id: 'origin_shield',
@@ -147,7 +176,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             target: 80.0,
             targetDirection: 'min',
             history: sec.history?.origin || DEFAULT_METRICS[3].history,
-            description: 'Rasio permintaan terproteksi & cache offload.'
+            description: 'Ratio of protected requests and origin cache offload.'
           },
           {
             id: 'ddos_res',
@@ -158,7 +187,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             target: 99.0,
             targetDirection: 'min',
             history: sec.history?.ddos || DEFAULT_METRICS[4].history,
-            description: 'Status pertahanan filter hardware DDoS L3/L4.'
+            description: 'L3/L4 hardware DDoS filter defense status.'
           },
           {
             id: 'http2_quic',
@@ -169,7 +198,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             target: 85.0,
             targetDirection: 'min',
             history: sec.history?.http2 || DEFAULT_METRICS[5].history,
-            description: 'Rasio multiplexing koneksi transport.'
+            description: 'Transport connection multiplexing ratio.'
           }
         ]);
       }
@@ -221,33 +250,44 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b border-zinc-200/80 dark:border-zinc-800">
         <div>
           <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-            Web Security &amp; Protocol Performance, last 14 days
+            {isId ? 'KEAMANAN WEB & PERFORMA PROTOKOL, 14 HARI TERAKHIR' : 'WEB SECURITY & PROTOCOL PERFORMANCE, LAST 14 DAYS'}
           </div>
 
           <h3 className="mt-1 text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             {alertMetric ? (
               <span>
-                <strong className="text-zinc-900 dark:text-white font-extrabold">{alertMetric.name}</strong> is currently below target threshold
+                <strong className="text-zinc-900 dark:text-white font-extrabold">
+                  {METRIC_TEXTS[alertMetric.id as keyof typeof METRIC_TEXTS]?.[isId ? 'id' : 'en']?.name || alertMetric.name}
+                </strong>{' '}
+                {isId ? 'saat ini berada di bawah ambang batas target' : 'is currently below target threshold'}
               </span>
             ) : (
-              <span>All web security &amp; protocol metrics are operating above optimal benchmarks</span>
+              <span>
+                {isId
+                  ? 'Semua metrik keamanan web & protokol beroperasi di atas standar optimal'
+                  : 'All web security & protocol metrics are operating above optimal benchmarks'}
+              </span>
             )}
           </h3>
 
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
-            Real-time telemetry measuring edge HTTPS encryption rates, automated bot mitigation, WAF rule accuracy, and transport protocol offload across protected websites.
+            {isId
+              ? 'Telemetri real-time yang mengukur tingkat enkripsi HTTPS edge, mitigasi bot otomatis, akurasi aturan WAF, dan offload protokol transport di seluruh situs terlindungi.'
+              : 'Real-time telemetry measuring edge HTTPS encryption rates, automated bot mitigation, WAF rule accuracy, and transport protocol offload across protected websites.'}
           </p>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
             <span className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
               <span className="h-0.5 w-3 bg-zinc-800 dark:bg-zinc-200 inline-block" />
-              current rate
+              {isId ? 'rasio saat ini' : 'current rate'}
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-0.5 w-3 border-t border-dashed border-zinc-400 inline-block" />
-              benchmark baseline
+              {isId ? 'garis dasar benchmark' : 'benchmark baseline'}
             </span>
-            <span>Riwayat kurva 14 data point tren telemetri</span>
+            <span>
+              {isId ? 'Riwayat kurva 14 data point tren telemetri' : '14-point telemetry trend curve history'}
+            </span>
           </div>
         </div>
 
@@ -255,10 +295,14 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
           <button
             type="button"
             onClick={() => setViewMode(prev => (prev === 'chart' ? 'table' : 'chart'))}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 cursor-pointer shadow-2xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-3.5 text-xs font-medium whitespace-nowrap text-neutral-950 shadow-xs transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:hover:bg-neutral-800 dark:focus-visible:outline-zinc-50 dark:active:bg-neutral-700"
           >
-            <FontAwesomeIcon icon={viewMode === 'chart' ? faTable : faChartLine} className="text-zinc-400 text-xs" />
-            <span>{viewMode === 'chart' ? 'View as table' : 'View as chart'}</span>
+            <FontAwesomeIcon icon={viewMode === 'chart' ? faTable : faChartLine} className="text-neutral-500 dark:text-neutral-400 text-xs" />
+            <span>
+              {viewMode === 'chart'
+                ? isId ? 'Lihat sebagai tabel' : 'View as table'
+                : isId ? 'Lihat sebagai grafik' : 'View as chart'}
+            </span>
           </button>
         </div>
       </div>
@@ -273,6 +317,10 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             const scrubbedY = getY(currentScrubbedVal);
             const targetY = getY(m.target);
 
+            const itemText = METRIC_TEXTS[m.id as keyof typeof METRIC_TEXTS]?.[isId ? 'id' : 'en'];
+            const metricDisplayName = itemText?.name || m.name;
+            const metricDisplayDesc = itemText?.desc || m.description;
+
             const points = m.history.map((val, i) => `${getX(i).toFixed(1)},${getY(val).toFixed(1)}`);
             const linePath = `M ${points.join(' L ')}`;
             const areaPath = `${linePath} L ${svgWidth},${svgHeight} L 0,${svgHeight} Z`;
@@ -286,13 +334,13 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
                 <div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                      {m.name} <span className="text-zinc-400 font-mono text-[11px] font-normal">({m.code})</span>
+                      {metricDisplayName} <span className="text-zinc-400 font-mono text-[11px] font-normal">({m.code})</span>
                     </span>
 
                     {isFailing ? (
                       <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/25">
                         <FontAwesomeIcon icon={faCircleExclamation} className="text-[9px]" />
-                        Below target
+                        {isId ? 'Di bawah target' : 'Below target'}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-mono">
@@ -311,7 +359,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
                   </div>
 
                   <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug line-clamp-1">
-                    {m.description}
+                    {metricDisplayDesc}
                   </p>
                 </div>
 
@@ -406,23 +454,28 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
           <table className="w-full text-left text-xs font-mono">
             <thead>
               <tr className="border-b border-zinc-200/80 bg-zinc-50 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
-                <th className="py-2.5 px-3.5 font-semibold">SECURITY METRIC</th>
-                <th className="py-2.5 px-3.5 font-semibold">CODE</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right">VALUE</th>
-                <th className="py-2.5 px-3.5 font-semibold text-right">BASELINE</th>
-                <th className="py-2.5 px-3.5 font-semibold">DESCRIPTION</th>
+                <th className="py-2.5 px-3.5 font-semibold">{isId ? 'METRIK KEAMANAN' : 'SECURITY METRIC'}</th>
+                <th className="py-2.5 px-3.5 font-semibold">{isId ? 'KODE' : 'CODE'}</th>
+                <th className="py-2.5 px-3.5 font-semibold text-right">{isId ? 'NILAI' : 'VALUE'}</th>
+                <th className="py-2.5 px-3.5 font-semibold text-right">{isId ? 'GARIS DASAR' : 'BASELINE'}</th>
+                <th className="py-2.5 px-3.5 font-semibold">{isId ? 'DESKRIPSI' : 'DESCRIPTION'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-              {metrics.map(m => (
-                <tr key={m.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
-                  <td className="py-2 px-3.5 font-medium text-zinc-900 dark:text-zinc-100">{m.name}</td>
-                  <td className="py-2 px-3.5 text-zinc-400">{m.code}</td>
-                  <td className="py-2 px-3.5 text-right font-bold text-zinc-900 dark:text-zinc-100">{m.currentVal} {m.unit}</td>
-                  <td className="py-2 px-3.5 text-right text-zinc-400">{m.target} {m.unit}</td>
-                  <td className="py-2 px-3.5 text-zinc-500">{m.description}</td>
-                </tr>
-              ))}
+              {metrics.map(m => {
+                const itemText = METRIC_TEXTS[m.id as keyof typeof METRIC_TEXTS]?.[isId ? 'id' : 'en'];
+                const metricDisplayName = itemText?.name || m.name;
+                const metricDisplayDesc = itemText?.desc || m.description;
+                return (
+                  <tr key={m.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
+                    <td className="py-2 px-3.5 font-medium text-zinc-900 dark:text-zinc-100">{metricDisplayName}</td>
+                    <td className="py-2 px-3.5 text-zinc-400">{m.code}</td>
+                    <td className="py-2 px-3.5 text-right font-bold text-zinc-900 dark:text-zinc-100">{m.currentVal} {m.unit}</td>
+                    <td className="py-2 px-3.5 text-right text-zinc-400">{m.target} {m.unit}</td>
+                    <td className="py-2 px-3.5 text-zinc-500">{metricDisplayDesc}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
