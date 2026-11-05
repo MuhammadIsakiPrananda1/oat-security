@@ -92,12 +92,18 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
   }, []);
 
   // Compute projection and path generator
-  const { featureData } = useMemo(() => {
+  const { featureData, viewBox } = useMemo(() => {
+    const collection: any = { type: 'FeatureCollection', features };
     const projection = d3
       .geoMercator()
-      .fitSize([WIDTH, HEIGHT], { type: 'FeatureCollection', features });
+      .fitSize([WIDTH, HEIGHT], collection);
 
     const path = d3.geoPath(projection);
+    const bounds = path.bounds(collection);
+    const [[x0, y0], [x1, y1]] = bounds;
+    // Add small comfortable margin around actual country bounds so map fills container perfectly
+    const pad = 8;
+    const computedViewBox = `${x0 - pad} ${y0 - pad} ${(x1 - x0) + pad * 2} ${(y1 - y0) + pad * 2}`;
 
     const fData = features.map((f: any) => {
       const code = String(f.id || '').toUpperCase();
@@ -116,7 +122,7 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
       };
     });
 
-    return { featureData: fData };
+    return { featureData: fData, viewBox: computedViewBox };
   }, [features, countryMap]);
 
   const handlePointerMove = (e: React.PointerEvent, item: { id: string; name: string; count: number; lastAttackIp?: string; lastAttackType?: string; lastAttackTime?: number }) => {
@@ -140,9 +146,9 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
     setTooltip(prev => ({ ...prev, visible: false }));
   };
 
-  // Theme-aware fill colors
-  const baseFill   = isDark ? '#27272a' : '#d4d4d8'; // zinc-800 / zinc-300
-  const baseStroke = isDark ? '#18181b' : '#a1a1aa'; // zinc-900 / zinc-400
+  // Theme-aware fill colors: In light mode, use a clean grey palette instead of stark pitch black
+  const baseFill   = isDark ? '#27272a' : '#e4e4e7'; // zinc-800 dark / zinc-200 light
+  const baseStroke = isDark ? '#18181b' : '#d4d4d8'; // zinc-900 dark / zinc-300 light
   const trafficFill      = isDark ? '#2563eb' : '#3b82f6';
   const trafficFillTop   = isDark ? '#3b82f6' : '#2563eb';
   const trafficStroke    = isDark ? '#60a5fa' : '#93c5fd';
@@ -150,17 +156,18 @@ export const CloudflareGeoMap: React.FC<CloudflareGeoMapProps> = ({ data }) => {
   const hoverStroke      = isDark ? '#93c5fd' : '#60a5fa';
 
   return (
-    <div className="relative rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-100 dark:bg-[#0c0c0e] text-zinc-800 dark:text-zinc-100 p-4 sm:p-5 shadow-2xs select-none">
+    <div className="relative rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#0c0c0e] text-zinc-800 dark:text-zinc-100 p-4 sm:p-5 shadow-2xs select-none">
       <div className="pb-3 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-200">
           Global Traffic Map
         </h3>
       </div>
 
-      <div className="relative mt-2 w-full h-[320px] sm:h-[400px] lg:h-[440px] overflow-hidden rounded-lg">
+      <div className="relative mt-2 w-full h-[320px] sm:h-[400px] lg:h-[440px] overflow-hidden rounded-lg flex items-center justify-center">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          viewBox={viewBox}
+          preserveAspectRatio="xMidYMid meet"
           className="w-full h-full block"
           onPointerLeave={handlePointerLeave}
         >
