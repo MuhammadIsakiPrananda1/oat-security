@@ -14,7 +14,9 @@ import {
   Siren,
   ArrowUpRight,
   ChevronDown,
-  X
+  X,
+  SlidersHorizontal,
+  Check
 } from 'lucide-react';
 import { securityApi, globalRealtimeClient, RealtimeStreamStatus } from '../../services/api';
 import { ThreatItem, SecurityEvent } from '../../types';
@@ -71,6 +73,8 @@ export const ThreatsModule: React.FC<ThreatsModuleProps> = ({ onNavigate }) => {
   const [search, setSearch] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
+  const [showSeverityDropdown, setShowSeverityDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [filterCategory] = useState('ALL');
   const [feedback, setFeedback] = useState<string | null>(null);
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStreamStatus>('CONNECTED');
@@ -486,42 +490,108 @@ export const ThreatsModule: React.FC<ThreatsModuleProps> = ({ onNavigate }) => {
           )}
         </div>
 
-        {/* Filters Group */}
+        {/* Filters Group with Custom Dropdown Style (matching Firewall Rules) */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          {/* Severity Select Dropdown */}
+          {/* Severity Dropdown */}
           <div className="relative flex-1 sm:flex-none">
-            <select
-              value={filterSeverity}
-              onChange={e => setFilterSeverity(e.target.value)}
-              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 cursor-pointer shadow-2xs transition"
+            <button
+              type="button"
+              onClick={() => {
+                setShowSeverityDropdown(prev => !prev);
+                setShowStatusDropdown(false);
+              }}
+              className="w-full sm:w-auto h-9 px-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-800 dark:text-zinc-200 inline-flex items-center justify-between gap-2.5 transition cursor-pointer shadow-xs"
             >
-              <option value="ALL">Severity: All</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <span className="text-[13px]">
+                {filterSeverity === 'ALL' ? 'Severity: All' : filterSeverity}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${showSeverityDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showSeverityDropdown && (
+              <>
+                <div className="fixed inset-0 z-20 cursor-default" onClick={() => setShowSeverityDropdown(false)} />
+                <div className="absolute right-0 sm:left-0 top-full mt-2 w-48 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-1.5 z-30 space-y-0.5">
+                  {['ALL', 'Critical', 'High', 'Medium', 'Low'].map(sev => {
+                    const isActive = filterSeverity === sev;
+                    return (
+                      <button
+                        key={sev}
+                        type="button"
+                        onClick={() => {
+                          setFilterSeverity(sev);
+                          setShowSeverityDropdown(false);
+                        }}
+                        className={`w-full px-3 py-2 rounded-lg text-xs text-left flex items-center justify-between transition cursor-pointer ${
+                          isActive
+                            ? 'font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                        }`}
+                      >
+                        <span className="text-[13px]">{sev === 'ALL' ? 'Severity: All' : sev}</span>
+                        {isActive && <Check className="w-4 h-4 text-emerald-500 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Status Select Dropdown */}
+          {/* Status Dropdown */}
           <div className="relative flex-1 sm:flex-none">
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 cursor-pointer shadow-2xs transition"
+            <button
+              type="button"
+              onClick={() => {
+                setShowStatusDropdown(prev => !prev);
+                setShowSeverityDropdown(false);
+              }}
+              className="w-full sm:w-auto h-9 px-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-800 dark:text-zinc-200 inline-flex items-center justify-between gap-2.5 transition cursor-pointer shadow-xs"
             >
-              <option value="ALL">Status: All</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="NEW">NEW (Incident)</option>
-              <option value="INVESTIGATING">INVESTIGATING</option>
-              <option value="CONTAINED">CONTAINED</option>
-              <option value="BLOCKED">BLOCKED</option>
-              <option value="MITIGATED">MITIGATED</option>
-              <option value="RESOLVED">RESOLVED</option>
-              <option value="CLOSED">CLOSED</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <span className="text-[13px]">
+                {filterStatus === 'ALL' ? 'Status: All' : filterStatus}
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showStatusDropdown && (
+              <>
+                <div className="fixed inset-0 z-20 cursor-default" onClick={() => setShowStatusDropdown(false)} />
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-1.5 z-30 space-y-0.5 max-h-72 overflow-y-auto custom-scrollbar">
+                  {[
+                    { val: 'ALL', label: 'Status: All' },
+                    { val: 'ACTIVE', label: 'ACTIVE' },
+                    { val: 'NEW', label: 'NEW (Incident)' },
+                    { val: 'INVESTIGATING', label: 'INVESTIGATING' },
+                    { val: 'CONTAINED', label: 'CONTAINED' },
+                    { val: 'BLOCKED', label: 'BLOCKED' },
+                    { val: 'MITIGATED', label: 'MITIGATED' },
+                    { val: 'RESOLVED', label: 'RESOLVED' },
+                    { val: 'CLOSED', label: 'CLOSED' }
+                  ].map(st => {
+                    const isActive = filterStatus === st.val;
+                    return (
+                      <button
+                        key={st.val}
+                        type="button"
+                        onClick={() => {
+                          setFilterStatus(st.val);
+                          setShowStatusDropdown(false);
+                        }}
+                        className={`w-full px-3 py-2 rounded-lg text-xs text-left flex items-center justify-between transition cursor-pointer ${
+                          isActive
+                            ? 'font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                            : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                        }`}
+                      >
+                        <span className="text-[13px]">{st.label}</span>
+                        {isActive && <Check className="w-4 h-4 text-emerald-500 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
