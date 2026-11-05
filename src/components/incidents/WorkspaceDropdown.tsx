@@ -114,5 +114,3 @@ export const WorkspaceDropdown: React.FC<WorkspaceDropdownProps> = ({
     </div>
   );
 };
-  );
-};
