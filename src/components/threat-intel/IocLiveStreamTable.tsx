@@ -54,7 +54,7 @@ export const IocLiveStreamTable: React.FC<IocLiveStreamTableProps> = ({
             type="text"
             value={search}
             onChange={e => onSearchChange(e.target.value)}
-            placeholder="Search indicator, tag, country, or feed source..."
+            placeholder="Search..."
             className="w-full pl-10 pr-9 py-2 bg-zinc-50/80 dark:bg-zinc-900/50 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition shadow-2xs"
           />
           {search && (

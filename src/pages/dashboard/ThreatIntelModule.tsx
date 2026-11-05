@@ -69,8 +69,24 @@ export const ThreatIntelModule: React.FC = () => {
       return true;
     }
   });
+  const [showGuide, setShowGuide] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('oat_threat_intel_show_guide');
+      return saved !== null ? saved === 'true' : false;
+    } catch {
+      return false;
+    }
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: 'ok' | 'warn' | 'err'; text: string } | null>(null);
+
+  const toggleGuide = () => {
+    setShowGuide(prev => {
+      const next = !prev;
+      try { localStorage.setItem('oat_threat_intel_show_guide', String(next)); } catch {}
+      return next;
+    });
+  };
 
   const toggleFeedsOverview = () => {
     setShowFeedsOverview(prev => {
@@ -411,38 +427,58 @@ export const ThreatIntelModule: React.FC = () => {
         </div>
       )}
 
-      {/* Guide & Architecture Explainer Card */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/30 shadow-xs">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <Info className="h-4 w-4" />
-          </div>
-          <div className="flex-1 space-y-3">
-            <div>
+      {/* Guide & Architecture Explainer Card (Collapsible for cleaner dashboard) */}
+      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/30 shadow-xs transition">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <Info className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
               <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 <span>
                   {getLanguage() === 'id'
-                    ? 'Cara Kerja & Fungsi Threat Intelligence (IOC Stream)'
-                    : 'Threat Intelligence & IOC Stream Architecture'}
+                    ? 'Panduan & Cara Kerja Threat Intelligence'
+                    : 'Threat Intelligence Architecture & Guide'}
                 </span>
                 <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   {getLanguage() === 'id' ? 'Proteksi Aktif' : 'Active Protection'}
                 </span>
               </h3>
-              <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                {getLanguage() === 'id' ? (
-                  <>
-                    Modul ini mengumpulkan dan menyinkronkan <strong>Indicators of Compromise (IOC)</strong> seperti IP penyerang, domain phishing, dan C2 server secara otomatis dari feed intelijen global serta endpoint agent. Setiap IOC yang berstatus <strong className="text-rose-600 dark:text-rose-400">Blocked</strong> langsung ditegakkan di Perimeter Firewall untuk mencegah akses sebelum serangan mencapai aplikasi Anda.
-                  </>
-                ) : (
-                  <>
-                    This module aggregates and synchronizes <strong>Indicators of Compromise (IOC)</strong> such as attacker IPs, phishing domains, and C2 servers automatically from global intelligence feeds and endpoint agents. Every indicator in <strong className="text-rose-600 dark:text-rose-400">Blocked</strong> status is immediately enforced on the Perimeter Firewall to neutralize threats before they reach your applications.
-                  </>
-                )}
-              </p>
+              {!showGuide && (
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+                  {getLanguage() === 'id'
+                    ? 'Deteksi dini dan penegakan blokir otomatis dari feed intelijen global.'
+                    : 'Early threat detection and automated perimeter blocking from global intelligence feeds.'}
+                </p>
+              )}
             </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleGuide}
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 text-xs font-medium text-neutral-800 shadow-xs hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          >
+            <span>{showGuide ? (getLanguage() === 'id' ? 'Sembunyikan' : 'Hide') : (getLanguage() === 'id' ? 'Buka Panduan' : 'Open Guide')}</span>
+            {showGuide ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          </button>
+        </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-zinc-200/70 dark:border-zinc-800/80 text-xs">
+        {showGuide && (
+          <div className="mt-3.5 pt-3 border-t border-zinc-200/70 dark:border-zinc-800/80 space-y-3 animate-in fade-in duration-150">
+            <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+              {getLanguage() === 'id' ? (
+                <>
+                  Modul ini mengumpulkan dan menyinkronkan <strong>Indicators of Compromise (IOC)</strong> seperti IP penyerang, domain phishing, dan C2 server secara otomatis dari feed intelijen global serta endpoint agent. Setiap IOC yang berstatus <strong className="text-rose-600 dark:text-rose-400">Blocked</strong> langsung ditegakkan di Perimeter Firewall untuk mencegah akses sebelum serangan mencapai aplikasi Anda.
+                </>
+              ) : (
+                <>
+                  This module aggregates and synchronizes <strong>Indicators of Compromise (IOC)</strong> such as attacker IPs, phishing domains, and C2 servers automatically from global intelligence feeds and endpoint agents. Every indicator in <strong className="text-rose-600 dark:text-rose-400">Blocked</strong> status is immediately enforced on the Perimeter Firewall to neutralize threats before they reach your applications.
+                </>
+              )}
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
               <div className="flex items-start gap-2">
                 <Globe className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
                 <div>
@@ -484,7 +520,7 @@ export const ThreatIntelModule: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Metrics Row */}
