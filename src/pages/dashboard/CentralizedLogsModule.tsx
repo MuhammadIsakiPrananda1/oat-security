@@ -8,7 +8,7 @@ import { LogEntry } from '../../types';
 import { BackendOfflineBanner } from '../../components/common/BackendOfflineBanner';
 import { useAuth } from '../../context/AuthContext';
 import { formatDateTime, formatTime } from '../../utils/dateTime';
-import { classifyLocalIp, getCountryName } from '../../utils/ip';
+import { classifyLocalIp, getCountryName, extractIpOnly } from '../../utils/ip';
 import { CountryFlag } from '../../components/common/CountryFlag';
 import { getLanguage } from '../../i18n/translator';
 
@@ -626,9 +626,10 @@ export const CentralizedLogsModule: React.FC = () => {
                     const levelBadge = getLevelBadgeClass(levelUp);
                     const ipStr = String(log.ip || '');
                     const badge = classifyLocalIp(ipStr) ? 'ID' : 'UN';
-                    let displayIp = ipStr;
-                    if (ipStr.includes(':') && ipStr.length > 20) {
-                      displayIp = ipStr.slice(0, 9) + '…' + ipStr.slice(-5);
+                    const cleanIp = extractIpOnly(ipStr);
+                    let displayIp = cleanIp;
+                    if (cleanIp.includes(':') && cleanIp.length > 20) {
+                      displayIp = cleanIp.slice(0, 9) + '…' + cleanIp.slice(-5);
                     }
 
                     return (
@@ -661,7 +662,7 @@ export const CentralizedLogsModule: React.FC = () => {
 
                         {/* Message */}
                         <td className="px-3 py-2.5 align-top">
-                          <div className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300 leading-snug group-hover:whitespace-normal group-hover:break-words">
+                          <div className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300 leading-snug">
                             {log.message}
                           </div>
                           {log.host && (
@@ -826,9 +827,10 @@ export const CentralizedLogsModule: React.FC = () => {
                   const ipStr = String(ip);
                   const rawBadge = (sourceCountryCode as string | undefined) || (classifyLocalIp(ipStr) ? 'ID' : 'UN');
                   const badge = (rawBadge === 'LAN' || rawBadge === 'SYS') ? 'ID' : rawBadge;
-                  let displayIp: string = ipStr;
-                  if (ipStr.includes(':') && ipStr.length > 20) {
-                    displayIp = ipStr.slice(0, 9) + '…' + ipStr.slice(-5);
+                  const cleanIp = extractIpOnly(ipStr);
+                  let displayIp: string = cleanIp;
+                  if (cleanIp.includes(':') && cleanIp.length > 20) {
+                    displayIp = cleanIp.slice(0, 9) + '…' + cleanIp.slice(-5);
                   }
                   const pct = topSourceIpMax > 0 ? Math.round((count / topSourceIpMax) * 100) : 0;
                   const barClass = badge === 'ID'

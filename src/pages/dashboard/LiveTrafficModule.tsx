@@ -1265,10 +1265,11 @@ export const LiveTrafficModule: React.FC = () => {
                   const ipStr = String(ip);
                   const rawBadge = sourceCountryCode || (classifyLocalIp(ipStr) ? 'ID' : 'UN');
                   const badge = (rawBadge === 'LAN' || rawBadge === 'SYS') ? 'ID' : rawBadge;
-                  let displayIp: string = ipStr;
+                  const cleanIp = extractIpOnly(ipStr);
+                  let displayIp: string = cleanIp;
                   // Shorten IPv6 for display
-                  if (ipStr.includes(':') && ipStr.length > 20) {
-                    displayIp = ipStr.slice(0, 9) + '…' + ipStr.slice(-5);
+                  if (cleanIp.includes(':') && cleanIp.length > 20) {
+                    displayIp = cleanIp.slice(0, 9) + '…' + cleanIp.slice(-5);
                   }
                   const pct = topSourceIpMax > 0 ? Math.round((count / topSourceIpMax) * 100) : 0;
                   const barClass = badge === 'ID'

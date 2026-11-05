@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, X, ShieldCheck, Server, Clock, ChevronRight, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, X, ShieldCheck, Server, Clock, ChevronRight, ChevronDown, Check } from 'lucide-react';
 import { StatusBadge } from '../common/StatusBadge';
 import { Incident, IncidentSection, AssetOption } from './types';
 import { SOC_TIER_META } from './constants';
@@ -29,6 +29,15 @@ export const IncidentQueueList: React.FC<IncidentQueueListProps> = ({
   totalSectionCount,
   assets = []
 }) => {
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+
+  const statusOptions: { id: 'ALL' | 'ACTIVE' | 'RESOLVED'; label: string }[] = [
+    { id: 'ALL', label: `Status: All (${totalSectionCount})` },
+    { id: 'ACTIVE', label: 'Status: Active Only' },
+    { id: 'RESOLVED', label: 'Status: Resolved' },
+  ];
+
+  const activeLabel = statusOptions.find(o => o.id === filterStatus)?.label || `Status: All (${totalSectionCount})`;
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* Banner Deskripsi Bagian Khusus jika di tab L1, L2, atau L3 */}
@@ -68,16 +77,43 @@ export const IncidentQueueList: React.FC<IncidentQueueListProps> = ({
         </div>
 
         <div className="relative shrink-0">
-          <select
-            value={filterStatus}
-            onChange={e => onFilterStatusChange(e.target.value as 'ALL' | 'ACTIVE' | 'RESOLVED')}
-            className="w-full sm:w-auto appearance-none pl-3.5 pr-8 py-1.5 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none cursor-pointer shadow-2xs transition"
+          <button
+            type="button"
+            onClick={() => setShowStatusDropdown(prev => !prev)}
+            className="w-full sm:w-auto h-8 px-3 rounded-lg border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 inline-flex items-center justify-between gap-2 cursor-pointer shadow-xs transition"
           >
-            <option value="ALL">Status: All ({totalSectionCount})</option>
-            <option value="ACTIVE">Status: Active Only</option>
-            <option value="RESOLVED">Status: Resolved</option>
-          </select>
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <span>{activeLabel}</span>
+            <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${showStatusDropdown ? 'rotate-180 text-zinc-600 dark:text-zinc-200' : ''}`} />
+          </button>
+
+          {showStatusDropdown && (
+            <>
+              <div className="fixed inset-0 z-20 cursor-default" onClick={() => setShowStatusDropdown(false)} />
+              <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-1.5 z-30 space-y-0.5">
+                {statusOptions.map(item => {
+                  const active = filterStatus === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onFilterStatusChange(item.id);
+                        setShowStatusDropdown(false);
+                      }}
+                      className={`w-full px-3 py-2 rounded-lg text-xs text-left flex items-center justify-between transition cursor-pointer ${
+                        active
+                          ? 'font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {active && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

@@ -32,7 +32,7 @@ import { getLanguage } from '../../i18n/translator';
 import { CountryFlag } from '../../components/common/CountryFlag';
 import { useAuth } from '../../context/AuthContext';
 import { formatDateTime, formatTime } from '../../utils/dateTime';
-import { classifyLocalIp, getCountryName } from '../../utils/ip';
+import { classifyLocalIp, getCountryName, extractIpOnly } from '../../utils/ip';
 
 type ActionFilterValue = 'ALL' | 'BLOCKED' | 'ALLOWED' | 'CHALLENGED' | 'LOGGED';
 type ActionGroup = 'BLOCKED' | 'ALLOWED' | 'CHALLENGED' | 'LOGGED' | 'OTHER';
@@ -1126,9 +1126,10 @@ export const SecurityEventsModule: React.FC = () => {
                 topSourceIps.map(({ ip, count, sourceCountryCode }) => {
                   const origin = getOriginBadge(ip, sourceCountryCode);
                   const ipStr = String(ip);
-                  let displayIp = ipStr;
-                  if (ipStr.includes(':') && ipStr.length > 20) {
-                    displayIp = ipStr.slice(0, 9) + '…' + ipStr.slice(-5);
+                  const cleanIp = extractIpOnly(ipStr);
+                  let displayIp = cleanIp;
+                  if (cleanIp.includes(':') && cleanIp.length > 20) {
+                    displayIp = cleanIp.slice(0, 9) + '…' + cleanIp.slice(-5);
                   }
                   const pct = topSourceIpMax > 0 ? Math.round((count / topSourceIpMax) * 100) : 0;
 

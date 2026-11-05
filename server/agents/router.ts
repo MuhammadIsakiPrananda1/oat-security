@@ -110,8 +110,14 @@ function asInt(value: unknown, min: number, max: number): number | undefined {
 }
 
 function asIp(value: unknown, fallback = '0.0.0.0'): string {
-  const candidate = cleanString(value, 64);
+  let candidate = cleanString(value, 64);
   if (!candidate) return fallback;
+  if (candidate.includes(': ') && !candidate.includes('::')) {
+    const after = candidate.split(': ').pop()?.trim();
+    if (after) candidate = after;
+  } else if (/^[a-zA-Z0-9_-]+:\s*[0-9.]+/.test(candidate)) {
+    candidate = candidate.replace(/^[a-zA-Z0-9_-]+:\s*/, '').trim();
+  }
   const normalized = candidate.replace(/^\[|\]$/g, '').split('%')[0];
   return net.isIP(normalized) ? normalized : fallback;
 }
@@ -1053,7 +1059,7 @@ agentRouter.post('/ingest', (req: AuthenticatedRequest, res: Response) => {
     const level = asLogLevel(item.level);
     const eventType = cleanString(item.eventType || item.event_type, 80) || 'agent_log';
     const host = cleanString(item.host, 128) || hostname;
-    const ip = cleanString(item.ip, 64) || agentIp;
+    const ip = asIp(item.ip, agentIp);
     const correlationId = cleanString(item.correlationId || item.correlation_id, 128) || null;
     const rawLog = cleanMultiline(item.rawLog || item.raw_log, 16_000) || message;
     const metadata = {

@@ -14,6 +14,8 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Check,
   CheckCircle2
 } from 'lucide-react';
 import { securityApi, globalRealtimeClient } from '../../services/api';
@@ -59,6 +61,8 @@ export const ApplicationsModule: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [envFilter, setEnvFilter] = useState('ALL');
+  const [showEnvDropdown, setShowEnvDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
   const [pulse, setPulse] = useState(false);
@@ -388,27 +392,105 @@ export const ApplicationsModule: React.FC = () => {
                 )}
               </div>
 
-              <select
-                value={envFilter}
-                onChange={e => { setEnvFilter(e.target.value); setCurrentPage(1); }}
-                className="h-8 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-600 transition focus:outline-none focus:border-zinc-400 cursor-pointer dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-              >
-                <option value="ALL">All Environments</option>
-                <option value="Production">Production</option>
-                <option value="Staging">Staging</option>
-                <option value="Development">Development</option>
-              </select>
+              {/* Environment Filter Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEnvDropdown(prev => !prev);
+                    setShowStatusDropdown(false);
+                  }}
+                  className="h-8 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <span>{envFilter === 'ALL' ? 'All Environments' : envFilter}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${showEnvDropdown ? 'rotate-180 text-zinc-600 dark:text-zinc-200' : ''}`} />
+                </button>
 
-              <select
-                value={statusFilter}
-                onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="h-8 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-600 transition focus:outline-none focus:border-zinc-400 cursor-pointer dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="Protected">Protected</option>
-                <option value="Monitoring">Monitoring</option>
-                <option value="Offline">Offline</option>
-              </select>
+                {showEnvDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-20 cursor-default" onClick={() => setShowEnvDropdown(false)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-48 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-1.5 z-30 space-y-0.5">
+                      {[
+                        { id: 'ALL', label: 'All Environments' },
+                        { id: 'Production', label: 'Production' },
+                        { id: 'Staging', label: 'Staging' },
+                        { id: 'Development', label: 'Development' },
+                      ].map(item => {
+                        const active = envFilter === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setEnvFilter(item.id);
+                              setCurrentPage(1);
+                              setShowEnvDropdown(false);
+                            }}
+                            className={`w-full px-3 py-2 rounded-lg text-xs text-left flex items-center justify-between transition cursor-pointer ${
+                              active
+                                ? 'font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                            }`}
+                          >
+                            <span>{item.label}</span>
+                            {active && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Status Filter Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowStatusDropdown(prev => !prev);
+                    setShowEnvDropdown(false);
+                  }}
+                  className="h-8 rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800/60 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <span>{statusFilter === 'ALL' ? 'All Statuses' : statusFilter}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${showStatusDropdown ? 'rotate-180 text-zinc-600 dark:text-zinc-200' : ''}`} />
+                </button>
+
+                {showStatusDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-20 cursor-default" onClick={() => setShowStatusDropdown(false)} />
+                    <div className="absolute left-0 top-full mt-1.5 w-44 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-1.5 z-30 space-y-0.5">
+                      {[
+                        { id: 'ALL', label: 'All Statuses' },
+                        { id: 'Protected', label: 'Protected' },
+                        { id: 'Monitoring', label: 'Monitoring' },
+                        { id: 'Offline', label: 'Offline' },
+                      ].map(item => {
+                        const active = statusFilter === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setStatusFilter(item.id);
+                              setCurrentPage(1);
+                              setShowStatusDropdown(false);
+                            }}
+                            className={`w-full px-3 py-2 rounded-lg text-xs text-left flex items-center justify-between transition cursor-pointer ${
+                              active
+                                ? 'font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                            }`}
+                          >
+                            <span>{item.label}</span>
+                            {active && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
 
               {(search || envFilter !== 'ALL' || statusFilter !== 'ALL') && (
                 <button

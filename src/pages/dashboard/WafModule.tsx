@@ -634,9 +634,6 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
               <div className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-2 flex-wrap">
                 <span>Enforcement: <strong className="text-zinc-600 dark:text-zinc-300">Apache 2 mod_rewrite + nftables</strong></span>
                 <span>• {deployment ? `${deployment.appliedAgents}/${deployment.totalAgents} agent(s) applied` : 'waiting for an agent'}</span>
-                {(deployment?.lastAppliedAt || lastAppliedAt) && (
-                  <span>• Last applied: <strong className="font-mono text-zinc-600 dark:text-zinc-300">{formatTime(deployment?.lastAppliedAt || lastAppliedAt || '')}</strong></span>
-                )}
               </div>
               {wafUpdateRequired && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-700 dark:text-amber-300">
