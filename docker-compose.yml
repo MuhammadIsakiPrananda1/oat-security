@@ -13,8 +13,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:-oat_security_2026}
     volumes:
       - oat_db_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
+
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootpassword}"]
       interval: 10s
@@ -55,7 +54,7 @@ services:
       SUPPORT_PHONE: ${SUPPORT_PHONE:-}
       SUPPORT_ADDRESS: ${SUPPORT_ADDRESS:-}
       SUPPORT_HOURS: ${SUPPORT_HOURS:-24/7 SOC}
-      SUPPORT_SLA: ${SUPPORT_SLA:-Critical incidents: 15 minutes · Standard requests: 1 business day}
+      SUPPORT_SLA: "${SUPPORT_SLA:-Critical incidents: 15 minutes · Standard requests: 1 business day}"
     ports:
       - "3000:3000"
     volumes:
