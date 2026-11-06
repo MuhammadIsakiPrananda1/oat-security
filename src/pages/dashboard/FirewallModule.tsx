@@ -507,10 +507,10 @@ export const FirewallModule: React.FC = () => {
   ];
 
   const tabOptions = [
-    { id: 'rules' as const, label: `Firewall Rules (${rules.length})` },
-    { id: 'fail2ban' as const, label: `Fail2ban & Allowlist (${f2bBans.filter(b => b.status === 'BANNED').length} active)` },
-    { id: 'zones' as const, label: `Security Zones (${zones.length})` },
-    { id: 'nat' as const, label: `NAT & Port Forwarding (${natRules.length})` },
+    { id: 'rules' as const, label: 'Firewall Rules' },
+    { id: 'fail2ban' as const, label: 'Fail2ban & Allowlist' },
+    { id: 'zones' as const, label: 'Security Zones' },
+    { id: 'nat' as const, label: 'NAT & Port Forwarding' },
     { id: 'access' as const, label: 'Access Control Policies' }
   ];
 

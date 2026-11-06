@@ -587,9 +587,9 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
   ];
 
   const tabOptions = [
-    { id: 'rules' as const, label: `Inspection Rules (${rules.length})` },
+    { id: 'rules' as const, label: 'Inspection Rules' },
     { id: 'policies' as const, label: 'WAF Settings' },
-    { id: 'apps' as const, label: `Protected Domains (${apps.length})` }
+    { id: 'apps' as const, label: 'Protected Domains' }
   ];
 
   return (
