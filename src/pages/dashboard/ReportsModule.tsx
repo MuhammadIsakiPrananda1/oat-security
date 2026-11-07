@@ -534,7 +534,7 @@ export const ReportsModule: React.FC = () => {
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => triggerDownload(`${selectedReport.id}-${selectedReport.format.toLowerCase()}.txt`, selectedReport.content || '')}
+                  onClick={() => triggerDownload(selectedReport)}
                   className="inline-flex h-8 items-center gap-1.5 px-3.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 text-xs font-medium transition cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
