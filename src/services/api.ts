@@ -231,6 +231,9 @@ export const securityApi = {
         criticalAlerts: number;
         securityEventsCount: number;
         securityScore: number | null;
+        slaCompliancePct?: number;
+        breachedIncidentsCount?: number;
+        totalIncidentsCount?: number;
       };
       trafficHistory: { hour: string; allowed: number; blocked: number; suspicious: number }[];
       threatOverview: { critical: number; high: number; medium: number; low: number };
@@ -1051,6 +1054,12 @@ export const securityApi = {
     return request<MalwareContainmentResult>(`/api/malware/scans/${encodeURIComponent(scanId)}/action`, {
       method: 'POST',
       body: JSON.stringify({ action })
+    });
+  },
+
+  async deleteMalwareScan(scanId: string) {
+    return request<{ success: boolean; message: string }>(`/api/malware/scans/${encodeURIComponent(scanId)}`, {
+      method: 'DELETE'
     });
   },
 

@@ -61,6 +61,8 @@ interface TopNotification {
   severity: string;
   read: boolean;
   view: DashboardView;
+  count?: number;
+  lastSeen?: number;
 }
 
 function notificationViewFor(source?: string, action?: string): DashboardView {
@@ -302,29 +304,54 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
           ? `${actionText} • Dari ${srcIp} menuju ${dest}`
           : `${actionText} • From ${srcIp} to ${dest}`;
 
-        const newNotif: TopNotification = {
-          id: normalized.id || `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-          title: `[${srcName}] ${threatName}`,
-          desc: descText,
-          timestamp: Date.now(),
-          severity: normalized.severity || 'Medium',
-          read: false,
-          view: notificationViewFor(normalized.source, normalized.action)
-        };
+        const notifTitle = `[${srcName}] ${threatName}`;
+        const nowMs = Date.now();
 
-        setNotifications(prev => [newNotif, ...prev.slice(0, 99)]);
+        setNotifications(prev => {
+          // Check if identical notification exists within 60s window
+          const existingIdx = prev.findIndex(item => 
+            item.title === notifTitle && 
+            item.desc.includes(srcIp) &&
+            nowMs - (item.lastSeen || item.timestamp) < 60_000
+          );
+
+          if (existingIdx !== -1) {
+            const updated = [...prev];
+            const target = updated[existingIdx];
+            const newCount = (target.count || 1) + 1;
+            updated[existingIdx] = {
+              ...target,
+              count: newCount,
+              lastSeen: nowMs,
+              read: false
+            };
+            return updated;
+          }
+
+          const newNotif: TopNotification = {
+            id: normalized.id || `notif-${nowMs}-${Math.random().toString(36).substring(2, 7)}`,
+            title: notifTitle,
+            desc: descText,
+            timestamp: nowMs,
+            lastSeen: nowMs,
+            count: 1,
+            severity: normalized.severity || 'Medium',
+            read: false,
+            view: notificationViewFor(normalized.source, normalized.action)
+          };
+          return [newNotif, ...prev.slice(0, 99)];
+        });
 
         // ── Single Toast pop-up with burst throttle: stack up to 5 toasts ───
-        const nowMs = Date.now();
         if (nowMs - lastGlobalToastTime >= 1500) {
           lastGlobalToastTime = nowMs;
           const toastItem: ToastItem = {
-            id: newNotif.id,
-            title: newNotif.title,
-            desc: newNotif.desc,
-            severity: newNotif.severity,
-            timestamp: newNotif.timestamp,
-            onNavigate: () => onNavigateView(newNotif.view),
+            id: normalized.id || `toast-${nowMs}`,
+            title: notifTitle,
+            desc: descText,
+            severity: normalized.severity || 'Medium',
+            timestamp: nowMs,
+            onNavigate: () => onNavigateView(notificationViewFor(normalized.source, normalized.action)),
           };
           setToasts(prev => [toastItem, ...prev.slice(0, 4)]);
           playNotificationSound();
@@ -823,6 +850,11 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                                 <h4 className="text-xs font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                                   {n.title}
                                 </h4>
+                                {n.count && n.count > 1 && (
+                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold shrink-0">
+                                    ×{n.count}
+                                  </span>
+                                )}
                                 {!n.read && (
                                   <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
                                 )}

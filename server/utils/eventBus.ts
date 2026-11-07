@@ -30,6 +30,7 @@ export type SecurityEventType =
   | 'malware.detected'
   | 'malware.scan_completed'
   | 'malware.action_updated'
+  | 'malware.deleted'
   | 'malware.snapshot'
   | 'firewall.event'
   | 'firewall.deployment_queued'

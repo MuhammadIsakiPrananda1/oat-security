@@ -22,8 +22,62 @@ import { ReportItem } from '../../types';
 import { formatDateTime } from '../../utils/dateTime';
 import { getLanguage } from '../../i18n/translator';
 
-const triggerDownload = (filename: string, content: string) => {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+const generatePdfBlob = (title: string, content: string): Blob => {
+  // Clean characters outside Latin1 range
+  const safeTitle = title.replace(/[^\x20-\x7E]/g, ' ');
+  const lines = content.split('\n');
+  const safeLines = lines.slice(0, 48).map(l => l.replace(/[^\x20-\x7E]/g, ' ').replace(/\(/g, '[').replace(/\)/g, ']'));
+
+  let stream = [
+    'BT',
+    '/F2 14 Tf',
+    '0.1 0.1 0.1 rg',
+    '40 800 Td (' + safeTitle + ') Tj',
+    '/F1 8.5 Tf',
+    '0.2 0.25 0.3 rg'
+  ];
+
+  let currentY = 770;
+  for (const line of safeLines) {
+    if (currentY < 50) break;
+    stream.push(`40 ${currentY} Td (${line}) Tj`);
+    currentY -= 14;
+  }
+  stream.push('ET');
+
+  const streamContent = stream.join('\n');
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  const addObj = (str: string) => {
+    offsets.push(pdf.length);
+    pdf += str + '\n';
+  };
+
+  addObj('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
+  addObj('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj');
+  addObj('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj');
+  addObj('4 0 obj\n<< /Length ' + streamContent.length + ' >>\nstream\n' + streamContent + '\nendstream\nendobj');
+  addObj('5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj');
+  addObj('6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj');
+
+  const xrefOffset = pdf.length;
+  pdf += 'xref\n0 7\n0000000000 65535 f \n';
+  for (let i = 0; i < 6; i++) {
+    pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+  }
+  pdf += 'trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xrefOffset + '\n%%EOF';
+
+  return new Blob([pdf], { type: 'application/pdf' });
+};
+
+const triggerDownload = (report: { id: string; format: string; title: string; content?: string }) => {
+  const isPdf = report.format.toUpperCase() === 'PDF';
+  const content = report.content || '';
+  const filename = `${report.id}.${isPdf ? 'pdf' : report.format.toLowerCase()}`;
+  const blob = isPdf
+    ? generatePdfBlob(report.title || 'OAT Security Report', content)
+    : new Blob([content], { type: 'text/plain;charset=utf-8' });
+
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
@@ -104,7 +158,7 @@ export const ReportsModule: React.FC = () => {
       if (res?.success && res.report) {
         const newReport = res.report;
         setReports(prev => [newReport, ...prev.filter(r => r.id !== newReport.id)]);
-        triggerDownload(`${newReport.id}-${newReport.format.toLowerCase()}.txt`, newReport.content || '');
+        triggerDownload(newReport);
         setFeedback({
           tone: 'ok',
           text: `Report ${newReport.id} successfully generated, signed with SHA-256, and downloaded.`
@@ -312,7 +366,7 @@ export const ReportsModule: React.FC = () => {
                     <span>View</span>
                   </button>
                   <button
-                    onClick={() => triggerDownload(`${rep.id}-${rep.format.toLowerCase()}.txt`, rep.content || '')}
+                    onClick={() => triggerDownload(rep)}
                     className="inline-flex h-7 items-center gap-1 px-2.5 rounded-md bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white text-xs font-medium transition cursor-pointer"
                     title="Download report"
                   >

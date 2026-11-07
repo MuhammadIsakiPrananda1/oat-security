@@ -22,6 +22,7 @@ import { FirewallDeploymentService } from '../services/firewallDeploy';
 import { detectAndSyncServerFirewall } from '../services/firewallDetector';
 import {
   addSignature as addMalwareSignature,
+  deleteScanPermanently as deleteMalwareScanPermanently,
   getScan as getMalwareScan,
   listScans as listMalwareScans,
   listSignatures as listMalwareSignatures,
@@ -686,6 +687,29 @@ apiRouter.get('/dashboard/summary', (req: AuthenticatedRequest, res) => {
   const totalApps = db.prepare('SELECT COUNT(*) as count FROM applications WHERE organization_id = ?').get(orgId) as { count: number };
   const totalNets = db.prepare('SELECT COUNT(*) as count FROM networks WHERE organization_id = ?').get(orgId) as { count: number };
 
+  // Calculate live SOC SLA metrics
+  const incidentRows = db.prepare('SELECT severity, created_at, status, tier FROM incidents WHERE organization_id = ?').all(orgId) as any[];
+  const totalIncidentsCount = incidentRows.length;
+  let breachedCount = 0;
+  const nowMs = Date.now();
+  for (const inc of incidentRows) {
+    const isClosed = ['MITIGATED', 'CLOSED', 'RESOLVED'].includes((inc.status || '').toUpperCase());
+    if (!isClosed) {
+      const tier = inc.tier || (inc.severity === 'Critical' ? 'L3' : inc.severity === 'High' ? 'L2' : 'L1');
+      const mult = inc.severity === 'Critical' ? 0.75 : inc.severity === 'High' ? 1 : 1.5;
+      const baseMin = tier === 'L3' ? 120 : tier === 'L2' ? 60 : 15;
+      const maxMin = Math.round(baseMin * mult);
+      const createdMs = new Date(inc.created_at).getTime();
+      const elapsedMin = Math.max(0, Math.floor((nowMs - (isNaN(createdMs) ? nowMs : createdMs)) / 60000));
+      if (maxMin - elapsedMin < 0) {
+        breachedCount++;
+      }
+    }
+  }
+  const slaCompliancePct = totalIncidentsCount > 0
+    ? Math.round(((totalIncidentsCount - breachedCount) / totalIncidentsCount) * 100)
+    : 100;
+
   const scoreResult = calculateSecurityScore(orgId);
 
   res.json({
@@ -718,6 +742,29 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
   const criticalAlerts = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND severity = 'Critical' AND status = 'ACTIVE'").get(orgId) as { count: number };
   const totalApps = db.prepare('SELECT COUNT(*) as count FROM applications WHERE organization_id = ?').get(orgId) as { count: number };
   const totalNets = db.prepare('SELECT COUNT(*) as count FROM networks WHERE organization_id = ?').get(orgId) as { count: number };
+
+  // Calculate live SOC SLA metrics
+  const incidentRows = db.prepare('SELECT severity, created_at, status, tier FROM incidents WHERE organization_id = ?').all(orgId) as any[];
+  const totalIncidentsCount = incidentRows.length;
+  let breachedCount = 0;
+  const nowMs = Date.now();
+  for (const inc of incidentRows) {
+    const isClosed = ['MITIGATED', 'CLOSED', 'RESOLVED'].includes((inc.status || '').toUpperCase());
+    if (!isClosed) {
+      const tier = inc.tier || (inc.severity === 'Critical' ? 'L3' : inc.severity === 'High' ? 'L2' : 'L1');
+      const mult = inc.severity === 'Critical' ? 0.75 : inc.severity === 'High' ? 1 : 1.5;
+      const baseMin = tier === 'L3' ? 120 : tier === 'L2' ? 60 : 15;
+      const maxMin = Math.round(baseMin * mult);
+      const createdMs = new Date(inc.created_at).getTime();
+      const elapsedMin = Math.max(0, Math.floor((nowMs - (isNaN(createdMs) ? nowMs : createdMs)) / 60000));
+      if (maxMin - elapsedMin < 0) {
+        breachedCount++;
+      }
+    }
+  }
+  const slaCompliancePct = totalIncidentsCount > 0
+    ? Math.round(((totalIncidentsCount - breachedCount) / totalIncidentsCount) * 100)
+    : 100;
 
   const scoreResult = calculateSecurityScore(orgId);
 
@@ -840,7 +887,10 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
       activeThreats: activeThreats.count,
       criticalAlerts: criticalAlerts.count,
       securityEventsCount: totalRequests.count,
-      securityScore: scoreResult.score
+      securityScore: scoreResult.score,
+      slaCompliancePct,
+      breachedIncidentsCount: breachedCount,
+      totalIncidentsCount
     },
     threatOverview,
     recentEvents,
@@ -2958,6 +3008,30 @@ apiRouter.post('/malware/scans/:id/action', (req: AuthenticatedRequest, res) => 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Containment action failed';
     res.status(message === 'Scan not found' ? 404 : 400).json({ error: message });
+  }
+});
+
+apiRouter.delete('/malware/scans/:id', (req: AuthenticatedRequest, res) => {
+  const orgId = WafDeploymentService.resolveOrgId(req.organizationId);
+  const scanId = req.params.id;
+  try {
+    const scan = getMalwareScan(orgId, scanId);
+    if (!scan) return res.status(404).json({ error: 'Scan not found' });
+
+    deleteMalwareScanPermanently(orgId, scanId);
+    recordAuditLog({
+      organizationId: orgId,
+      userEmail: req.user?.email || 'analyst@oat.net',
+      role: req.user?.role || 'Security Analyst',
+      action: 'Delete Malware Scan Record',
+      resource: `Malware scan ${scanId} (${scan.fileName})`,
+      resourceId: scanId,
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: req.headers['user-agent']
+    });
+    res.json({ success: true, message: `Scan ${scanId} permanently purged.` });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to delete malware scan' });
   }
 });
 

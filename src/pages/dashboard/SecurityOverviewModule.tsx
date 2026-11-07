@@ -186,7 +186,11 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
         type === 'waf.blocked' ||
         type === 'waf.synced' ||
         type === 'log.created' ||
-        type === 'rule.updated'
+        type === 'rule.updated' ||
+        type === 'incident.created' ||
+        type === 'incident.updated' ||
+        type === 'incident.deleted' ||
+        type === 'incident.snapshot'
       ) {
         loadData();
       }
@@ -233,9 +237,16 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
     return sla.isBreached;
   });
 
-  const slaCompliancePct = totalIncidents > 0
+  // Server-authoritative real-time SLA metrics with client fallback
+  const slaCompliancePct = metrics?.slaCompliancePct !== undefined
+    ? metrics.slaCompliancePct
+    : totalIncidents > 0
     ? Math.round(((totalIncidents - breachedIncidents.length) / totalIncidents) * 100)
     : 100;
+
+  const breachedIncidentsCount = metrics?.breachedIncidentsCount !== undefined
+    ? metrics.breachedIncidentsCount
+    : breachedIncidents.length;
 
   return (
     <div className="space-y-5 pb-12">
@@ -253,10 +264,10 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
           value={hasConnectedEndpoints ? `${slaCompliancePct}%` : 'No Data'}
           note={
             hasConnectedEndpoints
-              ? breachedIncidents.length > 0
-                ? `${breachedIncidents.length} incident SLA breached`
+              ? breachedIncidentsCount > 0
+                ? `${breachedIncidentsCount} incident SLA breached`
                 : '100% SLA target achieved'
-              : 'Menunggu koneksi endpoint'
+              : 'Waiting for endpoint connection'
           }
           dot={
             !hasConnectedEndpoints
@@ -271,17 +282,17 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
         <SummaryStat
           label="Protected Applications"
           value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.protectedAppsCount ?? 0} /> : 'No Data'}
-          note={hasConnectedEndpoints ? "Active web applications secured" : "Menunggu koneksi endpoint"}
+          note={hasConnectedEndpoints ? "Active web applications secured" : "Waiting for endpoint connection"}
         />
         <SummaryStat
           label="Requests Today"
           value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.requestsToday ?? 0} /> : 'No Data'}
-          note={hasConnectedEndpoints ? "Inspected at the edge pipeline" : "Menunggu koneksi endpoint"}
+          note={hasConnectedEndpoints ? "Inspected at the edge pipeline" : "Waiting for endpoint connection"}
         />
         <SummaryStat
           label="Blocked Requests"
           value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.blockedRequests ?? 0} /> : 'No Data'}
-          note={hasConnectedEndpoints ? "Mitigated threats & anomalies" : "Menunggu koneksi endpoint"}
+          note={hasConnectedEndpoints ? "Mitigated threats & anomalies" : "Waiting for endpoint connection"}
         />
       </div>
 
@@ -313,7 +324,7 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
                 No Data
               </span>
               <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                Belum ada endpoint yang terhubung. Hubungkan endpoint agent untuk mulai mengevaluasi postur keamanan secara real-time.
+                No endpoints connected yet. Connect an endpoint agent to start evaluating real-time security posture.
               </p>
             </div>
           ) : (
@@ -369,28 +380,28 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
                           weight: 20,
                           score: securityScoreData?.breakdown?.wafCoverage ?? 100,
                           status: 'Pass',
-                          details: 'Aturan mitigasi web aktif memeriksa seluruh payload ingress.'
+                          details: 'Active web mitigation rules inspecting all ingress payloads.'
                         },
                         {
                           name: 'Firewall Policy Enforcement',
                           weight: 20,
                           score: securityScoreData?.breakdown?.firewallCoverage ?? 100,
                           status: 'Pass',
-                          details: 'Aturan ACL firewall aktif memblokir IP berbahaya dan port tak sah.'
+                          details: 'Active firewall ACL rules blocking malicious IPs and unauthorised ports.'
                         },
                         {
-                          name: 'Jumlah Ancaman Kritis Aktif',
+                          name: 'Active Critical Threats',
                           weight: 25,
                           score: securityScoreData?.breakdown?.threatPosture ?? 100,
                           status: 'Pass',
-                          details: 'Nol ancaman unmitigated yang mengancam perimeter web.'
+                          details: 'Zero unmitigated critical threats endangering the web perimeter.'
                         },
                         {
-                          name: 'Keamanan Autentikasi & Akses Akun',
+                          name: 'Authentication Security & Account Access',
                           weight: 10,
                           score: securityScoreData?.breakdown?.authSecurity ?? 100,
                           status: 'Pass',
-                          details: 'Proteksi brute-force dan kebijakan MFA berjalan optimal.'
+                          details: 'Brute-force protection and account access policies operating optimally.'
                         }
                       ]
                   ).map((f: any, idx: number) => {

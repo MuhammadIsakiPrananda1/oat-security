@@ -565,6 +565,10 @@ const EN_PATTERNS: Pattern[] = [
     to: m => `SLA Terlampaui ${m[1]}m`,
   },
   {
+    re: /^(\d+) incidents? SLA breached$/i,
+    to: m => `${m[1]} insiden melampaui SLA`,
+  },
+  {
     re: /^SLA Remaining: (\d+)m$/i,
     to: m => `Sisa SLA: ${m[1]}m`,
   },
