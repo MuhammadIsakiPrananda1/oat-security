@@ -243,7 +243,7 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
         weight: 10,
         score: engineHealthScore,
         status: engineHealthScore >= 80 ? 'Pass' : 'Warning',
-        details: `${operationalCount} dari ${healthRecords.length} engine subsistem OPERATIONAL.`
+        details: `${operationalCount} dari ${monitoredHealth.length} engine subsistem OPERATIONAL.`
       },
       {
         name: 'Keamanan Autentikasi & Kegagalan Login',
