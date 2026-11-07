@@ -870,7 +870,7 @@ agentRouter.post('/heartbeat', (req: AuthenticatedRequest, res: Response) => {
           updated_at = NOW()
         WHERE agent_id = ?
       `).run(fwRulesCount?.count || 0, agent.id);
-      SecurityEventBus.publish('firewall.status', { agentId: agent.id, status: 'APPLIED' }, agent.organization_id);
+      SecurityEventBus.publish('firewall.agent_status', { agentId: agent.id, status: 'APPLIED' }, agent.organization_id);
     }
   } catch (syncErr) {
     // Non-blocking
