@@ -469,25 +469,25 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
     <>
       {/* Toast pop-up notifications (top-right, auto-dismiss) */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      <header className="h-14 sm:h-16 shrink-0 border-b border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] px-2 sm:px-4 lg:px-6 flex items-center justify-between gap-1.5 sm:gap-4 z-40 sticky top-0 transition-colors duration-200">
+      <header className="h-16 shrink-0 border-b border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] px-3 sm:px-4 lg:px-6 flex items-center justify-between gap-2 sm:gap-4 z-40 sticky top-0 transition-colors duration-200">
         {/* Backdrop overlay for closing open dropdowns */}
         {isAnyDropdownOpen && (
           <div className="fixed inset-0 z-40 cursor-default" onClick={closeAllDropdowns} />
         )}
 
         {/* Left: Mobile menu + Organization Switcher */}
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
           {onOpenSidebar && (
             <button
               type="button"
               onClick={onOpenSidebar}
               title="Buka navigasi"
-              className="lg:hidden w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center shadow-2xs cursor-pointer"
+              className="lg:hidden w-10 h-10 shrink-0 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center shadow-2xs cursor-pointer"
             >
-              <FontAwesomeIcon icon={faBars} className="text-sm" />
+              <FontAwesomeIcon icon={faBars} className="text-base" />
             </button>
           )}
-          <div className="relative min-w-0 max-w-[110px] xs:max-w-[140px] sm:max-w-none sm:w-56 md:w-64">
+          <div className="relative min-w-0 flex-1 sm:flex-initial sm:w-56 md:w-64">
             <button
               type="button"
               onClick={() => {
@@ -496,24 +496,24 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 setShowNotifications(false);
               }}
               title={currentOrg ? `Active Organization: ${currentOrg.name}` : 'Select Organization'}
-              className="w-full h-8 sm:h-10 px-2 sm:px-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition flex items-center justify-between gap-1 sm:gap-2.5 text-left group shadow-2xs cursor-pointer"
+              className="w-full h-10 px-2.5 sm:px-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition flex items-center justify-between gap-2 text-left group shadow-2xs cursor-pointer"
             >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <span className="w-6 h-6 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0 text-xs">
-                  <FontAwesomeIcon icon={faBuilding} className="w-3 h-3" />
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="w-6 h-6 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0 text-xs">
+                  <FontAwesomeIcon icon={faBuilding} className="w-3.5 h-3.5" />
                 </span>
                 <div className="min-w-0 flex-1 leading-tight">
-                  <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                  <div className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                     {organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'No Endpoints Enrolled'}
                   </div>
-                  <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 tabular-nums hidden sm:block">
+                  <div className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 tabular-nums hidden xs:block sm:block">
                     {organizations.length > 0 && currentOrg?.domain ? `${currentOrg.domain} • ${currentOrg.tier}` : 'Enroll endpoint agent first'}
                   </div>
                 </div>
               </div>
               <FontAwesomeIcon
                 icon={faChevronDown}
-                className={`text-[11px] text-zinc-400 transition-transform shrink-0 ${showOrgDropdown ? 'rotate-180' : ''}`}
+                className={`text-[10px] text-zinc-400 transition-transform shrink-0 ${showOrgDropdown ? 'rotate-180' : ''}`}
               />
             </button>
 
@@ -587,15 +587,15 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         </div>
 
         {/* Right Section: Action Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Mobile Search Modal Trigger */}
           <button
             type="button"
             onClick={onOpenSearch}
             title="Cari modul atau perintah (Cmd+K)"
-            className="sm:hidden w-8 h-8 sm:w-10 sm:h-10 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center shadow-2xs cursor-pointer shrink-0"
+            className="sm:hidden w-10 h-10 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center shadow-2xs cursor-pointer shrink-0"
           >
-            <FontAwesomeIcon icon={faMagnifyingGlass} className="text-xs text-zinc-500 dark:text-zinc-400" />
+            <FontAwesomeIcon icon={faMagnifyingGlass} className="text-sm text-zinc-500 dark:text-zinc-400" />
           </button>
 
           {/* Language quick switch (full selector lives in Settings) */}
@@ -604,7 +604,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             onClick={() => setLanguage(activeLanguage === 'id' ? 'en' : 'id')}
             title="Change language / Ganti bahasa"
             aria-label="Change language / Ganti bahasa"
-            className="hidden sm:flex h-10 px-2.5 items-center gap-1.5 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 transition shadow-2xs cursor-pointer"
+            className="hidden sm:flex h-10 px-2.5 items-center gap-1.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 transition shadow-2xs cursor-pointer"
           >
             <FontAwesomeIcon icon={faGlobe} className="text-xs text-zinc-500 dark:text-zinc-400" />
             <span className="text-[10px] font-mono font-bold">{activeLanguage === 'id' ? 'ID' : 'EN'}</span>
@@ -619,7 +619,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 setShowUserDropdown(false);
               }}
               title={activeLanguage === 'id' ? 'Notifikasi & Pengaturan Suara' : 'Notifications & Sound Settings'}
-              className="h-8 sm:h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 relative transition shadow-2xs cursor-pointer shrink-0"
+              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 relative transition shadow-2xs cursor-pointer shrink-0"
             >
               <FontAwesomeIcon icon={faBell} className="text-sm" />
               {unreadCount > 0 ? (
@@ -977,9 +977,9 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 setShowNotifications(false);
               }}
               title="Profil Akun"
-              className="h-8 sm:h-10 px-2 sm:px-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition flex items-center gap-1.5 sm:gap-2.5 shadow-2xs cursor-pointer group shrink-0"
+              className="h-10 px-2.5 sm:px-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition flex items-center gap-2 shadow-2xs cursor-pointer group shrink-0"
             >
-              <div className="w-7 h-7 rounded-full overflow-hidden bg-zinc-900 text-white dark:bg-zinc-800 dark:text-zinc-200 text-[11px] font-bold flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-700">
+              <div className="w-7 h-7 rounded-full overflow-hidden bg-zinc-900 text-white dark:bg-zinc-800 dark:text-zinc-200 text-xs font-bold flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-700">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt={user?.name || 'User'} className="w-full h-full object-cover" />
                 ) : (
@@ -1211,12 +1211,22 @@ function EditProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      {/* Backdrop — sengaja tidak bisa diklik untuk keluar (hindari tertutup sembarangan) */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[100] overflow-hidden">
+      {/* Backdrop — klik di luar panel untuk menutup */}
+      <div className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xs transition-opacity animate-in fade-in-0 duration-200" onClick={onClose} />
 
-      {/* Modal Panel */}
-      <div className="relative w-full max-w-md sm:max-w-2xl md:max-w-3xl sm:mx-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 shadow-2xl overflow-hidden">
+      {/* Drawer Panel dari samping kanan */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit Profil"
+        className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-zinc-200/80 bg-white text-zinc-900 shadow-2xl animate-in slide-in-from-right duration-300 ease-out dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-100 sm:max-w-xl md:max-w-2xl"
+      >
+        {/* Mobile grab handle */}
+        <div className="flex justify-center pb-0.5 pt-2.5 sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-2.5">
@@ -1231,7 +1241,7 @@ function EditProfileModal({
         </div>
 
         {/* Body — satu kolom di mobile (urutan natural), dua kolom di desktop */}
-        <div className="px-5 py-5 max-h-[65vh] overflow-y-auto custom-scrollbar">
+        <div className="px-5 py-5 flex-1 overflow-y-auto custom-scrollbar">
           <div className="space-y-5 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:space-y-0 sm:items-start">
             {/* Kolom kiri — foto & identitas */}
             <div className="space-y-5">
@@ -1518,7 +1528,7 @@ function EditProfileModal({
             )}
           </button>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

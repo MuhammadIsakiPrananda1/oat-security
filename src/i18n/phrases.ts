@@ -2410,6 +2410,10 @@ export const PAGE_TITLE_PAIRS: Record<string, {
     'Platform Security Governance Settings': { main: 'Keamanan Platform', tail: 'Pengaturan Tata Kelola' },
     'Threat Intelligence & Real-Time IOC Stream': { main: 'Intelijen Ancaman', tail: '& Aliran IOC Real-Time' },
     'Correlated Threat Intelligence': { main: 'Intelijen Ancaman', tail: 'Terkorelasi' },
+    'Security Infrastructure': { main: 'Infrastruktur Keamanan' },
+    'Engine Telemetry': { main: 'Telemetri Mesin' },
+    'Real-time operational health and telemetry across core security engines and transport pipelines.': { main: 'Kesehatan operasional real-time dan telemetri di seluruh mesin keamanan inti dan pipeline transport.' },
     'Users & Role-Based Access Control (RBAC)': { main: 'Pengguna & Kontrol Akses', tail: 'Berbasis Peran (RBAC)' },
-    'Web Application Firewall (WAF)': { main: 'Firewall Aplikasi Web', tail: '(WAF)' }
+    'Web Application Firewall (WAF)': { main: 'Firewall Aplikasi Web', tail: '(WAF)' },
+    'Security Infrastructure Engine Telemetry': { main: 'Infrastruktur Keamanan', tail: 'Telemetri Mesin' }
 };

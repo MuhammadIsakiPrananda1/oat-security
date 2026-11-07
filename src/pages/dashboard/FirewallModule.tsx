@@ -1670,14 +1670,6 @@ export const FirewallModule: React.FC = () => {
                     NGFW packet filtering & perimeter kernel deployment
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowLogModal(false)}
-                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition cursor-pointer"
-                  title="Close (Esc)"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
 
               <div className="flex items-center gap-2 mt-4">

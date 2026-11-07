@@ -2203,14 +2203,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                     Event Details
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setSelectedEvent(null)}
-                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition cursor-pointer"
-                  title="Close (Esc)"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
 
               <div className="mt-3 flex items-start gap-3">
