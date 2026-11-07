@@ -157,18 +157,18 @@ const toastDedupCache = new Map<string, number>();
 const TOAST_DEDUP_TTL_MS = 20_000; // 20 seconds cooldown per unique event key
 let lastGlobalToastTime = 0;
 
-function cleanThreatTitle(rawThreat: string): string {
+function cleanThreatTitle(rawThreat: string, isId: boolean = false): string {
   const t = (rawThreat || '').trim();
   const lower = t.toLowerCase();
-  if (lower === 'web' || lower === 'web_attack') return 'Serangan Web (WAF)';
-  if (lower.includes('xss') || lower.includes('cross-site')) return 'Serangan Cross-Site Scripting (XSS)';
-  if (lower.includes('sqli') || lower.includes('sql injection')) return 'Serangan SQL Injection';
-  if (lower.includes('brute') || lower.includes('ssh_failed')) return 'Serangan Brute Force SSH';
-  if (lower.includes('endpoint')) return 'Ancaman Terdeteksi di Endpoint';
-  if (lower.includes('firewall')) return 'Kegagalan Firewall Engine';
-  if (lower.includes('malware')) return 'Malware Terdeteksi';
+  if (lower === 'web' || lower === 'web_attack') return isId ? 'Serangan Web (WAF)' : 'Web Attack (WAF)';
+  if (lower.includes('xss') || lower.includes('cross-site')) return isId ? 'Serangan Cross-Site Scripting (XSS)' : 'Cross-Site Scripting (XSS)';
+  if (lower.includes('sqli') || lower.includes('sql injection')) return isId ? 'Serangan SQL Injection' : 'SQL Injection Attack';
+  if (lower.includes('brute') || lower.includes('ssh_failed')) return isId ? 'Serangan Brute Force SSH' : 'SSH Brute Force Attack';
+  if (lower.includes('endpoint')) return isId ? 'Ancaman Terdeteksi di Endpoint' : 'Threat Detected on Endpoint';
+  if (lower.includes('firewall')) return isId ? 'Kegagalan Firewall Engine' : 'Firewall Engine Failure';
+  if (lower.includes('malware')) return isId ? 'Malware Terdeteksi' : 'Malware Detected';
   if (t) return t;
-  return 'Insiden Keamanan Terdeteksi';
+  return isId ? 'Insiden Keamanan Terdeteksi' : 'Security Incident Detected';
 }
 
 function makeToastDedupKey(evt: SecurityEvent): string {
@@ -296,7 +296,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         const srcIp = normalized.sourceIp || (normalized as any).source_ip || (isId ? 'IP Eksternal' : 'External IP');
         const dest = normalized.destination || (normalized as any).destination_ip || 'Gateway';
         const rawThreat = normalized.threat || (normalized as any).threat_name || (normalized as any).signature || 'Perimeter Alert';
-        const threatName = cleanThreatTitle(rawThreat);
+        const threatName = cleanThreatTitle(rawThreat, isId);
         const srcName = normalized.source?.toUpperCase() || (normalized as any).category?.toUpperCase() || 'SECURITY';
 
         const actionText = actionLabelFor(normalized.action, isId);
@@ -796,7 +796,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                       onClick={() => setNotifications([])}
                       className="text-[11px] text-zinc-400 hover:text-rose-600 transition cursor-pointer"
                     >
-                      Clear
+                      {activeLanguage === 'id' ? 'Bersihkan' : 'Clear'}
                     </button>
                   )}
                 </div>
@@ -808,18 +808,19 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                       <FontAwesomeIcon icon={faBell} className="text-2xl text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
                       <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                         {notifTab === 'unread'
-                          ? 'All notifications read'
+                          ? (activeLanguage === 'id' ? 'Semua notifikasi telah dibaca' : 'All notifications read')
                           : popoverSeverityFilter !== 'all'
-                            ? `No ${popoverSeverityFilter.charAt(0).toUpperCase() + popoverSeverityFilter.slice(1)} notifications`
-                            : 'No new notifications'}
+                            ? (activeLanguage === 'id' ? `Tidak ada notifikasi ${popoverSeverityFilter}` : `No ${popoverSeverityFilter.charAt(0).toUpperCase() + popoverSeverityFilter.slice(1)} notifications`)
+                            : (activeLanguage === 'id' ? 'Tidak ada notifikasi baru' : 'No new notifications')}
                       </div>
                       <div className="text-[11px] text-zinc-500 mt-1">
-                        Perimeter security systems active and monitoring normally.
+                        {activeLanguage === 'id' ? 'Sistem keamanan perimeter aktif dan memantau normal.' : 'Perimeter security systems active and monitoring normally.'}
                       </div>
                     </div>
                   ) : (
                     displayedNotifications.map(n => {
                       const sevUpper = n.severity.toUpperCase();
+                      const sevText = sevUpper === 'CRITICAL' ? 'Critical' : sevUpper === 'HIGH' ? 'High' : (sevUpper === 'MEDIUM' ? 'Medium' : (sevUpper === 'LOW' ? 'Low' : 'Info'));
                       const sevBadge =
                         sevUpper === 'CRITICAL'
                           ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-400'
@@ -838,20 +839,20 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                             onNavigateView(n.view);
                           }}
                           className={`p-3.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition cursor-pointer group ${
-                            !n.read ? 'bg-blue-50/20 dark:bg-blue-950/20' : ''
+                            !n.read ? 'bg-zinc-100/40 dark:bg-zinc-800/30' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2.5">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 mb-1">
-                                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border font-semibold ${sevBadge}`}>
-                                  {n.severity}
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border font-semibold ${sevBadge}`}>
+                                  {sevText}
                                 </span>
                                 <h4 className="text-xs font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                                   {n.title}
                                 </h4>
                                 {n.count && n.count > 1 && (
-                                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold shrink-0">
+                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold shrink-0">
                                     ×{n.count}
                                   </span>
                                 )}
@@ -1559,14 +1560,6 @@ function SimplifiedActivityModal({
               />
               <span className="text-[11px]">{soundEnabled ? (isId ? 'Suara' : 'Sound') : 'Mute'}</span>
             </button>
-
-            <button
-              onClick={onClose}
-              title={isId ? 'Tutup' : 'Close'}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
-            >
-              <FontAwesomeIcon icon={faXmark} className="text-xs" />
-            </button>
           </div>
         </div>
 
@@ -1798,43 +1791,44 @@ function SimplifiedActivityModal({
                   ? 'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/60 dark:text-amber-400'
                   : 'border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/60 dark:text-blue-400';
 
+              const sevText = isCrit ? 'Critical' : isHigh ? 'High' : (sevUpper === 'MEDIUM' ? 'Medium' : (sevUpper === 'LOW' ? 'Low' : 'Info'));
               return (
                 <div
                   key={n.id}
-                  className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
+                  className={`p-3.5 rounded-xl border transition-colors flex items-center justify-between gap-4 ${
                     !n.read
-                      ? 'border-blue-200/80 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/20'
-                      : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700'
+                      ? 'border-zinc-300 dark:border-zinc-700 bg-zinc-100/50 dark:bg-zinc-800/40'
+                      : 'border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900'
                   }`}
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${badgeColor}`}>
-                        {n.severity}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border ${badgeColor}`}>
+                        {sevText}
                       </span>
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                      <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                         {n.title}
                       </h4>
                       {!n.read && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" title="Belum dibaca" />
+                        <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" title={isId ? 'Belum dibaca' : 'Unread'} />
                       )}
                     </div>
 
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-mono">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                       {n.desc}
                     </p>
 
-                    <div className="flex items-center gap-3 mt-2 text-[11px] text-zinc-400 font-mono">
+                    <div className="flex items-center gap-2 mt-1.5 text-[11px] text-zinc-400">
                       <span>{timeAgo(n.timestamp, isId)}</span>
                       <span>•</span>
-                      <span className="text-zinc-500 font-sans">
-                        {isId ? 'Modul tujuan:' : 'Target module:'} <strong className="uppercase">{n.view}</strong>
+                      <span className="text-zinc-500 dark:text-zinc-400">
+                        {isId ? 'Modul' : 'Module'}: <strong className="font-semibold text-zinc-700 dark:text-zinc-300">{n.view}</strong>
                       </span>
                     </div>
                   </div>
 
-                  {/* Actions: One big clear Inspect button, plus check and delete */}
-                  <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-100 dark:border-zinc-800">
+                  {/* Actions: Clean Minimalist Buttons */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1842,9 +1836,9 @@ function SimplifiedActivityModal({
                         onClose();
                         onNavigateView(n.view);
                       }}
-                      className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-2xs"
+                      className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
                     >
-                      <span>{isId ? 'Periksa & Buka' : 'Inspect & Open'}</span>
+                      <span>{isId ? 'Buka Modul' : 'Open Module'}</span>
                       <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
                     </button>
 
@@ -1853,7 +1847,7 @@ function SimplifiedActivityModal({
                         type="button"
                         onClick={() => onMarkRead(n.id)}
                         title={isId ? 'Tandai telah dibaca' : 'Mark as read'}
-                        className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-500 hover:text-emerald-600 transition flex items-center justify-center cursor-pointer shadow-2xs"
+                        className="w-7 h-7 rounded-lg text-zinc-400 hover:text-emerald-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center justify-center cursor-pointer"
                       >
                         <FontAwesomeIcon icon={faCheck} className="text-xs" />
                       </button>
@@ -1863,7 +1857,7 @@ function SimplifiedActivityModal({
                       type="button"
                       onClick={() => onDelete(n.id)}
                       title={isId ? 'Hapus notifikasi' : 'Delete notification'}
-                      className="w-8 h-8 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-400 hover:text-rose-600 hover:border-rose-300 transition flex items-center justify-center cursor-pointer shadow-2xs"
+                      className="w-7 h-7 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex items-center justify-center cursor-pointer"
                     >
                       <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
                     </button>
