@@ -15,6 +15,28 @@ const app = express();
 const server = http.createServer(app);
 app.set('trust proxy', 1);
 
+// Security headers & Origin/CORS protection
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  const origin = req.headers.origin;
+  const allowed = process.env.ALLOWED_ORIGIN;
+
+  if (origin && (origin === allowed || !allowed)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 // Basic middleware. Keep the raw body around so the agent request signature
 // can be verified against the exact bytes the endpoint signed.
 app.use(express.json({
