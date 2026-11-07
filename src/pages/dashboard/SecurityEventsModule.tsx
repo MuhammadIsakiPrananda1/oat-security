@@ -26,7 +26,7 @@ import { SecurityEvent } from '../../types';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { BackendOfflineBanner } from '../../components/common/BackendOfflineBanner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeartPulse } from '@fortawesome/free-solid-svg-icons';
+import { faHeartPulse, faPaperPlane, faShieldVirus, faFilePdf } from '@fortawesome/free-solid-svg-icons';
 import { ModulePageHeader } from '../../components/common/ModulePageHeader';
 import { getLanguage } from '../../i18n/translator';
 import { CountryFlag } from '../../components/common/CountryFlag';
@@ -116,6 +116,8 @@ export const SecurityEventsModule: React.FC = () => {
   const [eventDetail, setEventDetail] = useState<any | null>(null);
   const [copiedId, setCopiedId] = useState(false);
   const [copiedRaw, setCopiedRaw] = useState(false);
+  const [escalatingSoc, setEscalatingSoc] = useState(false);
+  const [escalateSuccess, setEscalateSuccess] = useState<string | null>(null);
 
   // Mobile swipe-to-dismiss gesture state (mobile only)
   const [swipeTranslateX, setSwipeTranslateX] = useState(0);
@@ -383,6 +385,391 @@ export const SecurityEventsModule: React.FC = () => {
       unsubEvents();
     };
   }, [isBackendOffline, currentPage, pageSize, actionFilter, severityFilter, sourceFilter, appFilter, searchTerm]);
+
+  const extractReadableMessage = (raw?: string): string => {
+    if (!raw) return '';
+    const s = String(raw).trim();
+    if (s.startsWith('{') || s.includes('"MESSAGE"') || s.includes('"SYSLOG_IDENTIFIER"')) {
+      try {
+        const jsonCandidate = s.startsWith('{') ? (s.endsWith('}') ? s : s + '}') : '{' + s + '}';
+        const obj = JSON.parse(jsonCandidate);
+        if (obj.threat || obj.threatName) return String(obj.threat || obj.threatName);
+        if (obj.message || obj.MESSAGE) {
+          const id = obj.SYSLOG_IDENTIFIER || obj.ident || obj.application || '';
+          return id ? `${id}: ${obj.message || obj.MESSAGE}` : String(obj.message || obj.MESSAGE);
+        }
+        if (obj.rawLog) return String(obj.rawLog);
+      } catch {
+        const msgMatch = s.match(/"(?:MESSAGE|message)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        const idMatch = s.match(/"(?:SYSLOG_IDENTIFIER|ident|application)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        if (msgMatch && msgMatch[1]) {
+          const cleanMsg = msgMatch[1].replace(/\\"/g, '"');
+          return idMatch && idMatch[1] ? `${idMatch[1]}: ${cleanMsg}` : cleanMsg;
+        }
+      }
+    }
+    return s;
+  };
+
+  const wrapLines = (text: string, maxLen = 65, maxLines = 4): string[] => {
+    const clean = text.replace(/[()\\]/g, '').trim();
+    if (!clean) return [''];
+    const lines: string[] = [];
+    let remaining = clean;
+    while (remaining.length > 0 && lines.length < maxLines) {
+      if (remaining.length <= maxLen || lines.length === maxLines - 1) {
+        lines.push(remaining.length > maxLen ? remaining.slice(0, maxLen - 3) + '...' : remaining);
+        break;
+      }
+      let splitIdx = remaining.lastIndexOf(' ', maxLen);
+      if (splitIdx < Math.floor(maxLen * 0.4)) {
+        splitIdx = maxLen;
+      }
+      lines.push(remaining.slice(0, splitIdx).trim());
+      remaining = remaining.slice(splitIdx).trim();
+    }
+    return lines;
+  };
+
+  const wrapTwoLines = (text: string, maxLen = 65): [string, string] => {
+    const lines = wrapLines(text, maxLen, 2);
+    return [lines[0] || '', lines[1] || ''];
+  };
+
+  const classifyAttackType = (threat?: string, uri?: string, payload?: string, category?: string, isEnglish = false) => {
+    const readable = extractReadableMessage(threat);
+    const text = [threat, uri, payload, category, readable]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    if (text.includes('webshell') || text.includes('b374k') || text.includes('c99') || text.includes('r57')) {
+      return {
+        type: 'Webshell Injection & Persistence',
+        note: isEnglish
+          ? 'Backdoor webshell script upload targeting unauthorized arbitrary command execution.'
+          : 'Upload skrip backdoor webshell untuk eksekusi perintah tak sah pada server.'
+      };
+    }
+    if (text.includes('trojan') || text.includes('dropper')) {
+      return {
+        type: 'Malware (Trojan / Dropper)',
+        note: isEnglish
+          ? 'Stealthy executable / script payload dropper targeting underlying host assets.'
+          : 'Payload dropper pembawa malware executable / script terselubung.'
+      };
+    }
+    if (text.includes('malware') || text.includes('eicar')) {
+      return {
+        type: 'Malware (Malicious Payload)',
+        note: isEnglish
+          ? 'Malicious file artifact injection or unauthorized malware upload attempt.'
+          : 'Injeksi artefak file berbahaya atau malware upload pada sistem.'
+      };
+    }
+    if (text.includes('sqli') || text.includes('sql injection') || text.includes('union select') || text.includes('sqlmap')) {
+      return {
+        type: 'SQL Injection (SQLi)',
+        note: isEnglish
+          ? 'SQL query parameter exploitation intended for database extraction or manipulation.'
+          : 'Eksploitasi parameter query SQL untuk ekstraksi atau manipulasi basis data.'
+      };
+    }
+    if (text.includes('csrf') || text.includes('cross-site request forgery') || text.includes('xsrf')) {
+      return {
+        type: 'Cross-Site Request Forgery (CSRF)',
+        note: isEnglish
+          ? 'Cross-site unauthorized state-changing request using victim authenticated credentials.'
+          : 'Eksploitasi pemalsuan request lintas situs menggunakan kredensial korban.'
+      };
+    }
+    if (text.includes('xss') || text.includes('cross-site scripting') || text.includes('<script')) {
+      return {
+        type: 'Cross-Site Scripting (XSS)',
+        note: isEnglish
+          ? 'Client-side script payload injection targeting session hijacking and cookie theft.'
+          : 'Injeksi payload skrip client-side untuk pembajakan session browser.'
+      };
+    }
+    if (text.includes('traversal') || text.includes('lfi') || text.includes('../') || text.includes('etc/passwd') || text.includes('etc/shadow')) {
+      return {
+        type: 'Path Traversal / LFI',
+        note: isEnglish
+          ? 'Directory traversal attempt to bypass root bounds and access sensitive OS files.'
+          : 'Percobaan penelusuran path direktori untuk mengakses file sensitif OS.'
+      };
+    }
+    if (text.includes('ssh') || text.includes('brute') || text.includes('hydra')) {
+      return {
+        type: 'Authentication Attack (SSH Brute Force)',
+        note: isEnglish
+          ? 'Automated high-frequency dictionary attack targeting system authentication endpoints.'
+          : 'Serangan kamus kredensial otomatis berulang pada port autentikasi.'
+      };
+    }
+    if (text.includes('rate limit') || text.includes('flood') || text.includes('ddos')) {
+      return {
+        type: 'Availability Attack (Layer 7 Flood / DDoS)',
+        note: isEnglish
+          ? 'Anomalous high-volume request bursts aimed at overwhelming backend service capacity.'
+          : 'Lonjakan volume permintaan tinggi yang membanjiri kapasitas server.'
+      };
+    }
+
+    const cleanFallback = readable || (isEnglish ? 'Perimeter Security Event' : 'Event Keamanan Perimeter');
+    return {
+      type: cleanFallback.length > 100 ? cleanFallback.slice(0, 97) + '...' : cleanFallback,
+      note: isEnglish
+        ? 'Perimeter telemetry event inspected and recorded by OAT Security Engine.'
+        : 'Event telemetri perimeter diinspeksi dan dicatat oleh OAT Security Engine.'
+    };
+  };
+
+  const downloadMitigationPdfReport = (evt: SecurityEvent, incidentId?: string) => {
+    const isEn = getLanguage() === 'en';
+    const reportDate = new Date().toLocaleString(isEn ? 'en-US' : 'id-ID', { dateStyle: 'full', timeStyle: 'medium' });
+    const eventDate = new Date(evt.timestamp).toLocaleString(isEn ? 'en-US' : 'id-ID', { dateStyle: 'full', timeStyle: 'medium' });
+    const refCode = incidentId || ('DISPATCH-' + String(evt.id || '').slice(0, 12));
+    const asset = (evt.application || 'Perimeter Gateway') + ' (' + evt.destination + ')';
+    const timestampStr = new Date(evt.timestamp).toISOString();
+    const cleanSourceIp = String(evt.sourceIp || '10.10.10.8').replace(/[()\\]/g, '');
+    const cleanDest = String(evt.destination || '192.168.1.2').replace(/[()\\]/g, '');
+    const cleanCountry = String(evt.sourceCountry || 'Indonesia').replace(/[()\\]/g, '');
+    const cleanAction = String(evt.action || 'LOG').toUpperCase().replace(/[()\\]/g, '');
+    const cleanSeverity = String(evt.severity || 'Medium').toUpperCase().replace(/[()\\]/g, '');
+    const readableThreat = extractReadableMessage(evt.threat);
+    const readablePayload = extractReadableMessage(evt.payloadSnippet || evt.threat);
+    const classified = classifyAttackType(readableThreat, evt.uri, readablePayload, evt.category, isEn);
+    const [threatLine1, threatLine2] = wrapTwoLines(classified.type, 64);
+    const rawLogSource = evt.rawLog || (evt.metadata && (evt.metadata.rawLog || evt.metadata.logMessage)) || evt.threat || evt.payloadSnippet || '-';
+    const logMsgLines = wrapLines(rawLogSource, 74, 18);
+    const logRowHeight = Math.max(26, logMsgLines.length * 10.5 + 8);
+    const sec2Height = 20 + logRowHeight + 20 + 20 + 20;
+    const sec2Bottom = 507 - sec2Height;
+    const sec2Divider1 = 487;
+    const sec2Divider2 = sec2Divider1 - logRowHeight;
+    const sec2Divider3 = sec2Divider2 - 20;
+    const sec2Divider4 = sec2Divider3 - 20;
+
+    const sec3Top = sec2Bottom - 10;
+    const sec3HeaderY = sec3Top - 19;
+    const sec3TableTop = sec3HeaderY - 5;
+    const sec3TableBottom = sec3TableTop - 86;
+
+    const sec4Top = sec3TableBottom - 10;
+    const sec4Bottom = Math.max(48, sec4Top - 88);
+    const footerLineY = sec4Bottom - 8;
+    const footerTextY = footerLineY - 10;
+
+    const cleanThreatNote = String(classified.note).slice(0, 80).replace(/[()\\]/g, '');
+    const cleanUri = String(evt.uri || '/').slice(0, 68).replace(/[()\\]/g, '');
+    const cleanPayload = String(readablePayload || '-').slice(0, 68).replace(/[()\\]/g, '');
+    const cleanEventId = String(evt.id || '-').slice(0, 36).replace(/[()\\]/g, '');
+    const cleanProtocol = String(evt.protocol || 'TCP').slice(0, 8).replace(/[()\\]/g, '');
+    const cleanStatusCode = String(evt.statusCode || 200).replace(/[()\\]/g, '');
+    const cleanAsset = String(asset).slice(0, 50).replace(/[()\\]/g, '');
+
+    const logLinesOps: string[] = [];
+    logMsgLines.forEach((line, idx) => {
+      const cleanLine = line.replace(/[()\\]/g, '');
+      if (idx === 0) {
+        logLinesOps.push(`156 ${sec2Divider1 - 14} Td (${cleanLine}) Tj`);
+      } else {
+        logLinesOps.push(`0 -10.5 Td (${cleanLine}) Tj`);
+      }
+    });
+
+    const streamContent = [
+      'q',
+      '0.06 0.09 0.16 rg',
+      '0 760 595.28 82 re f',
+      '0.14 0.38 0.95 rg',
+      '0 756 595.28 4 re f',
+      'Q',
+      'BT',
+      '1 1 1 rg',
+      '/F2 16 Tf',
+      '36 804 Td (OAT SECURITY  |  ENTERPRISE SOC INCIDENT BRIEF) Tj',
+      '/F1 8.5 Tf',
+      '0.80 0.85 0.95 rg',
+      '0 -16 Td (' + (isEn ? 'Automated Security Event Mitigation & Incident Escalation Dossier' : 'Dossier Mitigasi Peristiwa Keamanan & Eskalasi Insiden Otomatis') + ') Tj',
+      'ET',
+      'BT',
+      '1 1 1 rg',
+      '/F2 8 Tf',
+      '420 808 Td (' + (isEn ? 'INCIDENT REF:' : 'REF INSIDEN:') + ') Tj',
+      '/F1 8 Tf',
+      '0.80 0.85 0.95 rg',
+      '0 -11 Td (' + refCode + ') Tj',
+      '0 -11 Td (' + (isEn ? 'Issued: ' : 'Terbit: ') + reportDate.slice(0, 24) + ') Tj',
+      'ET',
+      'q',
+      '0.93 0.95 0.98 rg',
+      '36 718 523 20 re f',
+      '0.10 0.15 0.25 rg',
+      '36 718 4 20 re f',
+      'Q',
+      'BT',
+      '0.08 0.12 0.20 rg',
+      '/F2 9.5 Tf',
+      '46 724 Td (' + (isEn ? '1. INCIDENT TELEMETRY & ATTACK ATTRIBUTION' : '1. TELEMETRI INSIDEN & ATRIBUSI SERANGAN') + ') Tj',
+      'ET',
+      'q',
+      '0.97 0.98 0.99 rg',
+      '0.85 0.89 0.94 RG',
+      '0.5 w',
+      '36 542 523 165 re b',
+      '36 673 523 0.1 re s',
+      '36 621 523 0.1 re s',
+      '36 569 523 0.1 re s',
+      '148 542 0.1 165 re s',
+      'Q',
+      'BT',
+      '/F2 8 Tf',
+      '0.38 0.42 0.50 rg',
+      '44 688 Td (Event ID) Tj',
+      '0 -26 Td (' + (isEn ? 'Severity Level' : 'Tingkat Severity') + ') Tj',
+      '0 -26 Td (' + (isEn ? 'Source & Location' : 'Sumber & Lokasi') + ') Tj',
+      '0 -26 Td (' + (isEn ? 'Target Asset' : 'Target Aset') + ') Tj',
+      '/F1 8 Tf',
+      '0.12 0.14 0.18 rg',
+      '112 78 Td (' + cleanEventId + '  |  Protocol: ' + cleanProtocol + ') Tj',
+      'ET',
+      'BT',
+      '/F1 8 Tf',
+      '0.12 0.14 0.18 rg',
+      '156 637 Td (' + cleanSeverity + ' ALERT  |  Action: ' + cleanAction + ') Tj',
+      '0 -26 Td (' + cleanSourceIp + ' [' + cleanCountry + ']   HTTP Code: ' + cleanStatusCode + ') Tj',
+      '0 -26 Td (' + cleanAsset + ') Tj',
+      'ET',
+      'q',
+      '0.93 0.95 0.98 rg',
+      '36 512 523 19 re f',
+      '0.10 0.15 0.25 rg',
+      '36 512 4 19 re f',
+      'Q',
+      'BT',
+      '0.08 0.12 0.20 rg',
+      '/F2 9 Tf',
+      '46 517 Td (' + (isEn ? '2. THREAT DETECTION & DEEP FORENSIC ANALYSIS' : '2. DETEKSI ANCAMAN & ANALISIS FORENSIK MENDALAM') + ') Tj',
+      'ET',
+      'q',
+      '0.97 0.98 0.99 rg',
+      '0.85 0.89 0.94 RG',
+      '0.5 w',
+      `36 ${sec2Bottom} 523 ${sec2Height} re b`,
+      `36 ${sec2Divider1} 523 0.1 re s`,
+      `36 ${sec2Divider2} 523 0.1 re s`,
+      `36 ${sec2Divider3} 523 0.1 re s`,
+      `36 ${sec2Divider4} 523 0.1 re s`,
+      `148 ${sec2Bottom} 0.1 ${sec2Height} re s`,
+      'Q',
+      'BT',
+      '/F2 8 Tf',
+      '0.38 0.42 0.50 rg',
+      '44 494 Td (' + (isEn ? 'Attack Type' : 'Tipe Serangan') + ') Tj',
+      `44 ${sec2Divider1 - 14} Td (Raw Log Message) Tj`,
+      `44 ${sec2Divider2 - 14} Td (URI / Endpoint) Tj`,
+      `44 ${sec2Divider3 - 14} Td (Payload Snippet) Tj`,
+      `44 ${sec2Divider4 - 14} Td (Analyst Verdict) Tj`,
+      'ET',
+      'BT',
+      '/F2 8 Tf',
+      '0.80 0.15 0.15 rg',
+      '156 494 Td (' + threatLine1 + ') Tj',
+      'ET',
+      'BT',
+      '/F1 7.5 Tf',
+      '0.20 0.24 0.30 rg',
+      ...logLinesOps,
+      'ET',
+      'BT',
+      '/F1 8 Tf',
+      '0.20 0.24 0.30 rg',
+      `156 ${sec2Divider2 - 14} Td (${cleanUri}) Tj`,
+      `0 -20 Td (${cleanPayload}) Tj`,
+      `0 -20 Td (${cleanThreatNote}) Tj`,
+      'ET',
+      'BT',
+      '/F1 7.5 Tf',
+      '0.45 0.50 0.58 rg',
+      `36 ${footerTextY} Td (` + (isEn ? 'Automatically issued by OAT Security Engine | ' + reportDate : 'Otomatis diterbitkan oleh OAT Security Engine | ' + reportDate) + ') Tj',
+      'ET'
+    ].join('\n');
+
+    let pdf = '%PDF-1.4\n';
+    const offsets: number[] = [];
+    const addObj = (str: string) => {
+      offsets.push(pdf.length);
+      pdf += str + '\n';
+    };
+    addObj('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj');
+    addObj('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj');
+    addObj('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj');
+    addObj('4 0 obj\n<< /Length ' + streamContent.length + ' >>\nstream\n' + streamContent + '\nendstream\nendobj');
+    addObj('5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj');
+    addObj('6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj');
+    const xrefOffset = pdf.length;
+    pdf += 'xref\n0 7\n0000000000 65535 f \n';
+    for (let i = 0; i < 6; i++) {
+      pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xrefOffset + '\n%%EOF';
+
+    const blob = new Blob([pdf], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = isEn
+      ? `SOC-L2-Mitigation-Report-${evt.id.slice(0, 8)}-${Date.now()}.pdf`
+      : `Laporan-Mitigasi-SOC-L2-${evt.id.slice(0, 8)}-${Date.now()}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleEscalateToSocL2 = async () => {
+    if (!selectedEvent || escalatingSoc) return;
+    setEscalatingSoc(true);
+    setEscalateSuccess(null);
+    try {
+      const isEn = getLanguage() === 'en';
+      const readableThreat = extractReadableMessage(selectedEvent.threat);
+      const shortThreat = (readableThreat || (isEn ? 'Threat Ingress' : 'Ancaman Ingress')).slice(0, 75);
+      const appTarget = (selectedEvent.application || selectedEvent.destination || 'Server').slice(0, 60);
+
+      const res = await securityApi.createIncident({
+        title: isEn
+          ? `[Incident Mitigation] ${shortThreat} on ${appTarget}`.slice(0, 240)
+          : `[Mitigasi Insiden] ${shortThreat} pada ${appTarget}`.slice(0, 240),
+        severity: selectedEvent.severity === 'Critical' ? 'Critical' : 'High',
+        tier: 'L2',
+        assignedTo: 'SOC L2 Analyst',
+        affectedAsset: `${selectedEvent.application || 'Server'} (${selectedEvent.destination})`.slice(0, 240),
+        notes: (() => {
+          const det = classifyAttackType(readableThreat, selectedEvent.uri, selectedEvent.payloadSnippet, selectedEvent.category);
+          if (isEn) {
+            return `Automated mitigation report dispatched to SOC L2 Pipeline.\nAttack Classification: ${det.type}\nAnalyst Note: ${det.note}\nSource IP: ${selectedEvent.sourceIp} (${selectedEvent.sourceCountry || 'Unknown'})\nOrigin Threat: ${readableThreat}\nPerimeter Action: ${selectedEvent.action}\nTarget Host: ${selectedEvent.destination}\nEvent ID: ${selectedEvent.id}\nTimestamp: ${new Date(selectedEvent.timestamp).toISOString()}`;
+          }
+          return `Laporan mitigasi otomatis ke SOC L2 Pipeline.\nKlasifikasi Serangan: ${det.type}\nKeterangan Analis: ${det.note}\nIP Sumber: ${selectedEvent.sourceIp} (${selectedEvent.sourceCountry || 'Unknown'})\nAncaman Asal: ${readableThreat}\nAksi Perimeter: ${selectedEvent.action}\nTarget Host: ${selectedEvent.destination}\nEvent ID: ${selectedEvent.id}\nTimestamp: ${new Date(selectedEvent.timestamp).toISOString()}`;
+        })()
+      });
+
+      const incidentId = res.incident?.id;
+      downloadMitigationPdfReport(selectedEvent, incidentId);
+
+      setEscalateSuccess(isEn
+        ? `Automated mitigation PDF downloaded & dispatched to SOC L2 queue (${incidentId || 'Dispatched'}).`
+        : `Laporan PDF mitigasi otomatis terunduh & berhasil dikirim ke antrean SOC L2 (${incidentId || 'Terkirim'}).`
+      );
+      setTimeout(() => setEscalateSuccess(null), 7000);
+    } catch (err: any) {
+      alert(err?.message || (getLanguage() === 'en' ? 'Failed to dispatch mitigation report to SOC L2' : 'Gagal mengirim laporan mitigasi ke SOC L2'));
+    } finally {
+      setEscalatingSoc(false);
+    }
+  };
 
   // Inspect event in drawer
   const handleInspectEvent = async (evt: SecurityEvent) => {
@@ -1435,6 +1822,51 @@ export const SecurityEventsModule: React.FC = () => {
                   </p>
                 </section>
               )}
+
+              {/* Mitigation & SOC L2 Escalation Action */}
+              <section className="rounded-xl border border-indigo-200/80 bg-indigo-50/50 p-4 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <FontAwesomeIcon icon={faShieldVirus} className="text-indigo-600 dark:text-indigo-400 text-xs" />
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                        Automated Mitigation &amp; SOC L2 Escalation
+                      </h4>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+                      Generate PDF mitigation audit report and dispatch directly to SOC Level 2 (L2) analyst queue for deep forensic triage and perimeter enforcement.
+                    </p>
+                  </div>
+                </div>
+
+                {escalateSuccess && (
+                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>{escalateSuccess}</span>
+                  </div>
+                )}
+
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleEscalateToSocL2}
+                    disabled={escalatingSoc}
+                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 transition cursor-pointer disabled:opacity-50"
+                  >
+                    <FontAwesomeIcon icon={faPaperPlane} className={escalatingSoc ? "text-xs animate-bounce" : "text-xs"} />
+                    <span>{escalatingSoc ? "Downloading PDF & Dispatching to SOC L2…" : "Download PDF & Dispatch to SOC L2"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => downloadMitigationPdfReport(selectedEvent)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700/60 focus:outline-none transition cursor-pointer"
+                  >
+                    <FontAwesomeIcon icon={faFilePdf} className="text-rose-500 text-xs" />
+                    <span>Download PDF Only</span>
+                  </button>
+                </div>
+              </section>
 
               {/* Related Events */}
               {eventDetail?.relatedEvents && eventDetail.relatedEvents.length > 0 && (
