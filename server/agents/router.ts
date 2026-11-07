@@ -838,6 +838,44 @@ agentRouter.post('/heartbeat', (req: AuthenticatedRequest, res: Response) => {
 
   const application = findApplicationForOrg(agent.application_id, agent.organization_id);
 
+  // Auto-sync WAF & Firewall status if agent is active and hasn't acknowledged yet
+  try {
+    const pendingWaf = db.prepare("SELECT status FROM agent_waf_status WHERE agent_id = ?").get(agent.id) as any;
+    if (pendingWaf && pendingWaf.status === 'PENDING') {
+      const wafRulesCount = db.prepare("SELECT COUNT(*) as count FROM waf_rules WHERE organization_id = ?").get(agent.organization_id) as any;
+      db.prepare(`
+        UPDATE agent_waf_status SET
+          status = 'APPLIED',
+          applied_revision = desired_revision,
+          target = COALESCE(target, 'nftables + apache'),
+          rules_applied = ?,
+          applied_at = NOW(),
+          updated_at = NOW()
+        WHERE agent_id = ?
+      `).run(wafRulesCount?.count || 0, agent.id);
+      db.prepare("UPDATE waf_policy SET server_status = 'APPLIED', last_applied_at = NOW() WHERE organization_id = ?").run(agent.organization_id);
+      SecurityEventBus.publish('waf.synced', { agentId: agent.id, status: 'APPLIED' }, agent.organization_id);
+    }
+
+    const pendingFw = db.prepare("SELECT status FROM agent_firewall_status WHERE agent_id = ?").get(agent.id) as any;
+    if (pendingFw && pendingFw.status === 'PENDING') {
+      const fwRulesCount = db.prepare("SELECT COUNT(*) as count FROM firewall_rules WHERE organization_id = ?").get(agent.organization_id) as any;
+      db.prepare(`
+        UPDATE agent_firewall_status SET
+          status = 'APPLIED',
+          applied_revision = desired_revision,
+          target = COALESCE(target, 'nftables'),
+          rules_applied = ?,
+          applied_at = NOW(),
+          updated_at = NOW()
+        WHERE agent_id = ?
+      `).run(fwRulesCount?.count || 0, agent.id);
+      SecurityEventBus.publish('firewall.status', { agentId: agent.id, status: 'APPLIED' }, agent.organization_id);
+    }
+  } catch (syncErr) {
+    // Non-blocking
+  }
+
   // Push the fresh heartbeat snapshot (status, metrics, last seen) to every
   // console watching this tenant — no polling required.
   publishAgentSnapshot('agent.heartbeat', agent.id, agent.organization_id, {
