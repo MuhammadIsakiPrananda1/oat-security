@@ -144,7 +144,6 @@ export const LiveTrafficModule: React.FC = () => {
     async function loadEvents() {
       if (isBackendOffline) return;
       setLoading(true);
-      setEvents([]);
       try {
         const res = await securityApi.getSecurityEvents({
           limit: pageSize,
@@ -155,7 +154,12 @@ export const LiveTrafficModule: React.FC = () => {
         });
         if (isMounted) {
           if (res.events) {
-            setEvents(res.events);
+            setEvents(prev => {
+              // Merge preserving real-time items received before query finished
+              const serverIds = new Set(res.events.map(e => e.id));
+              const pendingLive = prev.filter(e => !serverIds.has(e.id));
+              return [...pendingLive, ...res.events].slice(0, pageSize);
+            });
           }
           if (typeof res.total === 'number') {
             setRecordedTotal(res.total);
@@ -186,10 +190,13 @@ export const LiveTrafficModule: React.FC = () => {
         });
         if (res.events && res.events.length > 0) {
           setEvents(prev => {
-            if (prev.length > 0 && res.events[0]?.id === prev[0]?.id && prev.length === res.events.length) {
+            const serverIds = new Set(res.events.map(e => e.id));
+            const pendingLive = prev.filter(e => !serverIds.has(e.id));
+            const merged = [...pendingLive, ...res.events].slice(0, pageSize);
+            if (prev.length === merged.length && prev.every((e, i) => e.id === merged[i]?.id)) {
               return prev;
             }
-            return res.events;
+            return merged;
           });
           if (typeof res.total === 'number') {
             setRecordedTotal(res.total);

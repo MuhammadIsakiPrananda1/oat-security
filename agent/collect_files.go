@@ -14,10 +14,9 @@ import (
 const maxLineBytes = 256 * 1024
 
 type fileTailer struct {
-	cfg         *Config
-	state       *StateStore
-	queue       *Queue
-	initialScan bool
+	cfg   *Config
+	state *StateStore
+	queue *Queue
 }
 
 func startFileTailers(ctx context.Context, cfg *Config, state *StateStore, queue *Queue) {
@@ -46,7 +45,6 @@ func (t *fileTailer) scan(ctx context.Context) {
 		}
 		t.tailFile(path)
 	}
-	t.initialScan = true
 }
 
 func expandGlobs(patterns []string) []string {
@@ -87,13 +85,6 @@ func (t *fileTailer) tailFile(path string) {
 
 	offset, known := t.state.GetOffset(path)
 	if !known {
-		if !t.initialScan {
-			// On the very first scan, start at the end so a fresh install does
-			// not replay weeks of archived logs. New files discovered later
-			// start at byte 0.
-			t.state.SetOffset(path, size)
-			return
-		}
 		offset = 0
 	}
 	if size < offset {
@@ -150,6 +141,9 @@ func (t *fileTailer) tailFile(path string) {
 				for _, event := range events {
 					t.queue.AddEvent(event)
 				}
+			}
+			if _, logCount := t.queue.Len(); logCount >= 3000 {
+				break
 			}
 			continue
 		}

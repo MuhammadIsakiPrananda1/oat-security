@@ -7,6 +7,8 @@ import (
 	"context"
 	"log"
 	"os/exec"
+	"path/filepath"
+	"time"
 )
 
 func startJournald(ctx context.Context, cfg *Config, queue *Queue) {
@@ -14,7 +16,12 @@ func startJournald(ctx context.Context, cfg *Config, queue *Queue) {
 		return
 	}
 	go func() {
-		command := exec.CommandContext(ctx, "journalctl", "-f", "-o", "json", "--no-pager", "-n", "0")
+		stateDir := cfg.StateDir
+		if stateDir == "" {
+			stateDir = defaultStateDir()
+		}
+		cursorPath := filepath.Join(stateDir, "journald.cursor")
+		command := exec.CommandContext(ctx, "journalctl", "-f", "-o", "json", "--no-pager", "--no-tail", "--cursor-file="+cursorPath)
 		stdout, err := command.StdoutPipe()
 		if err != nil {
 			log.Printf("[agent] journald: %v", err)
@@ -29,6 +36,12 @@ func startJournald(ctx context.Context, cfg *Config, queue *Queue) {
 		scanner := bufio.NewScanner(stdout)
 		scanner.Buffer(make([]byte, 64*1024), 4*1024*1024)
 		for scanner.Scan() {
+			for {
+				if _, logCount := queue.Len(); logCount < 3000 || ctx.Err() != nil {
+					break
+				}
+				time.Sleep(50 * time.Millisecond)
+			}
 			logs, events := parseJournaldLine(cfg, scanner.Text())
 			for _, entry := range logs {
 				queue.AddLog(entry)

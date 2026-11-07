@@ -37,24 +37,23 @@ func startWindowsEventLogs(ctx context.Context, cfg *Config, state *StateStore, 
 			continue
 		}
 		go func(logName string) {
-			baselineWindowsChannel(logName, state, queue)
 			ticker := time.NewTicker(15 * time.Second)
 			defer ticker.Stop()
 			var lastError string
 			for {
+				if err := pollWindowsChannel(logName, state, queue); err != nil {
+					message := err.Error()
+					if message != lastError {
+						log.Printf("[agent] Windows event log %s: %v", logName, err)
+						lastError = message
+					}
+				} else {
+					lastError = ""
+				}
 				select {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					if err := pollWindowsChannel(logName, state, queue); err != nil {
-						message := err.Error()
-						if message != lastError {
-							log.Printf("[agent] Windows event log %s: %v", logName, err)
-							lastError = message
-						}
-					} else {
-						lastError = ""
-					}
 				}
 			}
 		}(channel)
@@ -96,14 +95,9 @@ func baselineWindowsChannel(channel string, state *StateStore, queue *Queue) {
 
 func pollWindowsChannel(channel string, state *StateStore, queue *Queue) error {
 	last := state.WinlogLast(channel)
-	if last <= 0 {
-		baselineWindowsChannel(channel, state, queue)
-		return nil
-	}
-
 	xpath := fmt.Sprintf("*[System[EventRecordID > %d]]", last)
 	script := fmt.Sprintf(
-		"$ProgressPreference='SilentlyContinue'; try { Get-WinEvent -LogName '%s' -FilterXPath '%s' -MaxEvents 40 -ErrorAction Stop | Select-Object RecordId,TimeCreated,Id,LevelDisplayName,ProviderName,Message,LogName | ConvertTo-Json -Compress } catch { '' }",
+		"$ProgressPreference='SilentlyContinue'; try { Get-WinEvent -LogName '%s' -FilterXPath '%s' -MaxEvents 100 -Oldest -ErrorAction Stop | Select-Object RecordId,TimeCreated,Id,LevelDisplayName,ProviderName,Message,LogName | ConvertTo-Json -Compress } catch { '' }",
 		channel,
 		xpath,
 	)
