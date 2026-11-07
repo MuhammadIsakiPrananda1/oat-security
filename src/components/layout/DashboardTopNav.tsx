@@ -63,6 +63,12 @@ interface TopNotification {
   view: DashboardView;
   count?: number;
   lastSeen?: number;
+  // Raw parameters for dynamic i18n rendering
+  rawThreat?: string;
+  rawAction?: string;
+  sourceName?: string;
+  sourceIp?: string;
+  destination?: string;
 }
 
 function notificationViewFor(source?: string, action?: string): DashboardView {
@@ -156,6 +162,52 @@ const NOTIF_STORAGE_KEY = 'oat-notifications';
 const toastDedupCache = new Map<string, number>();
 const TOAST_DEDUP_TTL_MS = 20_000; // 20 seconds cooldown per unique event key
 let lastGlobalToastTime = 0;
+
+function formatNotifContent(n: TopNotification, isId: boolean) {
+  let title = n.title;
+  let desc = n.desc;
+
+  if (n.rawThreat || n.sourceName) {
+    const threatName = cleanThreatTitle(n.rawThreat || '', isId);
+    title = `[${n.sourceName || 'SECURITY'}] ${threatName}`;
+  } else {
+    // Translate legacy Indonesian titles stored in localStorage
+    title = title
+      .replace('Ancaman Terdeteksi di Endpoint', isId ? 'Ancaman Terdeteksi di Endpoint' : 'Threat Detected on Endpoint')
+      .replace('Serangan Web (WAF)', isId ? 'Serangan Web (WAF)' : 'Web Attack (WAF)')
+      .replace('Serangan Cross-Site Scripting (XSS)', isId ? 'Serangan Cross-Site Scripting (XSS)' : 'Cross-Site Scripting (XSS)')
+      .replace('Serangan SQL Injection', isId ? 'Serangan SQL Injection' : 'SQL Injection Attack')
+      .replace('Serangan Brute Force SSH', isId ? 'Serangan Brute Force SSH' : 'SSH Brute Force Attack')
+      .replace('Kegagalan Firewall Engine', isId ? 'Kegagalan Firewall Engine' : 'Firewall Engine Failure')
+      .replace('Malware Terdeteksi', isId ? 'Malware Terdeteksi' : 'Malware Detected')
+      .replace('Insiden Keamanan Terdeteksi', isId ? 'Insiden Keamanan Terdeteksi' : 'Security Incident Detected');
+  }
+
+  if (n.rawAction && n.sourceIp) {
+    const act = actionLabelFor(n.rawAction, isId);
+    const fromLabel = isId ? 'Dari' : 'From';
+    const toLabel = isId ? 'menuju' : 'to';
+    desc = `${act} • ${fromLabel} ${n.sourceIp} ${toLabel} ${n.destination || 'Gateway'}`;
+  } else {
+    // Translate legacy Indonesian desc stored in localStorage
+    if (!isId) {
+      desc = desc
+        .replace(/^Alert • Dari /i, 'Alert • From ')
+        .replace(/^Peringatan • Dari /i, 'Alert • From ')
+        .replace(/^Diblokir • Dari /i, 'Blocked • From ')
+        .replace(/^Terdeteksi • Dari /i, 'Detected • From ')
+        .replace(/ menuju /g, ' to ');
+    } else {
+      desc = desc
+        .replace(/^Alert • From /i, 'Peringatan • Dari ')
+        .replace(/^Blocked • From /i, 'Diblokir • Dari ')
+        .replace(/^Detected • From /i, 'Terdeteksi • Dari ')
+        .replace(/ to /g, ' menuju ');
+    }
+  }
+
+  return { title, desc };
+}
 
 function cleanThreatTitle(rawThreat: string, isId: boolean = false): string {
   const t = (rawThreat || '').trim();
@@ -337,7 +389,12 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             count: 1,
             severity: normalized.severity || 'Medium',
             read: false,
-            view: notificationViewFor(normalized.source, normalized.action)
+            view: notificationViewFor(normalized.source, normalized.action),
+            rawThreat,
+            rawAction: normalized.action,
+            sourceName: srcName,
+            sourceIp: srcIp,
+            destination: dest
           };
           return [newNotif, ...prev.slice(0, 99)];
         });
@@ -828,6 +885,8 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                             ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-400'
                             : 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-400';
 
+                      const content = formatNotifContent(n, activeLanguage === 'id');
+
                       return (
                         <div
                           key={n.id}
@@ -849,7 +908,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                                   {sevText}
                                 </span>
                                 <h4 className="text-xs font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
-                                  {n.title}
+                                  {content.title}
                                 </h4>
                                 {n.count && n.count > 1 && (
                                   <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold shrink-0">
@@ -861,7 +920,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                                 )}
                               </div>
                               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug line-clamp-2">
-                                {n.desc}
+                                {content.desc}
                               </p>
                               <div className="flex items-center gap-2 mt-1.5 text-[10px] text-zinc-400 font-mono">
                                 <span>{timeAgo(n.timestamp, activeLanguage === 'id')}</span>
@@ -1792,6 +1851,8 @@ function SimplifiedActivityModal({
                   : 'border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/60 dark:text-blue-400';
 
               const sevText = isCrit ? 'Critical' : isHigh ? 'High' : (sevUpper === 'MEDIUM' ? 'Medium' : (sevUpper === 'LOW' ? 'Low' : 'Info'));
+              const content = formatNotifContent(n, isId);
+
               return (
                 <div
                   key={n.id}
@@ -1807,7 +1868,7 @@ function SimplifiedActivityModal({
                         {sevText}
                       </span>
                       <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                        {n.title}
+                        {content.title}
                       </h4>
                       {!n.read && (
                         <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" title={isId ? 'Belum dibaca' : 'Unread'} />
@@ -1815,7 +1876,7 @@ function SimplifiedActivityModal({
                     </div>
 
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                      {n.desc}
+                      {content.desc}
                     </p>
 
                     <div className="flex items-center gap-2 mt-1.5 text-[11px] text-zinc-400">
