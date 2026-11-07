@@ -1206,30 +1206,30 @@ export const SecurityEventsModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Table Container — Live Traffic Style */}
-          <div className="h-[580px] overflow-y-auto overflow-x-auto custom-scrollbar">
-            <table className="min-w-[760px] w-full table-fixed border-separate border-spacing-0 text-left text-xs">
+          {/* Table Container — responsive, no forced horizontal overflow on desktop */}
+          <div className="h-[580px] overflow-y-auto overflow-x-auto sm:overflow-x-hidden custom-scrollbar">
+            <table className="w-full table-fixed border-separate border-spacing-0 text-left text-xs">
               <thead>
                 <tr className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                  <th className="sticky top-0 z-20 w-[11%] min-w-[85px] border-b border-zinc-200/80 bg-zinc-50 pl-4 pr-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[12%] border-b border-zinc-200/80 bg-zinc-50 pl-4 pr-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Time
                   </th>
-                  <th className="sticky top-0 z-20 w-[18%] min-w-[140px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[16%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Source IP
                   </th>
-                  <th className="sticky top-0 z-20 w-[13%] min-w-[95px] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[12%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
                     Engine
                   </th>
-                  <th className="sticky top-0 z-20 w-[14%] min-w-[110px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[15%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Application
                   </th>
-                  <th className="sticky top-0 z-20 w-[24%] min-w-[170px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[23%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Detected Threat
                   </th>
-                  <th className="sticky top-0 z-20 w-[10%] min-w-[80px] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[11%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
                     Severity
                   </th>
-                  <th className="sticky top-0 z-20 w-[10%] min-w-[80px] border-b border-zinc-200/80 bg-zinc-50 pl-2 pr-4 sm:pr-6 py-2.5 font-medium text-right dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[11%] border-b border-zinc-200/80 bg-zinc-50 pl-2 pr-4 sm:pr-6 py-2.5 font-medium text-right dark:border-zinc-800 dark:bg-zinc-900">
                     Action
                   </th>
                 </tr>
