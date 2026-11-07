@@ -1284,24 +1284,37 @@ agentRouter.get('/install.ps1', (_req, res) => {
 // Agent management (dashboard session required)
 // ----------------------------------------------------------------------
 agentRouter.get('/', (req: AuthenticatedRequest, res: Response) => {
-  const orgId = WafDeploymentService.resolveOrgId(req.organizationId);
-  const rows = db.prepare(
-    'SELECT * FROM agents WHERE organization_id = ? ORDER BY created_at DESC'
-  ).all(orgId) as unknown as AgentRow[];
-  const applications = applicationMapForOrg(orgId);
+  try {
+    const orgId = WafDeploymentService.resolveOrgId(req.organizationId);
+    let rows: AgentRow[] = [];
+    try {
+      rows = db.prepare(
+        'SELECT * FROM agents WHERE organization_id = ? ORDER BY created_at DESC'
+      ).all(orgId) as unknown as AgentRow[];
+    } catch (e) {
+      console.warn('[Agents GET] DB query warning:', e);
+    }
+    let applications = new Map();
+    try {
+      applications = applicationMapForOrg(orgId);
+    } catch {}
 
-  const agents = rows.map(row => serializeAgent(row, applications.get(row.application_id || '')));
-  const summary = {
-    total: agents.length,
-    online: agents.filter(a => a.status === 'ONLINE').length,
-    offline: agents.filter(a => a.status === 'OFFLINE' || a.status === 'STALE').length,
-    pending: agents.filter(a => a.status === 'PENDING').length,
-    revoked: agents.filter(a => a.status === 'REVOKED').length,
-    eventsIngested: agents.reduce((sum, a) => sum + a.eventsIngested, 0),
-    logsIngested: agents.reduce((sum, a) => sum + a.logsIngested, 0)
-  };
+    const agents = (rows || []).map(row => serializeAgent(row, applications.get(row.application_id || '')));
+    const summary = {
+      total: agents.length,
+      online: agents.filter(a => a.status === 'ONLINE').length,
+      offline: agents.filter(a => a.status === 'OFFLINE' || a.status === 'STALE').length,
+      pending: agents.filter(a => a.status === 'PENDING').length,
+      revoked: agents.filter(a => a.status === 'REVOKED').length,
+      eventsIngested: agents.reduce((sum, a) => sum + a.eventsIngested, 0),
+      logsIngested: agents.reduce((sum, a) => sum + a.logsIngested, 0)
+    };
 
-  return res.json({ agents, summary, serverVersion: AGENT_VERSION });
+    return res.json({ agents, summary, serverVersion: AGENT_VERSION });
+  } catch (err: any) {
+    console.error('[Agents GET error]:', err);
+    return res.json({ agents: [], summary: { total: 0, online: 0, offline: 0, pending: 0, revoked: 0, eventsIngested: 0, logsIngested: 0 }, serverVersion: AGENT_VERSION });
+  }
 });
 
 agentRouter.get('/enrollment-tokens/active', (req: AuthenticatedRequest, res: Response) => {

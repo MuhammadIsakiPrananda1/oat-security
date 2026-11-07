@@ -38,27 +38,36 @@ let connectionPromise = null;
 function getConnection() {
   if (!connectionPromise) {
     connectionPromise = (async () => {
-      const conn = await mysql.createConnection({
-        host: workerData.db.host,
-        port: workerData.db.port,
-        user: workerData.db.user,
-        password: workerData.db.password,
-        database: workerData.db.database,
-        charset: 'utf8mb4',
-        multipleStatements: true,
-        dateStrings: true,
-        decimalNumbers: true,
-        supportBigNumbers: true,
-        bigNumberStrings: false,
-        connectTimeout: 15000,
-      });
-      // SQLite was permissive about selecting non-aggregated columns. Keep that
-      // behaviour (the dashboard's analytics queries rely on it) while leaving
-      // the rest of MySQL's strict checks enabled.
-      await conn.query(
-        "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'"
-      );
-      return conn;
+      try {
+        const conn = await mysql.createConnection({
+          host: workerData.db.host,
+          port: workerData.db.port,
+          user: workerData.db.user,
+          password: workerData.db.password,
+          database: workerData.db.database,
+          charset: 'utf8mb4',
+          multipleStatements: true,
+          dateStrings: true,
+          decimalNumbers: true,
+          supportBigNumbers: true,
+          bigNumberStrings: false,
+          connectTimeout: 15000,
+        });
+        // SQLite was permissive about selecting non-aggregated columns. Keep that
+        // behaviour (the dashboard's analytics queries rely on it) while leaving
+        // the rest of MySQL's strict checks enabled.
+        await conn.query(
+          "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'"
+        );
+        conn.on('error', (err) => {
+          console.error('[MySQL Worker] Connection error:', err);
+          connectionPromise = null;
+        });
+        return conn;
+      } catch (err) {
+        connectionPromise = null;
+        throw err;
+      }
     })();
   }
   return connectionPromise;
@@ -160,7 +169,7 @@ export class MysqlBridge {
     try {
       parsed = JSON.parse(text);
     } catch {
-      throw new Error('Invalid response from MySQL worker');
+      throw new Error(`Invalid response from MySQL worker: ${text.slice(0, 200)}`);
     }
 
     if (isError || parsed.error) {
@@ -168,6 +177,8 @@ export class MysqlBridge {
       err.code = parsed.code;
       err.errno = parsed.errno;
       err.sqlState = parsed.sqlState;
+      err.sql = payload.sql;
+      console.error(`[MySQL Bridge Error] SQL: ${payload.sql.slice(0, 150)} | Error:`, parsed.error);
       throw err;
     }
     return parsed;

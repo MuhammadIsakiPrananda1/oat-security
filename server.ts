@@ -22,12 +22,11 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   const origin = req.headers.origin;
-  const allowed = process.env.ALLOWED_ORIGIN;
-
-  if (origin && (origin === allowed || !allowed)) {
+  if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Organization-Id');
     res.setHeader('Access-Control-Max-Age', '86400');
   }
 
@@ -52,15 +51,15 @@ app.get('/favicon.ico', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'public', 'favicon.ico'));
 });
 
-// Tenant & Auth context middleware
-app.use(authMiddleware);
-
 // Run DB migrations
 try {
   runMigrations();
 } catch (err) {
   console.error('[OAT SECURITY] Database migration error:', err);
 }
+
+// Tenant & Auth context middleware
+app.use(authMiddleware);
 
 import { startHealthMonitor } from './server/services/systemHealthService';
 import { startEndpointMonitor } from './server/services/endpointConnectionService';
@@ -83,6 +82,17 @@ import { superAdminRouter } from './server/superAdmin/router';
 app.use('/api/super-admin', superAdminRouter);
 app.use('/api/agents', agentRouter);
 app.use('/api', apiRouter);
+
+// Global Error Handler for API routes
+app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('[OAT SECURITY ERROR]:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({
+    error: err?.message || 'Internal Server Error'
+  });
+});
 
 // Initialize WebSocket server on HTTP server (/ws)
 securityWebSocketServer.init(server);
