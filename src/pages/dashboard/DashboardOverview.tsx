@@ -201,21 +201,9 @@ const EnhancedKpiCard: React.FC<EnhancedKpiCardProps> = ({
         </div>
       </div>
 
-      {/* Bottom row: Trend badge + Meta info */}
+      {/* Bottom row: Meta info */}
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/70 text-[11px] font-mono">
-        {trend ? (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className={`font-semibold ${trend.positive ? 'text-emerald-500' : 'text-rose-500'}`}>
-              {trend.value}
-            </span>
-            <span className="text-zinc-400 dark:text-zinc-500 text-[10px]">
-              {trend.label}
-            </span>
-          </div>
-        ) : (
-          <span className="text-zinc-400 dark:text-zinc-500 text-[10px]">—</span>
-        )}
-        <span className="text-zinc-400 dark:text-zinc-500 text-[11px] truncate max-w-[50%] text-right font-sans">
+        <span className="text-zinc-400 dark:text-zinc-500 text-[11px] font-sans">
           {meta}
         </span>
       </div>
@@ -1012,11 +1000,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
           const eventTime = Number.isNaN(parsedTime.getTime()) ? new Date() : parsedTime;
           const minuteLabel = `${String(eventTime.getHours()).padStart(2, '0')}:${String(eventTime.getMinutes()).padStart(2, '0')}`;
           
-          // If we were displaying a paused historical snapshot, start a fresh live sequence
-          let history: any[] = Array.isArray(prev.trafficHistory) ? prev.trafficHistory : [];
-          if (!prev.isLiveTraffic) {
-            history = [];
-          }
+          // Always keep existing history accumulating, never reset
+          let history: any[] = Array.isArray(prev.trafficHistory) ? [...prev.trafficHistory] : [];
 
           let minuteFound = false;
           const nextHistory = history.map((row: any) => {
@@ -1330,7 +1315,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faServer} className="text-base" />}
             iconColor="emerald"
             value={<CountUpNumber value={metrics.protectedAppsCount ?? 0} />}
-            trend={{ value: "+2", label: "this week", positive: true }}
             meta="WAF policies enforced"
             onClick={() => onNavigate("applications")}
           />
@@ -1339,7 +1323,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faNetworkWired} className="text-base" />}
             iconColor="blue"
             value={<CountUpNumber value={metrics.protectedNetworksCount ?? 0} />}
-            trend={{ value: "0", label: "no change", positive: true }}
             meta="L3/L4 segmentation"
             onClick={() => onNavigate("networks")}
           />
@@ -1348,7 +1331,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faArrowTrendUp} className="text-base" />}
             iconColor="indigo"
             value={<CountUpNumber value={metrics.requestsToday ?? 0} />}
-            trend={{ value: "+12.5%", label: "vs yesterday", positive: true }}
             meta="Ingress traffic recorded"
           />
           <EnhancedKpiCard
@@ -1356,7 +1338,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faShieldVirus} className="text-base" />}
             iconColor="rose"
             value={<CountUpNumber value={metrics.blockedRequests ?? 0} />}
-            trend={{ value: `${blockRateToday}%`, label: "block rate", positive: Number(blockRateToday) < 5 }}
             meta="Active mitigation"
             accent="danger"
             onClick={() => onNavigate("waf")}
@@ -1366,7 +1347,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faTriangleExclamation} className="text-base" />}
             iconColor="amber"
             value={<CountUpNumber value={metrics.activeThreats ?? 0} />}
-            trend={{ value: "-3", label: "vs last hour", positive: true }}
             meta="Heuristic threat clusters"
             onClick={() => onNavigate("threats")}
           />
@@ -1375,7 +1355,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faFire} className="text-base" />}
             iconColor="red"
             value={<CountUpNumber value={metrics.criticalAlerts ?? 0} />}
-            trend={{ value: "0", label: "new today", positive: true }}
             meta="SOC attention needed"
             accent="danger"
             onClick={() => onNavigate("incidents")}
@@ -1385,7 +1364,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             icon={<FontAwesomeIcon icon={faBolt} className="text-base" />}
             iconColor="violet"
             value={<CountUpNumber value={metrics.securityEventsCount ?? 0} />}
-            trend={{ value: "+156", label: "last 24h", positive: true }}
             meta="Full audit trail"
             onClick={() => onNavigate("security-events")}
           />
@@ -1405,7 +1383,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
                 <span className="text-sm font-semibold text-zinc-400">Calculating...</span>
               )
             }
-            trend={{ value: metrics.securityScore >= 80 ? "Excellent" : metrics.securityScore >= 60 ? "Good" : "Needs Work", label: "posture grade", positive: metrics.securityScore >= 70 }}
             meta="Weighted risk model"
           />
         </div>

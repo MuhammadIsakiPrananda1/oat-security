@@ -60,7 +60,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     code: 'httpsRate',
     currentVal: 99.4,
     unit: '%',
-    target: 95.0,
+    target: 80.0,
     targetDirection: 'min',
     history: [98.8, 99.0, 99.1, 99.3, 99.2, 99.4, 99.5, 99.3, 99.4, 99.5, 99.4, 99.5, 99.3, 99.4],
     description: 'HTTPS / TLS ingress packet verification ratio.'
@@ -71,7 +71,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     code: 'wafPrecision',
     currentVal: 99.8,
     unit: '%',
-    target: 98.0,
+    target: 90.0,
     targetDirection: 'min',
     history: [99.5, 99.6, 99.7, 99.8, 99.7, 99.9, 99.8, 99.7, 99.8, 99.9, 99.8, 99.7, 99.8, 99.8],
     description: 'WAF mitigation accuracy rate against verified threats.'
@@ -82,7 +82,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     code: 'botPassRate',
     currentVal: 94.2,
     unit: '%',
-    target: 90.0,
+    target: 75.0,
     targetDirection: 'min',
     history: [91.2, 92.4, 93.0, 93.8, 94.5, 93.9, 94.1, 94.0, 93.8, 94.5, 94.1, 94.4, 93.9, 94.2],
     description: 'Interception ratio of automated crawlers and bot scanners.'
@@ -93,7 +93,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     code: 'originShieldRate',
     currentVal: 88.6,
     unit: '%',
-    target: 80.0,
+    target: 70.0,
     targetDirection: 'min',
     history: [85.0, 86.2, 87.1, 88.0, 87.5, 88.3, 89.0, 88.2, 88.5, 89.1, 88.4, 88.8, 88.3, 88.6],
     description: 'Ratio of protected requests and origin cache offload.'
@@ -104,7 +104,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     code: 'ddosResistance',
     currentVal: 100.0,
     unit: '%',
-    target: 99.0,
+    target: 90.0,
     targetDirection: 'min',
     history: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
     description: 'L3/L4 hardware DDoS filter defense status.'
@@ -115,7 +115,7 @@ const DEFAULT_METRICS: WebSecurityMetricItem[] = [
     code: 'http2Rate',
     currentVal: 91.8,
     unit: '%',
-    target: 85.0,
+    target: 70.0,
     targetDirection: 'min',
     history: [88.5, 89.2, 90.0, 90.8, 91.2, 91.5, 92.0, 91.4, 91.7, 92.1, 91.6, 92.0, 91.5, 91.8],
     description: 'Transport connection multiplexing ratio.'
@@ -142,7 +142,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             code: 'httpsRate',
             currentVal: sec.httpsRate,
             unit: '%',
-            target: 95.0,
+            target: 80.0,
             targetDirection: 'min',
             history: sec.history?.https || DEFAULT_METRICS[0].history,
             description: 'HTTPS / TLS ingress packet verification ratio.'
@@ -153,7 +153,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             code: 'wafPrecision',
             currentVal: sec.wafPrecision,
             unit: '%',
-            target: 98.0,
+            target: 90.0,
             targetDirection: 'min',
             history: sec.history?.waf || DEFAULT_METRICS[1].history,
             description: 'WAF mitigation accuracy rate against verified threats.'
@@ -164,7 +164,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             code: 'botPassRate',
             currentVal: sec.botPassRate,
             unit: '%',
-            target: 90.0,
+            target: 75.0,
             targetDirection: 'min',
             history: sec.history?.bot || DEFAULT_METRICS[2].history,
             description: 'Interception ratio of automated crawlers and bot scanners.'
@@ -175,7 +175,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             code: 'originShieldRate',
             currentVal: sec.originShieldRate,
             unit: '%',
-            target: 80.0,
+            target: 70.0,
             targetDirection: 'min',
             history: sec.history?.origin || DEFAULT_METRICS[3].history,
             description: 'Ratio of protected requests and origin cache offload.'
@@ -186,7 +186,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             code: 'ddosResistance',
             currentVal: sec.ddosResistance,
             unit: '%',
-            target: 99.0,
+            target: 90.0,
             targetDirection: 'min',
             history: sec.history?.ddos || DEFAULT_METRICS[4].history,
             description: 'L3/L4 hardware DDoS filter defense status.'
@@ -197,7 +197,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
             code: 'http2Rate',
             currentVal: sec.http2Rate,
             unit: '%',
-            target: 85.0,
+            target: 70.0,
             targetDirection: 'min',
             history: sec.history?.http2 || DEFAULT_METRICS[5].history,
             description: 'Transport connection multiplexing ratio.'

@@ -28,7 +28,7 @@ function toIso(value: string | null): string | null {
   return `${value.replace(' ', 'T')}Z`;
 }
 
-const ONLINE_THRESHOLD_MS = 10 * 1000; // 10s fast offline detection // 2 minutes heartbeat window
+const ONLINE_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes heartbeat window
 
 export function getConnectedEndpoints(orgId?: string): EndpointConnectionStatus {
   const now = Date.now();
