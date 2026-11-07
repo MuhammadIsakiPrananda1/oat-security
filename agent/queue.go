@@ -1,12 +1,23 @@
 package main
 
-import "sync"
+import (
+	"strings"
+	"sync"
+)
 
 // urgentEventType returns true if the event should trigger an immediate flush
-// rather than waiting for the next periodic tick. For 0 ms real-time streaming,
-// every ingested security event triggers an immediate flush to the server.
+// rather than waiting for the next periodic tick. Critical/high threats or blocks
+// flush immediately; normal informational events wait for the batch tick.
 func urgentEventType(event Event) bool {
-	return true
+	sev := strings.ToLower(event.Severity)
+	if sev == "critical" || sev == "high" {
+		return true
+	}
+	act := strings.ToLower(event.Action)
+	if act == "block" || act == "drop" || act == "deny" {
+		return true
+	}
+	return false
 }
 
 type Queue struct {

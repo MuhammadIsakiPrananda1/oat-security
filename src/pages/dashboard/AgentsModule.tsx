@@ -453,10 +453,10 @@ export const AgentsModule: React.FC = () => {
 
   useEffect(() => {
     fetchAgents();
-    // Safety net: check if an enrolled agent has appeared every 3s if we have an active enrollment token
+    // Safety net: check if an enrolled agent has appeared every 10s (5s if active token)
     const interval = window.setInterval(() => {
       fetchAgents(true);
-    }, enrollment ? 1000 : 3000);
+    }, enrollment ? 5000 : 10000);
     return () => window.clearInterval(interval);
   }, [fetchAgents, currentOrg?.id, enrollment]);
 
@@ -475,7 +475,7 @@ export const AgentsModule: React.FC = () => {
           setSelectedAgent(prev => (prev && prev.agent.id === agentId ? detail : prev));
         }
       } catch {}
-    }, 1500);
+    }, 4000);
     return () => window.clearInterval(liveTimer);
   }, [selectedAgent?.agent?.id]);
 

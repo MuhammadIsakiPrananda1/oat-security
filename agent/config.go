@@ -138,10 +138,10 @@ func applyConfigDefaults(cfg *Config) {
 		cfg.Name = cfg.Hostname
 	}
 	if cfg.HeartbeatSeconds <= 0 {
-		cfg.HeartbeatSeconds = 1
+		cfg.HeartbeatSeconds = 3
 	}
 	if cfg.FlushSeconds <= 0 {
-		cfg.FlushSeconds = 1
+		cfg.FlushSeconds = 3
 	}
 	if cfg.FIMSeconds <= 0 {
 		cfg.FIMSeconds = 300

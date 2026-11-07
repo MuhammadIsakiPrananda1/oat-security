@@ -1106,26 +1106,6 @@ agentRouter.post('/ingest', (req: AuthenticatedRequest, res: Response) => {
           metadata,
           rawLog
         }, agent.organization_id);
-
-        // Also stream every log into Live Traffic feed as standard log (without severity unless incident/threat)
-        const logEvent: NormalizedSecurityEvent = {
-          id: `EVT-${logId.replace('LOG-', '')}`,
-          organizationId: agent.organization_id,
-          timestamp,
-          source: 'agent',
-          eventType,
-          severity: null,
-          sourceIp: ip || agentIp,
-          destinationIp: application?.origin_ip || agentIp || '127.0.0.1',
-          protocol: 'SYS',
-          application: applicationLabel,
-          action: 'LOG',
-          threatName: rawLog || message,
-          payloadSnippet: rawLog || message,
-          metadata: { ...metadata, logMessage: rawLog || message, rawLog, level },
-          agentId: agent.id
-        };
-        processSecurityEvent(logEvent);
       }
     } catch (error) {
       console.warn(`[Agents] Failed to store log from ${agent.id}:`, error);
