@@ -309,19 +309,8 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
         </div>
       </div>
 
-      {/* Grid of 6 Interactive Scrubbable Security Metric Cards or No Data */}
-      {!hasConnectedEndpoints ? (
-        <div className="mt-4 h-64 flex flex-col items-center justify-center text-center p-6 border border-dashed border-zinc-200/80 dark:border-zinc-800 rounded-xl">
-          <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-mono tracking-wider uppercase">
-            No Data
-          </span>
-          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {isId
-              ? 'Belum ada endpoint yang terhubung. Hubungkan endpoint agent untuk mulai menerima telemetri keamanan web secara real-time.'
-              : 'No endpoints connected yet. Connect an endpoint agent to start streaming live web security telemetry.'}
-          </p>
-        </div>
-      ) : viewMode === 'chart' ? (
+      {/* Grid of 6 Interactive Scrubbable Security Metric Cards */}
+      {viewMode === 'chart' ? (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {metrics.map(m => {
             const currentScrubbedVal = m.history[activeIndex] ?? m.currentVal;

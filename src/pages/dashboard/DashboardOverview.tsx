@@ -821,11 +821,15 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
           search: activitySearchTerm || undefined
         });
         if (isMounted) {
-          if (res.events) {
-            setActivityEvents(res.events);
+          if (res.events && res.events.length > 0) {
+            setActivityEvents(prev => {
+              const serverIds = new Set(res.events.map((e: any) => e.id));
+              const pendingLive = prev.filter(e => !serverIds.has(e.id));
+              return [...pendingLive, ...res.events].slice(0, activityPageSize);
+            });
           }
           if (typeof res.total === 'number') {
-            setActivityTotal(res.total);
+            setActivityTotal(prev => Math.max(prev, res.total));
           }
         }
       } catch (err) {
