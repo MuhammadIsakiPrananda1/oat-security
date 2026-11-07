@@ -929,6 +929,20 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     if (isBackendOffline) return;
     const unsub = telemetryStreamManager.subscribe(
       (msg: any) => {
+        // Increment requestsToday live when new log or event is ingested
+        if (msg?.type === 'log.created' || msg?.type === 'security_event' || msg?.type === 'security_event.created') {
+          setData((prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              metrics: {
+                ...prev.metrics,
+                requestsToday: (prev.metrics?.requestsToday ?? 0) + 1
+              }
+            };
+          });
+        }
+
         // Direct handling for alert / threat messages that update KPI counts
         if (msg?.type === 'threat.created' || msg?.type === 'incident.created') {
           setData((prev: any) => {

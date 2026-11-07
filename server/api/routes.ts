@@ -714,7 +714,10 @@ apiRouter.get('/users', (req: AuthenticatedRequest, res) => {
 apiRouter.get('/dashboard/summary', (req: AuthenticatedRequest, res) => {
   const orgId = req.organizationId || '';
 
-  const totalRequests = db.prepare('SELECT COUNT(*) as count FROM security_events WHERE organization_id = ?').get(orgId) as { count: number };
+  const totalLogs = db.prepare('SELECT COUNT(*) as count FROM logs WHERE organization_id = ?').get(orgId) as { count: number };
+  const totalEvents = db.prepare('SELECT COUNT(*) as count FROM security_events WHERE organization_id = ?').get(orgId) as { count: number };
+  const totalRequestsCount = (totalLogs?.count || 0) + (totalEvents?.count || 0);
+  const totalRequests = { count: totalRequestsCount };
   const blockedRequests = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND action IN ('BLOCK', 'BLOCKED', 'DENY', 'DROP')").get(orgId) as { count: number };
   const allowedRequests = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND action IN ('ALLOW', 'ALLOWED')").get(orgId) as { count: number };
   const totalThreats = db.prepare('SELECT COUNT(*) as count FROM threats WHERE organization_id = ?').get(orgId) as { count: number };
@@ -771,7 +774,10 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
   const orgId = req.organizationId || '';
   const endpointStatus = getConnectedEndpoints(orgId || undefined);
 
-  const totalRequests = db.prepare('SELECT COUNT(*) as count FROM security_events WHERE organization_id = ?').get(orgId) as { count: number };
+  const totalLogs = db.prepare('SELECT COUNT(*) as count FROM logs WHERE organization_id = ?').get(orgId) as { count: number };
+  const totalSecurityEvents = db.prepare('SELECT COUNT(*) as count FROM security_events WHERE organization_id = ?').get(orgId) as { count: number };
+  const totalRequestsToday = (totalLogs?.count || 0) + (totalSecurityEvents?.count || 0);
+
   const blockedRequests = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND action IN ('BLOCK', 'BLOCKED', 'DENY', 'DROP')").get(orgId) as { count: number };
   const activeThreats = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND status = 'ACTIVE'").get(orgId) as { count: number };
   const criticalAlerts = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND severity = 'Critical' AND status = 'ACTIVE'").get(orgId) as { count: number };
@@ -917,11 +923,11 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
     metrics: {
       protectedAppsCount: totalApps.count,
       protectedNetworksCount: totalNets.count,
-      requestsToday: totalRequests.count,
+      requestsToday: totalRequestsToday,
       blockedRequests: blockedRequests.count,
       activeThreats: activeThreats.count,
       criticalAlerts: criticalAlerts.count,
-      securityEventsCount: totalRequests.count,
+      securityEventsCount: totalSecurityEvents.count,
       securityScore: scoreResult.score,
       slaCompliancePct,
       breachedIncidentsCount: breachedCount,
