@@ -315,7 +315,7 @@ export function collectSystemHealth(): SystemHealthSnapshot {
 
 let healthMonitorTimer: NodeJS.Timeout | null = null;
 
-export function startHealthMonitor(intervalMs: number = 1000) {
+export function startHealthMonitor(intervalMs: number = 5000) {
   if (healthMonitorTimer) return;
 
   const broadcast = () => {
@@ -330,7 +330,7 @@ export function startHealthMonitor(intervalMs: number = 1000) {
   // Broadcast immediately on any security rule or event change
   SecurityEventBus.on('event', (payload) => {
     if (['rule.updated', 'waf.synced', 'waf.blocked', 'security_event', 'log.created'].includes(payload.type)) {
-      setTimeout(broadcast, 100);
+      setTimeout(broadcast, 200);
     }
   });
 

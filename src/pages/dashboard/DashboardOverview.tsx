@@ -848,8 +848,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     }
     setActivityLoading(true);
     loadEvents();
-    // Auto-sync polling every 5s so fresh traffic updates even if stream briefly reconects
-    const timer = window.setInterval(loadEvents, 5000);
+    // Auto-sync polling every 15s as fallback (realtime WS event stream pushes instant events)
+    const timer = window.setInterval(loadEvents, 15000);
     return () => { isMounted = false; window.clearInterval(timer); };
   }, [isBackendOffline, activityPage, activityPageSize, activityFilterAction, activityFilterSeverity, activitySearchTerm]);
 
@@ -870,7 +870,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       }
     }
     loadAggregates();
-    const timer = window.setInterval(loadAggregates, 60000);
+    const timer = window.setInterval(loadAggregates, 30000);
     return () => { isMounted = false; window.clearInterval(timer); };
   }, [isBackendOffline]);
 
@@ -891,33 +891,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
   useEffect(() => {
     fetchData();
     if (isBackendOffline) return;
-    // Auto sync dashboard data in background so full computed stats remain fresh
+    // Auto sync dashboard data in background (WS pushes real-time KPI mutations)
     const timer = setInterval(() => {
       fetchData(true);
-    }, 5000);
+    }, 20000);
     return () => clearInterval(timer);
   }, [currentOrg?.id, isBackendOffline]);
-
-  // Load aggregate counts for the filter dropdowns and country traffic
-  useEffect(() => {
-    let isMounted = true;
-    async function loadAggregates() {
-      if (isBackendOffline) return;
-      try {
-        const res = await securityApi.getSecurityEventsAggregates({ limit: 10 });
-        if (isMounted) {
-          setActivityAggregateActions(res.actions || null);
-          setActivityAggregateSeverities(res.severities || null);
-          setCountryTrafficData(res.topCountries || []);
-        }
-      } catch (err) {
-        console.error('[DashboardOverview] Aggregates fetch failed:', err);
-      }
-    }
-    loadAggregates();
-    const timer = window.setInterval(loadAggregates, 5000);
-    return () => { isMounted = false; window.clearInterval(timer); };
-  }, [isBackendOffline]);
 
   // Real-time telemetry WebSocket stream subscription
   useEffect(() => {

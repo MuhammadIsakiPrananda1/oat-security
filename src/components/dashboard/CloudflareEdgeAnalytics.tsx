@@ -209,7 +209,7 @@ export const CloudflareEdgeAnalytics: React.FC<CloudflareEdgeAnalyticsProps> = (
 
   useEffect(() => {
     syncServerAnalytics();
-    const interval = setInterval(syncServerAnalytics, 5000);
+    const interval = setInterval(syncServerAnalytics, 20000);
     return () => clearInterval(interval);
   }, [syncServerAnalytics]);
 
