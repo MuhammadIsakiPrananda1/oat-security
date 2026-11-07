@@ -1388,25 +1388,31 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* ── Modal: Add Protected Domain ── */}
+      {/* ── Drawer: Add Protected Domain ── */}
       {showAddAppModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="relative w-full max-w-lg rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-zinc-500" />
-                <h3 className="text-sm font-semibold">Add Protected Domain / Website</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddAppModal(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowAddAppModal(false)}
+          />
+
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Protected Domain / Website"
+            className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-zinc-200/80 bg-white text-zinc-900 shadow-2xl animate-in slide-in-from-right duration-300 ease-out dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-100 sm:max-w-xl md:max-w-2xl"
+          >
+            {/* Mobile swipe grab handle */}
+            <div className="sm:hidden pt-2.5 pb-0.5 flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
             </div>
 
-            <form onSubmit={handleAddApp} className="space-y-3.5 pt-4 text-xs">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <Globe className="w-4 h-4 text-zinc-500" />
+              <h3 className="text-sm font-semibold">Add Protected Domain / Website</h3>
+            </div>
+
+            <form onSubmit={handleAddApp} className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4 text-xs">
               <div>
                 <label className="block font-medium text-zinc-600 dark:text-zinc-300 mb-1">Application Name</label>
                 <input
@@ -1414,8 +1420,8 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   required
                   value={newAppName}
                   onChange={e => setNewAppName(e.target.value)}
-                  placeholder="Contoh: Customer Portal API"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  placeholder="e.g. Customer Portal API"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
@@ -1426,8 +1432,8 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   required
                   value={newAppDomain}
                   onChange={e => setNewAppDomain(e.target.value)}
-                  placeholder="Contoh: portal.company.co.id"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  placeholder="e.g. portal.company.co.id"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
@@ -1439,7 +1445,7 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                     value={newAppOriginIp}
                     onChange={e => setNewAppOriginIp(e.target.value)}
                     placeholder="127.0.0.1"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
                 <div>
@@ -1447,7 +1453,7 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   <select
                     value={newAppProtocol}
                     onChange={e => setNewAppProtocol(e.target.value as any)}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option value="HTTPS">HTTPS</option>
                     <option value="HTTP">HTTP</option>
@@ -1461,51 +1467,57 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                     value={newAppPort || ''}
                     onChange={e => setNewAppPort(Number(e.target.value.replace(/\D/g, '')))}
                     placeholder="443"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <div className="pt-4 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80 mt-auto">
                 <button
                   type="button"
                   onClick={() => setShowAddAppModal(false)}
-                  className="inline-flex h-8 items-center rounded-lg border border-zinc-200/80 bg-white px-3 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg border border-zinc-200/80 bg-white px-4 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={addingApp}
-                  className="inline-flex h-8 items-center rounded-lg bg-zinc-900 px-3.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-60 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg bg-zinc-900 px-4 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-60 cursor-pointer"
                 >
                   {addingApp ? 'Adding Domain…' : 'Protect Domain'}
                 </button>
               </div>
             </form>
-          </div>
+          </aside>
         </div>
       )}
 
-      {/* ── Modal: Add WAF Rule ── */}
+      {/* ── Drawer: Add WAF Rule ── */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="relative w-full max-w-lg rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-zinc-500" />
-                <h3 className="text-sm font-semibold">Add Enterprise WAF Rule</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setShowCreateModal(false); setRuleError(null); }}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => { setShowCreateModal(false); setRuleError(null); }}
+          />
+
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Enterprise WAF Rule"
+            className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-zinc-200/80 bg-white text-zinc-900 shadow-2xl animate-in slide-in-from-right duration-300 ease-out dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-100 sm:max-w-xl md:max-w-2xl"
+          >
+            {/* Mobile swipe grab handle */}
+            <div className="sm:hidden pt-2.5 pb-0.5 flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
             </div>
 
-            <form onSubmit={handleCreateRule} className="space-y-3.5 pt-4 text-xs">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <Shield className="w-4 h-4 text-zinc-500" />
+              <h3 className="text-sm font-semibold">Add Enterprise WAF Rule</h3>
+            </div>
+
+            <form onSubmit={handleCreateRule} className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4 text-xs">
               {ruleError && (
                 <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
                   {ruleError}
@@ -1519,8 +1531,8 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   required
                   value={newRule.name}
                   onChange={e => setNewRule(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Masukkan nama rule (contoh: Block SQL Injection)"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  placeholder="Enter rule name (e.g. Block SQL Injection)"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
@@ -1530,7 +1542,7 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   <select
                     value={newRule.category}
                     onChange={e => setNewRule(prev => ({ ...prev, category: e.target.value }))}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option>SQL Injection</option>
                     <option>XSS Filter</option>
@@ -1545,7 +1557,7 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   <select
                     value={newRule.action}
                     onChange={e => setNewRule(prev => ({ ...prev, action: e.target.value }))}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option value="Block">BLOCK</option>
                     <option value="Log">LOG</option>
@@ -1560,7 +1572,7 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                   <select
                     value={newRule.severity}
                     onChange={e => setNewRule(prev => ({ ...prev, severity: e.target.value }))}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option>Critical</option>
                     <option>High</option>
@@ -1577,34 +1589,34 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                     type="text"
                     value={newRule.pattern}
                     onChange={e => setNewRule(prev => ({ ...prev, pattern: e.target.value }))}
-                    placeholder="Masukkan pola regex (contoh: (?i)union\s+select)"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 font-mono text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    placeholder="Enter regex pattern (e.g. (?i)union\s+select)"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 font-mono text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
               </div>
 
-              <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
                 Leave empty to use the selected category&apos;s built-in detector. Custom Policy requires a pattern.
               </p>
 
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <div className="pt-4 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80 mt-auto">
                 <button
                   type="button"
                   onClick={() => { setShowCreateModal(false); setRuleError(null); }}
-                  className="inline-flex h-8 items-center rounded-lg border border-zinc-200/80 bg-white px-3 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg border border-zinc-200/80 bg-white px-4 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingRule}
-                  className="inline-flex h-8 items-center rounded-lg bg-zinc-900 px-3.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-60 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg bg-zinc-900 px-4 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-60 cursor-pointer"
                 >
                   {savingRule ? 'Queuing revision…' : 'Commit Rule to WAF'}
                 </button>
               </div>
             </form>
-          </div>
+          </aside>
         </div>
       )}
     </div>

@@ -1379,31 +1379,37 @@ export const FirewallModule: React.FC = () => {
         </div>
       )}
 
-      {/* ── Modal: Add Security Zone ── */}
+      {/* ── Drawer: Add Security Zone ── */}
       {showAddZoneModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-              <div className="flex items-center gap-2">
-                <Network className="w-4 h-4 text-emerald-500" />
-                <h3 className="text-sm font-semibold">Add Security Zone</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddZoneModal(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowAddZoneModal(false)}
+          />
+
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Security Zone"
+            className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-zinc-200/80 bg-white text-zinc-900 shadow-2xl animate-in slide-in-from-right duration-300 ease-out dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-100 sm:max-w-xl md:max-w-2xl"
+          >
+            {/* Mobile swipe grab handle */}
+            <div className="sm:hidden pt-2.5 pb-0.5 flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+            </div>
+
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <Network className="w-4 h-4 text-emerald-500" />
+              <h3 className="text-sm font-semibold">Add Security Zone</h3>
             </div>
 
             {zoneFormError && (
-              <div className="mt-3 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
+              <div className="mx-5 mt-4 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
                 {zoneFormError}
               </div>
             )}
 
-            <form onSubmit={handleCreateZone} className="space-y-3.5 pt-4 text-xs">
+            <form onSubmit={handleCreateZone} className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4 text-xs">
               <div>
                 <label className="block font-medium text-zinc-600 dark:text-zinc-300 mb-1">Zone / Subnet Name</label>
                 <input
@@ -1412,7 +1418,7 @@ export const FirewallModule: React.FC = () => {
                   value={newZoneName}
                   onChange={e => setNewZoneName(e.target.value)}
                   placeholder="e.g. Edge DMZ, Internal Microservices, DB Cluster"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
@@ -1425,7 +1431,7 @@ export const FirewallModule: React.FC = () => {
                     value={newZoneCidr}
                     onChange={e => setNewZoneCidr(e.target.value)}
                     placeholder="10.240.10.0/24"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
                 <div>
@@ -1435,7 +1441,7 @@ export const FirewallModule: React.FC = () => {
                     value={newZoneGateway}
                     onChange={e => setNewZoneGateway(e.target.value)}
                     placeholder="10.240.10.1"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
               </div>
@@ -1446,7 +1452,7 @@ export const FirewallModule: React.FC = () => {
                   <select
                     value={newZoneType}
                     onChange={e => setNewZoneType(e.target.value)}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option value="DMZ">DMZ (Ingress)</option>
                     <option value="Internal Core">Internal Core</option>
@@ -1462,7 +1468,7 @@ export const FirewallModule: React.FC = () => {
                   <select
                     value={newZoneFirewall}
                     onChange={e => setNewZoneFirewall(e.target.value)}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option value="OAT NGFW">OAT NGFW</option>
                     <option value="Linux nftables">Linux nftables</option>
@@ -1478,7 +1484,7 @@ export const FirewallModule: React.FC = () => {
                   value={newZoneInterface}
                   onChange={e => setNewZoneInterface(e.target.value)}
                   placeholder="eth0"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
@@ -1489,50 +1495,56 @@ export const FirewallModule: React.FC = () => {
                   value={newZoneDesc}
                   onChange={e => setNewZoneDesc(e.target.value)}
                   placeholder="e.g. Scoped perimeter network for public web services"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 mt-auto">
                 <button
                   type="button"
                   onClick={() => setShowAddZoneModal(false)}
-                  className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg border border-zinc-200/80 bg-white px-4 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={zoneSaving}
-                  className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 font-medium cursor-pointer disabled:opacity-50"
+                  className="inline-flex h-9 items-center rounded-lg bg-zinc-900 px-4 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 cursor-pointer disabled:opacity-50"
                 >
                   {zoneSaving ? 'Saving...' : 'Create Zone'}
                 </button>
               </div>
             </form>
-          </div>
+          </aside>
         </div>
       )}
 
-      {/* ── Modal: Add Firewall Rule ── */}
+      {/* ── Drawer: Add Firewall Rule ── */}
       {showAddRuleModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="relative w-full max-w-lg rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-              <div className="flex items-center gap-2">
-                <Flame className="w-4 h-4 text-zinc-500" />
-                <h3 className="text-sm font-semibold">Add Enterprise Firewall Rule</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddRuleModal(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setShowAddRuleModal(false)}
+          />
+
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add Enterprise Firewall Rule"
+            className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-zinc-200/80 bg-white text-zinc-900 shadow-2xl animate-in slide-in-from-right duration-300 ease-out dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-100 sm:max-w-xl md:max-w-2xl"
+          >
+            {/* Mobile swipe grab handle */}
+            <div className="sm:hidden pt-2.5 pb-0.5 flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
             </div>
 
-            <form onSubmit={handleCreateRule} className="space-y-3.5 pt-4 text-xs">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <Flame className="w-4 h-4 text-zinc-500" />
+              <h3 className="text-sm font-semibold">Add Enterprise Firewall Rule</h3>
+            </div>
+
+            <form onSubmit={handleCreateRule} className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-zinc-600 dark:text-zinc-300 mb-1">Priority (1 - 1000)</label>
@@ -1541,8 +1553,8 @@ export const FirewallModule: React.FC = () => {
                     required
                     value={priority}
                     onChange={e => setPriority(Number(e.target.value))}
-                    placeholder="Masukkan prioritas rule (1 - 1000)"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 font-mono dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    placeholder="100"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 font-mono dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
                 <div>
@@ -1550,7 +1562,7 @@ export const FirewallModule: React.FC = () => {
                   <select 
                     value={action}
                     onChange={e => setAction(e.target.value as any)}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option value="ALLOW">ALLOW</option>
                     <option value="DENY">DENY</option>
@@ -1567,8 +1579,8 @@ export const FirewallModule: React.FC = () => {
                     required
                     value={source}
                     onChange={e => setSource(e.target.value)}
-                    placeholder="Masukkan source IP atau CIDR (contoh: 203.0.113.0/24 atau ANY)"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    placeholder="203.0.113.0/24 or ANY"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
                 <div>
@@ -1578,8 +1590,8 @@ export const FirewallModule: React.FC = () => {
                     required
                     value={destination}
                     onChange={e => setDestination(e.target.value)}
-                    placeholder="Masukkan destination IP atau CIDR (contoh: 203.0.113.0/24 atau ANY)"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    placeholder="10.240.10.1 or ANY"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
               </div>
@@ -1592,8 +1604,8 @@ export const FirewallModule: React.FC = () => {
                     required
                     value={port}
                     onChange={e => setPort(e.target.value)}
-                    placeholder="Masukkan port (contoh: 443, 8443, atau ANY)"
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                    placeholder="443, 80, 22 or ANY"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs font-mono text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                   />
                 </div>
                 <div>
@@ -1601,7 +1613,7 @@ export const FirewallModule: React.FC = () => {
                   <select 
                     value={protocol}
                     onChange={e => setProtocol(e.target.value as any)}
-                    className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 font-mono dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
+                    className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2 text-xs text-zinc-800 font-mono dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none cursor-pointer"
                   >
                     <option value="TCP">TCP</option>
                     <option value="UDP">UDP</option>
@@ -1618,28 +1630,28 @@ export const FirewallModule: React.FC = () => {
                   required
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  placeholder="Masukkan deskripsi rule (contoh: Isolate DMZ from core database)"
-                  className="h-8 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
+                  placeholder="e.g. Ingress HTTPS Gateway filter"
+                  className="h-9 w-full rounded-lg border border-zinc-200/80 bg-white px-2.5 text-xs text-zinc-800 placeholder-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:border-zinc-400"
                 />
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80">
+              <div className="pt-4 flex items-center justify-end gap-2 border-t border-zinc-100 dark:border-zinc-800/80 mt-auto">
                 <button
                   type="button"
                   onClick={() => setShowAddRuleModal(false)}
-                  className="inline-flex h-8 items-center rounded-lg border border-zinc-200/80 bg-white px-3 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg border border-zinc-200/80 bg-white px-4 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex h-8 items-center rounded-lg bg-zinc-900 px-3.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 cursor-pointer"
+                  className="inline-flex h-9 items-center rounded-lg bg-zinc-900 px-4 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 cursor-pointer"
                 >
                   Commit Rule to Firewall
                 </button>
               </div>
             </form>
-          </div>
+          </aside>
         </div>
       )}
       {/* ── Drawer: Firewall Diagnostics & Logs ── */}

@@ -2155,6 +2155,15 @@ export const EN_TO_ID: Record<string, string> = {
  * This keeps English mode coherent as well.
  */
 export const ID_TO_EN: Record<string, string> = {
+    'Cakupan Aturan & Mesin WAF': 'WAF Engine & Policy Coverage',
+    'Penegakan Kebijakan Firewall': 'Firewall Policy Enforcement',
+    'Jumlah Ancaman Kritis Aktif': 'Active Critical Threats',
+    'Insiden Belum Terselesaikan': 'Unresolved Incident Backlog',
+    'Status Subsistem WAF & Firewall': 'WAF & Firewall Engine Health',
+    'Keamanan Autentikasi & Kegagalan Login': 'Authentication Security & Account Access',
+    'Sumber Teratas': 'Top Sources',
+    'Permintaan berdasarkan negara': 'Requests by country',
+    'Belum ada lalu lintas negara tercatat': 'No country traffic recorded yet',
     'Tutup Semua': 'Clear all',
     'Lihat detail': 'View detail',
     'Sinkronkan Server': 'Sync Server',
@@ -2379,6 +2388,10 @@ export const ID_TO_EN: Record<string, string> = {
     'Top Sources': 'Sumber Teratas',
     'Requests by country': 'Permintaan berdasarkan negara',
     'No country traffic recorded yet': 'Belum ada lalu lintas negara tercatat',
+    'Active WAF mitigation rules inspecting all ingress payloads.': 'Aturan mitigasi WAF aktif menginspeksi seluruh payload ingress.',
+    'Active firewall ACL rules blocking malicious IPs and unauthorised ports.': 'Aturan ACL firewall aktif memblokir IP berbahaya dan port tidak sah.',
+    'Zero unmitigated critical threats endangering the web perimeter.': 'Nol ancaman kritis aktif tanpa mitigasi pada perimeter web.',
+    'Brute-force protection and account access policies operating optimally.': 'Proteksi brute-force dan kebijakan akses akun beroperasi optimal.',
 };
 /**
  * Natural combined page-title translations. ModulePageHeader renders the bold
