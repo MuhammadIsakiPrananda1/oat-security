@@ -62,13 +62,17 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
 
   // 1. WAF Engine & Rule Policy Coverage (Weight 20%)
   const activeWafRules = db.prepare('SELECT COUNT(*) as count FROM waf_rules WHERE organization_id = ? AND enabled = 1').get(organizationId) as { count: number };
-  const wafPct = totalWafRules.count > 0 ? (activeWafRules.count / totalWafRules.count) : 0;
-  const wafScore = Math.round(wafPct * 100);
+  const appliedWafAgents = db.prepare("SELECT COUNT(*) as count FROM agent_waf_status WHERE organization_id = ? AND status = 'APPLIED'").get(organizationId) as { count: number };
+  const wafScore = totalWafRules.count > 0 
+    ? Math.round((activeWafRules.count / totalWafRules.count) * 100) 
+    : (appliedWafAgents.count > 0 ? 100 : 0);
 
   // 2. Firewall Layer 3/4 Policy Enforcement (Weight 20%)
   const activeFwRules = db.prepare('SELECT COUNT(*) as count FROM firewall_rules WHERE organization_id = ? AND enabled = 1').get(organizationId) as { count: number };
-  const fwPct = totalFwRules.count > 0 ? (activeFwRules.count / totalFwRules.count) : 0;
-  const fwScore = Math.round(fwPct * 100);
+  const appliedFwAgents = db.prepare("SELECT COUNT(*) as count FROM agent_firewall_status WHERE organization_id = ? AND status = 'APPLIED'").get(organizationId) as { count: number };
+  const fwScore = totalFwRules.count > 0 
+    ? Math.round((activeFwRules.count / totalFwRules.count) * 100) 
+    : (appliedFwAgents.count > 0 ? 100 : 0);
 
   // 3. Threat Posture: Jumlah Ancaman Kritis Aktif (Weight 25%)
   const activeThreats = db.prepare(`
@@ -213,14 +217,18 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
         weight: 20,
         score: wafScore,
         status: wafScore >= 80 ? 'Pass' : wafScore >= 50 ? 'Warning' : 'Fail',
-        details: `${activeWafRules.count} dari ${totalWafRules.count} aturan WAF aktif ditegakkan.`
+        details: totalWafRules.count > 0 
+          ? `${activeWafRules.count} dari ${totalWafRules.count} aturan WAF aktif ditegakkan.`
+          : 'Kebijakan WAF aktif ditegakkan pada endpoint agent terpasang.'
       },
       {
         name: 'Firewall Policy Enforcement',
         weight: 20,
         score: fwScore,
         status: fwScore >= 80 ? 'Pass' : fwScore >= 50 ? 'Warning' : 'Fail',
-        details: `${activeFwRules.count} dari ${totalFwRules.count} aturan ACL firewall aktif.`
+        details: totalFwRules.count > 0
+          ? `${activeFwRules.count} dari ${totalFwRules.count} aturan ACL firewall aktif.`
+          : 'Kebijakan Firewall ACL aktif ditegakkan pada endpoint agent terpasang.'
       },
       {
         name: 'Jumlah Ancaman Kritis Aktif',
