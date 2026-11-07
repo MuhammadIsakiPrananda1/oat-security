@@ -866,7 +866,25 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     setError(null);
     try {
       const res = await securityApi.getDashboard();
-      setData(res);
+      setData((prev: any) => {
+        if (!res) return prev;
+        // Merge real-time counters so polling response never resets active live streaming counters
+        return {
+          ...res,
+          isLiveTraffic: res.isLiveTraffic || prev?.isLiveTraffic,
+          trafficHistory: (res.trafficHistory && res.trafficHistory.length > 0)
+            ? res.trafficHistory
+            : (prev?.trafficHistory || []),
+          metrics: {
+            ...res.metrics,
+            requestsToday: Math.max(res.metrics?.requestsToday ?? 0, prev?.metrics?.requestsToday ?? 0),
+            blockedRequests: Math.max(res.metrics?.blockedRequests ?? 0, prev?.metrics?.blockedRequests ?? 0),
+            securityEventsCount: Math.max(res.metrics?.securityEventsCount ?? 0, prev?.metrics?.securityEventsCount ?? 0),
+            activeThreats: Math.max(res.metrics?.activeThreats ?? 0, prev?.metrics?.activeThreats ?? 0),
+            criticalAlerts: Math.max(res.metrics?.criticalAlerts ?? 0, prev?.metrics?.criticalAlerts ?? 0)
+          }
+        };
+      });
       if (!isBackground && res?.recentEvents && activityEvents.length === 0) {
         setActivityEvents(res.recentEvents.slice(0, activityPageSize));
         setActivityTotal(res.recentEvents.length);

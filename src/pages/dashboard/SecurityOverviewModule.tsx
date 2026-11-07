@@ -261,18 +261,14 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
       <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <SummaryStat
           label="SOC SLA Compliance"
-          value={hasConnectedEndpoints ? `${slaCompliancePct}%` : 'No Data'}
+          value={`${slaCompliancePct}%`}
           note={
-            hasConnectedEndpoints
-              ? breachedIncidentsCount > 0
-                ? `${breachedIncidentsCount} incident SLA breached`
-                : '100% SLA target achieved'
-              : 'Waiting for endpoint connection'
+            breachedIncidentsCount > 0
+              ? `${breachedIncidentsCount} incident SLA breached`
+              : '100% SLA target achieved'
           }
           dot={
-            !hasConnectedEndpoints
-              ? 'bg-zinc-400'
-              : slaCompliancePct >= 95
+            slaCompliancePct >= 95
               ? 'bg-emerald-500'
               : slaCompliancePct >= 80
               ? 'bg-amber-500'
@@ -281,18 +277,18 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
         />
         <SummaryStat
           label="Protected Applications"
-          value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.protectedAppsCount ?? 0} /> : 'No Data'}
-          note={hasConnectedEndpoints ? "Active web applications secured" : "Waiting for endpoint connection"}
+          value={<CountUpNumber value={metrics?.protectedAppsCount ?? 0} />}
+          note="Active web applications secured"
         />
         <SummaryStat
           label="Requests Today"
-          value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.requestsToday ?? 0} /> : 'No Data'}
-          note={hasConnectedEndpoints ? "Inspected at the edge pipeline" : "Waiting for endpoint connection"}
+          value={<CountUpNumber value={metrics?.requestsToday ?? 0} />}
+          note="Inspected at the edge pipeline"
         />
         <SummaryStat
           label="Blocked Requests"
-          value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.blockedRequests ?? 0} /> : 'No Data'}
-          note={hasConnectedEndpoints ? "Mitigated threats & anomalies" : "Waiting for endpoint connection"}
+          value={<CountUpNumber value={metrics?.blockedRequests ?? 0} />}
+          note="Mitigated threats & anomalies"
         />
       </div>
 
@@ -306,7 +302,7 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            {hasConnectedEndpoints && securityScoreData?.grade ? (
+            {securityScoreData?.grade ? (
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                 Grade: {securityScoreData.grade}
               </span>
@@ -318,27 +314,16 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
         </header>
 
         <div className="p-4 sm:p-5">
-          {!hasConnectedEndpoints ? (
-            <div className="h-48 flex flex-col items-center justify-center text-center p-6 border border-dashed border-zinc-200/80 dark:border-zinc-800 rounded-xl">
-              <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-mono tracking-wider uppercase">
-                No Data
-              </span>
-              <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                No endpoints connected yet. Connect an endpoint agent to start evaluating real-time security posture.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Posture Score & Core Domains */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pb-5 border-b border-zinc-100 dark:border-zinc-800/80">
-                {[
-                  { label: 'WAF Coverage', val: securityScoreData?.breakdown?.wafCoverage ?? 0, target: 'waf' },
-                  { label: 'Firewall ACL', val: securityScoreData?.breakdown?.firewallCoverage ?? 0, target: 'firewall' },
-                  { label: 'Threat Defense', val: securityScoreData?.breakdown?.threatPosture ?? 0, target: 'threats' },
-                  { label: 'Incident SLA', val: securityScoreData?.breakdown?.incidentResolution ?? 0, target: 'incidents' },
-                  { label: 'Subsystem Health', val: securityScoreData?.breakdown?.engineHealth ?? 0, target: 'dashboard' },
-                  { label: 'Auth & MFA', val: securityScoreData?.breakdown?.authSecurity ?? 0, target: 'users-roles' }
-                ].map(item => (
+          {/* Posture Score & Core Domains */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pb-5 border-b border-zinc-100 dark:border-zinc-800/80">
+            {[
+              { label: 'WAF Coverage', val: securityScoreData?.breakdown?.wafCoverage ?? 100, target: 'waf' },
+              { label: 'Firewall ACL', val: securityScoreData?.breakdown?.firewallCoverage ?? 100, target: 'firewall' },
+              { label: 'Threat Defense', val: securityScoreData?.breakdown?.threatPosture ?? 100, target: 'threats' },
+              { label: 'Incident SLA', val: securityScoreData?.breakdown?.incidentResolution ?? 100, target: 'incidents' },
+              { label: 'Subsystem Health', val: securityScoreData?.breakdown?.engineHealth ?? 100, target: 'dashboard' },
+              { label: 'Auth & MFA', val: securityScoreData?.breakdown?.authSecurity ?? 100, target: 'users-roles' }
+            ].map(item => (
                   <div
                     key={item.label}
                     onClick={() => onNavigate(item.target as DashboardView)}
@@ -447,8 +432,6 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
                   })}
                 </div>
               </div>
-            </>
-          )}
         </div>
       </section>
 
@@ -561,7 +544,7 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
                     {t.label}
                   </div>
                   <div className="mt-1.5 text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 font-mono">
-                    {t.value !== undefined ? t.value.toLocaleString() : '—'}
+                    {(t.value ?? 0).toLocaleString()}
                   </div>
                 </div>
               ))}

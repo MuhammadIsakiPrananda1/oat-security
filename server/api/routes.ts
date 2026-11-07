@@ -46,7 +46,7 @@ import {
   serializeNetwork,
   validateNetworkInput
 } from '../services/networkInventory';
-import { queryLiveLogs, getLiveLogById } from '../services/logRingBuffer';
+import { queryLiveLogs, getLiveLogById, flushLogsToDb } from '../services/logRingBuffer';
 import { processWazuhIncomingLog } from '../services/wazuhSiemPipeline';
 
 export const apiRouter = Router();
@@ -3529,13 +3529,17 @@ apiRouter.post('/applications', (req: AuthenticatedRequest, res) => {
 });
 
 // ----------------------------------------------------------------------
-// 10b. Centralized Security Logs (Wazuh Hybrid: Live Ring Buffer + MySQL Store)
+// 10b. Centralized Security Logs (Full Persistent MySQL Store + In-Memory Hot Cache)
 // ----------------------------------------------------------------------
 apiRouter.get('/logs', (req: AuthenticatedRequest, res) => {
   const orgId = req.organizationId || '';
   const { level, source, eventType, host, search, page = 1, limit = 50 } = req.query;
 
-  // 1. Ambil log real-time dari memory buffer
+  // Flush any pending logs in buffer directly so fresh queries see everything immediately
+  try {
+    flushLogsToDb();
+  } catch {}
+
   const memResult = queryLiveLogs({
     organizationId: orgId,
     level: typeof level === 'string' ? level : undefined,
@@ -3547,77 +3551,96 @@ apiRouter.get('/logs', (req: AuthenticatedRequest, res) => {
     limit: Number(limit) || 50
   });
 
-  // Jika buffer memori masih kosong / baru restart atau query halaman histori lama, fallback query ke MySQL
-  if (memResult.logs.length === 0 || Number(page) > 1) {
-    try {
-      let query = 'SELECT * FROM logs WHERE organization_id = ?';
-      const params: any[] = [orgId];
+  try {
+    let whereClause = 'WHERE organization_id = ?';
+    const params: any[] = [orgId];
 
-      if (level && level !== 'ALL') {
-        query += ' AND level = ?';
-        params.push(String(level).toUpperCase());
-      }
-      if (source && source !== 'ALL') {
-        query += ' AND source = ?';
-        params.push(String(source).toLowerCase());
-      }
-      if (eventType && eventType !== 'ALL') {
-        query += ' AND event_type = ?';
-        params.push(String(eventType).toLowerCase());
-      }
-      if (host && host !== 'ALL') {
-        query += ' AND host LIKE ?';
-        params.push(`%${String(host)}%`);
-      }
-      if (search) {
-        query += ' AND (message LIKE ? OR ip LIKE ? OR correlation_id LIKE ?)';
-        const term = `%${String(search)}%`;
-        params.push(term, term, term);
-      }
-
-      const totalRow = db.prepare(`SELECT COUNT(*) as count FROM (${query}) as t`).get(...params) as any;
-      const totalCount = Number(totalRow?.count) || memResult.total;
-
-      query += ' ORDER BY timestamp DESC';
-      const pageNum = Math.max(1, Number(page) || 1);
-      const limitNum = Math.min(1000, Math.max(1, Number(limit) || 50));
-      const offset = (pageNum - 1) * limitNum;
-      query += ` LIMIT ${limitNum} OFFSET ${offset}`;
-
-      const dbRows = db.prepare(query).all(...params) as any[];
-      if (dbRows.length > 0) {
-        const logs = dbRows.map(r => ({
-          id: r.id,
-          timestamp: r.timestamp,
-          level: r.level,
-          source: r.source,
-          eventType: r.event_type,
-          message: r.message,
-          host: r.host,
-          ip: r.ip,
-          correlationId: r.correlation_id,
-          metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
-          rawLog: r.raw_log
-        }));
-
-        const enrichedTopIps = memResult.topSourceIps.map(r => {
-          const geo = lookupIpLocation(r.ip);
-          return { ...r, sourceCountry: geo.country, sourceCountryCode: geo.code, sourceCountryFlag: geo.flag };
-        });
-
-        return res.json({
-          logs,
-          total: totalCount,
-          page: pageNum,
-          limit: limitNum,
-          metrics: memResult.metrics,
-          topSourceIps: enrichedTopIps,
-          topSources: memResult.topSources
-        });
-      }
-    } catch {
-      // jika query SQL gagal/pending, return memResult
+    if (level && level !== 'ALL') {
+      whereClause += ' AND level = ?';
+      params.push(String(level).toUpperCase());
     }
+    if (source && source !== 'ALL') {
+      whereClause += ' AND source = ?';
+      params.push(String(source).toLowerCase());
+    }
+    if (eventType && eventType !== 'ALL') {
+      whereClause += ' AND event_type = ?';
+      params.push(String(eventType).toLowerCase());
+    }
+    if (host && host !== 'ALL') {
+      whereClause += ' AND host LIKE ?';
+      params.push(`%${String(host)}%`);
+    }
+    if (search) {
+      whereClause += ' AND (message LIKE ? OR ip LIKE ? OR correlation_id LIKE ?)';
+      const term = `%${String(search)}%`;
+      params.push(term, term, term);
+    }
+
+    const totalRow = db.prepare(`SELECT COUNT(*) as count FROM logs ${whereClause}`).get(...params) as any;
+    const totalCount = Number(totalRow?.count) || 0;
+
+    // Direct MySQL metrics across all stored logs
+    const metricsRow = db.prepare(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN level = 'CRITICAL' THEN 1 ELSE 0 END) as critical,
+        SUM(CASE WHEN level = 'ERROR' THEN 1 ELSE 0 END) as error,
+        SUM(CASE WHEN level IN ('WARN', 'WARNING') THEN 1 ELSE 0 END) as warn,
+        SUM(CASE WHEN level = 'INFO' THEN 1 ELSE 0 END) as info,
+        SUM(CASE WHEN level = 'DEBUG' THEN 1 ELSE 0 END) as debug
+      FROM logs
+      WHERE organization_id = ?
+    `).get(orgId) as any;
+
+    const metrics = {
+      total: Number(metricsRow?.total) || memResult.metrics.total,
+      critical: Number(metricsRow?.critical) || memResult.metrics.critical,
+      error: Number(metricsRow?.error) || memResult.metrics.error,
+      warn: Number(metricsRow?.warn) || memResult.metrics.warn,
+      info: Number(metricsRow?.info) || memResult.metrics.info,
+      debug: Number(metricsRow?.debug) || memResult.metrics.debug
+    };
+
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(1000, Math.max(1, Number(limit) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    const query = `SELECT * FROM logs ${whereClause} ORDER BY timestamp DESC LIMIT ${limitNum} OFFSET ${offset}`;
+    const dbRows = db.prepare(query).all(...params) as any[];
+
+    if (dbRows.length > 0 || totalCount > 0) {
+      const logs = dbRows.map(r => ({
+        id: r.id,
+        timestamp: r.timestamp,
+        level: r.level,
+        source: r.source,
+        eventType: r.event_type,
+        message: r.message,
+        host: r.host,
+        ip: r.ip,
+        correlationId: r.correlation_id,
+        metadata: r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : undefined,
+        rawLog: r.raw_log
+      }));
+
+      const enrichedTopIps = memResult.topSourceIps.map(r => {
+        const geo = lookupIpLocation(r.ip);
+        return { ...r, sourceCountry: geo.country, sourceCountryCode: geo.code, sourceCountryFlag: geo.flag };
+      });
+
+      return res.json({
+        logs,
+        total: totalCount,
+        page: pageNum,
+        limit: limitNum,
+        metrics,
+        topSourceIps: enrichedTopIps,
+        topSources: memResult.topSources
+      });
+    }
+  } catch (err: any) {
+    console.warn('[/api/logs database query fallback]:', err?.message);
   }
 
   const enrichedTopIps = memResult.topSourceIps.map(r => {

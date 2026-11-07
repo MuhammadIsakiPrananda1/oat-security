@@ -16,15 +16,15 @@ export interface LogItem {
   agentId?: string;
 }
 
-// Wazuh-style memory ring buffer for instantaneous web UI delivery
-const MAX_LIVE_LOGS_PER_ORG = 2000;
+// Fast in-memory cache for recent live logs (instant UI updates & zero-lag SSE)
+const MAX_LIVE_LOGS_PER_ORG = 10000;
 const memoryLogsByOrg = new Map<string, LogItem[]>();
 let latestLogTimestampMs: number = Date.now();
 
-// Wazuh-style asynchronous batch queue
-const BATCH_SIZE = 100;
-const FLUSH_INTERVAL_MS = 2500;
-const MAX_QUEUE_SIZE = 5000;
+// Asynchronous batch queue to flush logs to MySQL without dropping
+const BATCH_SIZE = 250;
+const FLUSH_INTERVAL_MS = 1500;
+const MAX_QUEUE_SIZE = 50000;
 let logQueue: LogItem[] = [];
 let flushTimer: NodeJS.Timeout | null = null;
 
@@ -32,7 +32,7 @@ export function pushLogToPipeline(log: LogItem): void {
   latestLogTimestampMs = Date.now();
   const orgId = log.organizationId || 'default';
 
-  // 1. Fast in-memory buffer (instant web UI read, 0ms lag)
+  // 1. Fast in-memory cache
   let buffer = memoryLogsByOrg.get(orgId);
   if (!buffer) {
     buffer = [];
@@ -43,13 +43,7 @@ export function pushLogToPipeline(log: LogItem): void {
     buffer.length = MAX_LIVE_LOGS_PER_ORG;
   }
 
-  // 2. Filter & Queue (Wazuh rule: drop excessive noise, keep alerts/forensics)
-  // Drop DEBUG floods if queue is full, keep INFO/WARN/ERROR/CRITICAL
-  const lvl = (log.level || '').toUpperCase();
-  if (logQueue.length >= MAX_QUEUE_SIZE && lvl === 'DEBUG') {
-    return;
-  }
-
+  // 2. Queue for persistent storage in MySQL (never drop logs)
   logQueue.push(log);
   if (logQueue.length >= BATCH_SIZE) {
     flushLogsToDb();
