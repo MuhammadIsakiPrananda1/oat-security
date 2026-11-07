@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Activity, Server, Cpu, ShieldCheck, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { ArrowRight, Activity, Server, Cpu, ShieldCheck, CheckCircle2, AlertTriangle, XCircle, Clock, ShieldAlert } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShield, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 import { ModulePageHeader } from '../../components/common/ModulePageHeader';
@@ -8,6 +8,9 @@ import { securityApi, globalRealtimeClient } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { CountUpNumber } from '../../components/common/CountUpNumber';
 import { getLanguage } from '../../i18n/translator';
+import { useEndpointConnection } from '../../context/EndpointConnectionContext';
+import { getSlaInfo } from '../../components/incidents/utils';
+import { Incident } from '../../types';
 
 interface SecurityOverviewModuleProps {
   onNavigate: (view: DashboardView) => void;
@@ -124,26 +127,32 @@ const SummaryStat: React.FC<SummaryStatProps> = ({ label, value, note, dot }) =>
 
 export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ onNavigate }) => {
   const { currentOrg, isBackendOffline } = useAuth();
+  const { hasConnectedEndpoints } = useEndpointConnection();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<any>(null);
   const [engines, setEngines] = useState<EngineHealthRecord[]>([]);
   const [threatOverview, setThreatOverview] = useState<{ critical: number; high: number; medium: number; low: number } | null>(null);
   const [trafficHistory, setTrafficHistory] = useState<any[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
 
   const [securityScoreData, setSecurityScoreData] = useState<any>(null);
 
   const loadData = async () => {
     try {
-      const [dash, health, score] = await Promise.all([
+      const [dash, health, score, incRes] = await Promise.all([
         securityApi.getDashboard().catch(() => null),
         securityApi.getSystemHealthDetailed().catch(() => null),
-        securityApi.getSecurityScore().catch(() => null)
+        securityApi.getSecurityScore().catch(() => null),
+        securityApi.getIncidents().catch(() => null)
       ]);
       setMetrics(dash?.metrics ?? null);
       if (Array.isArray(health?.services)) {
         setEngines(health.services);
       }
       setSecurityScoreData(score ?? null);
+      if (Array.isArray(incRes?.incidents)) {
+        setIncidents(incRes.incidents);
+      }
       setThreatOverview(dash?.threatOverview ?? null);
       setTrafficHistory(Array.isArray(dash?.trafficHistory) ? dash.trafficHistory : []);
     } finally {
@@ -214,6 +223,20 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
     { label: 'Low', dot: 'bg-sky-400', value: threatOverview?.low }
   ];
 
+  // SLA Calculation from real incidents
+  const totalIncidents = incidents.length;
+  const closedIncidents = incidents.filter(i => ['MITIGATED', 'CLOSED', 'RESOLVED'].includes((i.status || '').toUpperCase()));
+  const activeIncidents = incidents.filter(i => !['MITIGATED', 'CLOSED', 'RESOLVED'].includes((i.status || '').toUpperCase()));
+
+  const breachedIncidents = activeIncidents.filter(i => {
+    const sla = getSlaInfo(i.severity, i.created, i.status, (i.tier as any) || 'L1');
+    return sla.isBreached;
+  });
+
+  const slaCompliancePct = totalIncidents > 0
+    ? Math.round(((totalIncidents - breachedIncidents.length) / totalIncidents) * 100)
+    : 100;
+
   return (
     <div className="space-y-5 pb-12">
       <ModulePageHeader
@@ -226,25 +249,39 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
         <SummaryStat
-          label="Engine Health"
-          value={`${operationalCount} / ${ENGINE_ROSTER.length}`}
-          note={attentionCount > 0 ? `${attentionCount} ${attentionCount === 1 ? 'engine needs' : 'engines need'} attention` : 'All engines operating normally'}
-          dot={operationalCount === ENGINE_ROSTER.length ? 'bg-emerald-500' : operationalCount > 0 ? 'bg-amber-500' : 'bg-rose-500'}
+          label="SOC SLA Compliance"
+          value={hasConnectedEndpoints ? `${slaCompliancePct}%` : 'No Data'}
+          note={
+            hasConnectedEndpoints
+              ? breachedIncidents.length > 0
+                ? `${breachedIncidents.length} incident SLA breached`
+                : '100% SLA target achieved'
+              : 'Menunggu koneksi endpoint'
+          }
+          dot={
+            !hasConnectedEndpoints
+              ? 'bg-zinc-400'
+              : slaCompliancePct >= 95
+              ? 'bg-emerald-500'
+              : slaCompliancePct >= 80
+              ? 'bg-amber-500'
+              : 'bg-rose-500'
+          }
         />
         <SummaryStat
           label="Protected Applications"
-          value={<CountUpNumber value={metrics?.protectedAppsCount ?? 0} />}
-          note="Active web applications secured"
+          value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.protectedAppsCount ?? 0} /> : 'No Data'}
+          note={hasConnectedEndpoints ? "Active web applications secured" : "Menunggu koneksi endpoint"}
         />
         <SummaryStat
           label="Requests Today"
-          value={<CountUpNumber value={metrics?.requestsToday ?? 0} />}
-          note="Inspected at the edge pipeline"
+          value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.requestsToday ?? 0} /> : 'No Data'}
+          note={hasConnectedEndpoints ? "Inspected at the edge pipeline" : "Menunggu koneksi endpoint"}
         />
         <SummaryStat
           label="Blocked Requests"
-          value={<CountUpNumber value={metrics?.blockedRequests ?? 0} />}
-          note="Mitigated threats & anomalies"
+          value={hasConnectedEndpoints ? <CountUpNumber value={metrics?.blockedRequests ?? 0} /> : 'No Data'}
+          note={hasConnectedEndpoints ? "Mitigated threats & anomalies" : "Menunggu koneksi endpoint"}
         />
       </div>
 
@@ -258,11 +295,11 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            {securityScoreData?.grade && (
+            {hasConnectedEndpoints && securityScoreData?.grade ? (
               <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                 Grade: {securityScoreData.grade}
               </span>
-            )}
+            ) : null}
             <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
               {loading ? 'Evaluating…' : 'Continuous Audit'}
             </span>
@@ -270,124 +307,137 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
         </header>
 
         <div className="p-4 sm:p-5">
-          {/* Posture Score & Core Domains */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pb-5 border-b border-zinc-100 dark:border-zinc-800/80">
-            {[
-              { label: 'WAF Coverage', val: securityScoreData?.breakdown?.wafCoverage ?? 0, target: 'waf' },
-              { label: 'Firewall ACL', val: securityScoreData?.breakdown?.firewallCoverage ?? 0, target: 'firewall' },
-              { label: 'Threat Defense', val: securityScoreData?.breakdown?.threatPosture ?? 0, target: 'threats' },
-              { label: 'Incident SLA', val: securityScoreData?.breakdown?.incidentResolution ?? 0, target: 'incidents' },
-              { label: 'Subsystem Health', val: securityScoreData?.breakdown?.engineHealth ?? 0, target: 'dashboard' },
-              { label: 'Auth & MFA', val: securityScoreData?.breakdown?.authSecurity ?? 0, target: 'users-roles' }
-            ].map(item => (
-              <div
-                key={item.label}
-                onClick={() => onNavigate(item.target as DashboardView)}
-                className="group p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:border-zinc-300 dark:hover:border-zinc-700 transition cursor-pointer"
-              >
-                <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate flex items-center justify-between">
-                  <span>{item.label}</span>
-                  <ArrowRight className="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <div className="mt-1.5 flex items-baseline gap-1">
-                  <span className="text-xl font-bold font-mono tracking-tight text-zinc-900 dark:text-zinc-100">
-                    {item.val}
-                  </span>
-                  <span className="text-xs text-zinc-400 font-mono">/100</span>
-                </div>
-                <div className="mt-2 h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      item.val >= 80 ? 'bg-emerald-500' : item.val >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-                    }`}
-                    style={{ width: `${Math.min(100, Math.max(0, item.val))}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Audit Factors Matrix */}
-          <div className="mt-4">
-            <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
-              Evaluated Policy & Audit Factors
+          {!hasConnectedEndpoints ? (
+            <div className="h-48 flex flex-col items-center justify-center text-center p-6 border border-dashed border-zinc-200/80 dark:border-zinc-800 rounded-xl">
+              <span className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 font-mono tracking-wider uppercase">
+                No Data
+              </span>
+              <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                Belum ada endpoint yang terhubung. Hubungkan endpoint agent untuk mulai mengevaluasi postur keamanan secara real-time.
+              </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(securityScoreData?.factors && securityScoreData.factors.length > 0
-                ? securityScoreData.factors
-                : [
-                    {
-                      name: 'WAF Engine & Policy Coverage',
-                      weight: 20,
-                      score: securityScoreData?.breakdown?.wafCoverage ?? 100,
-                      status: 'Pass',
-                      details: 'Aturan mitigasi web aktif memeriksa seluruh payload ingress.'
-                    },
-                    {
-                      name: 'Firewall Policy Enforcement',
-                      weight: 20,
-                      score: securityScoreData?.breakdown?.firewallCoverage ?? 100,
-                      status: 'Pass',
-                      details: 'Aturan ACL firewall aktif memblokir IP berbahaya dan port tak sah.'
-                    },
-                    {
-                      name: 'Jumlah Ancaman Kritis Aktif',
-                      weight: 25,
-                      score: securityScoreData?.breakdown?.threatPosture ?? 100,
-                      status: 'Pass',
-                      details: 'Nol ancaman unmitigated yang mengancam perimeter web.'
-                    },
-                    {
-                      name: 'Keamanan Autentikasi & Akses Akun',
-                      weight: 10,
-                      score: securityScoreData?.breakdown?.authSecurity ?? 100,
-                      status: 'Pass',
-                      details: 'Proteksi brute-force dan kebijakan MFA berjalan optimal.'
-                    }
-                  ]
-              ).map((f: any, idx: number) => {
-                const isPass = f.status === 'Pass' || f.score >= 80;
-                const isWarn = f.status === 'Warning' || (f.score >= 50 && f.score < 80);
-                return (
+          ) : (
+            <>
+              {/* Posture Score & Core Domains */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pb-5 border-b border-zinc-100 dark:border-zinc-800/80">
+                {[
+                  { label: 'WAF Coverage', val: securityScoreData?.breakdown?.wafCoverage ?? 0, target: 'waf' },
+                  { label: 'Firewall ACL', val: securityScoreData?.breakdown?.firewallCoverage ?? 0, target: 'firewall' },
+                  { label: 'Threat Defense', val: securityScoreData?.breakdown?.threatPosture ?? 0, target: 'threats' },
+                  { label: 'Incident SLA', val: securityScoreData?.breakdown?.incidentResolution ?? 0, target: 'incidents' },
+                  { label: 'Subsystem Health', val: securityScoreData?.breakdown?.engineHealth ?? 0, target: 'dashboard' },
+                  { label: 'Auth & MFA', val: securityScoreData?.breakdown?.authSecurity ?? 0, target: 'users-roles' }
+                ].map(item => (
                   <div
-                    key={idx}
-                    className="p-3.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-950/40 flex items-start gap-3"
+                    key={item.label}
+                    onClick={() => onNavigate(item.target as DashboardView)}
+                    className="group p-3 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40 hover:border-zinc-300 dark:hover:border-zinc-700 transition cursor-pointer"
                   >
-                    <div className="mt-0.5 shrink-0">
-                      {isPass ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      ) : isWarn ? (
-                        <AlertTriangle className="w-4 h-4 text-amber-500" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-rose-500" />
-                      )}
+                    <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 truncate flex items-center justify-between">
+                      <span>{item.label}</span>
+                      <ArrowRight className="w-3 h-3 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                          {f.name}
-                        </span>
-                        <span
-                          className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${
-                            isPass
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                              : isWarn
-                              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                          }`}
-                        >
-                          {f.score} / 100
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                        {f.details}
-                      </p>
+                    <div className="mt-1.5 flex items-baseline gap-1">
+                      <span className="text-xl font-bold font-mono tracking-tight text-zinc-900 dark:text-zinc-100">
+                        {item.val}
+                      </span>
+                      <span className="text-xs text-zinc-400 font-mono">/100</span>
+                    </div>
+                    <div className="mt-2 h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          item.val >= 80 ? 'bg-emerald-500' : item.val >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(0, item.val))}%` }}
+                      />
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                ))}
+              </div>
+
+              {/* Audit Factors Matrix */}
+              <div className="mt-4">
+                <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+                  Evaluated Policy & Audit Factors
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {(securityScoreData?.factors && securityScoreData.factors.length > 0
+                    ? securityScoreData.factors
+                    : [
+                        {
+                          name: 'WAF Engine & Policy Coverage',
+                          weight: 20,
+                          score: securityScoreData?.breakdown?.wafCoverage ?? 100,
+                          status: 'Pass',
+                          details: 'Aturan mitigasi web aktif memeriksa seluruh payload ingress.'
+                        },
+                        {
+                          name: 'Firewall Policy Enforcement',
+                          weight: 20,
+                          score: securityScoreData?.breakdown?.firewallCoverage ?? 100,
+                          status: 'Pass',
+                          details: 'Aturan ACL firewall aktif memblokir IP berbahaya dan port tak sah.'
+                        },
+                        {
+                          name: 'Jumlah Ancaman Kritis Aktif',
+                          weight: 25,
+                          score: securityScoreData?.breakdown?.threatPosture ?? 100,
+                          status: 'Pass',
+                          details: 'Nol ancaman unmitigated yang mengancam perimeter web.'
+                        },
+                        {
+                          name: 'Keamanan Autentikasi & Akses Akun',
+                          weight: 10,
+                          score: securityScoreData?.breakdown?.authSecurity ?? 100,
+                          status: 'Pass',
+                          details: 'Proteksi brute-force dan kebijakan MFA berjalan optimal.'
+                        }
+                      ]
+                  ).map((f: any, idx: number) => {
+                    const isPass = f.status === 'Pass' || f.score >= 80;
+                    const isWarn = f.status === 'Warning' || (f.score >= 50 && f.score < 80);
+                    return (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl border border-zinc-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-950/40 flex items-start gap-3"
+                      >
+                        <div className="mt-0.5 shrink-0">
+                          {isPass ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          ) : isWarn ? (
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-rose-500" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                              {f.name}
+                            </span>
+                            <span
+                              className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${
+                                isPass
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                                  : isWarn
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                              }`}
+                            >
+                              {f.score} / 100
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                            {f.details}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 
