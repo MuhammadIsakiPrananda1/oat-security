@@ -1509,9 +1509,21 @@ function SimplifiedActivityModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
-      <div className="relative w-full max-w-2xl min-h-[400px] max-h-[82vh] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-2xl overflow-hidden flex flex-col text-zinc-900 dark:text-zinc-100 transition-colors">
-        {/* Modal Top Bar - Clean & Minimalist */}
+    <div className="fixed inset-0 z-50 overflow-hidden">
+      {/* Dimmed backdrop - click outside closes the drawer */}
+      <div
+        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-xs transition-opacity animate-in fade-in-0 duration-200"
+        onClick={onClose}
+      />
+
+      {/* Side Drawer panel: slides in from the right */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label={isId ? 'Pusat Notifikasi Keamanan' : 'Security Notification Center'}
+        className="absolute inset-y-0 right-0 flex w-full flex-col border-l border-zinc-200/80 bg-white text-zinc-900 shadow-2xl animate-in slide-in-from-right duration-300 ease-out dark:border-zinc-800 dark:bg-[#0c0c0e] dark:text-zinc-100 sm:max-w-xl md:max-w-2xl"
+      >
+        {/* Drawer Header */}
         <div className="px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-white dark:bg-[#0c0c0e]">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center shrink-0">
@@ -1571,9 +1583,9 @@ function SimplifiedActivityModal({
                 <FontAwesomeIcon icon={faFilter} className="text-[10px] text-zinc-400" />
                 <span>
                   {filter === 'unread'
-                    ? `Unread (${unreadCount})`
+                    ? (isId ? `Belum Dibaca (${unreadCount})` : `Unread (${unreadCount})`)
                     : filter === 'all'
-                      ? `All (${notifications.length})`
+                      ? (isId ? `Semua (${notifications.length})` : `All (${notifications.length})`)
                       : filter === 'critical'
                         ? `Critical (${severityCounts.critical})`
                         : filter === 'high'
@@ -1584,7 +1596,7 @@ function SimplifiedActivityModal({
                               ? `Low (${severityCounts.low})`
                               : filter === 'info'
                                 ? `Info (${severityCounts.info})`
-                                : `All (${notifications.length})`}
+                                : (isId ? `Semua (${notifications.length})` : `All (${notifications.length})`)}
                 </span>
                 <FontAwesomeIcon
                   icon={faChevronDown}
@@ -1611,7 +1623,7 @@ function SimplifiedActivityModal({
                           : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                     >
-                      <span>All</span>
+                      <span>{isId ? 'Semua' : 'All'}</span>
                       <span className="text-[10px] text-zinc-400 tabular-nums">({notifications.length})</span>
                     </button>
                     <button
@@ -1626,7 +1638,7 @@ function SimplifiedActivityModal({
                           : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
                       }`}
                     >
-                      <span>Unread</span>
+                      <span>{isId ? 'Belum Dibaca' : 'Unread'}</span>
                       <span className="text-[10px] text-zinc-400 tabular-nums">({unreadCount})</span>
                     </button>
                     <div className="border-t border-zinc-100 dark:border-zinc-800 my-1" />
@@ -1861,7 +1873,7 @@ function SimplifiedActivityModal({
             })
           )}
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
