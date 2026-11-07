@@ -1,4 +1,6 @@
 import { db } from '../database/db';
+import { collectSystemHealth } from './systemHealthService';
+import { getConnectedEndpoints } from './endpointConnectionService';
 
 export interface SecurityScoreResult {
   score: number | null;
@@ -28,9 +30,10 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
   const totalEvents = db.prepare('SELECT COUNT(*) as count FROM security_events WHERE organization_id = ?').get(organizationId) as { count: number };
   const totalWafRules = db.prepare('SELECT COUNT(*) as count FROM waf_rules WHERE organization_id = ?').get(organizationId) as { count: number };
   const totalFwRules = db.prepare('SELECT COUNT(*) as count FROM firewall_rules WHERE organization_id = ?').get(organizationId) as { count: number };
+  const endpoints = getConnectedEndpoints(organizationId);
 
-  // If telemetry data is insufficient (less than 3 events or no rules defined)
-  if (totalEvents.count < 3 && (totalWafRules.count === 0 || totalFwRules.count === 0)) {
+  // If telemetry data is insufficient (no events, no active endpoint, and no rules defined)
+  if (totalEvents.count === 0 && !endpoints.hasConnectedEndpoints && totalWafRules.count === 0 && totalFwRules.count === 0) {
     return {
       score: null,
       grade: 'N/A',
@@ -50,7 +53,7 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
           weight: 0,
           score: 0,
           status: 'Warning',
-          details: `DATA TIDAK CUKUP: Basis data memiliki ${totalEvents.count} event telemetri. Membutuhkan minimal 3 event telemetri nyata untuk menghitung skor valid.`
+          details: `DATA TIDAK CUKUP: Basis data memiliki ${totalEvents.count} event telemetri. Membutuhkan minimal 1 endpoint terhubung atau event telemetri untuk menghitung skor valid.`
         }
       ],
       calculatedAt: new Date().toISOString()
@@ -98,14 +101,12 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
   const incidentScore = Math.max(0, 100 - (openIncidents.count * 25));
 
   // 5. Status WAF Engine & Firewall Subsystems (Weight 10%)
-  const healthRecords = db.prepare(`
-    SELECT service_name, status FROM system_health 
-    WHERE service_name IN ('WAF Engine', 'Next-Gen Firewall', 'API Gateway', 'Endpoint Detection')
-  `).all() as Array<{ service_name: string; status: string }>;
-
-  const operationalCount = healthRecords.filter(h => h.status === 'OPERATIONAL').length;
-  const engineHealthScore = healthRecords.length > 0 
-    ? Math.round((operationalCount / healthRecords.length) * 100) 
+  const healthSnapshot = collectSystemHealth();
+  const targetServices = ['WAF Engine', 'Next-Gen Firewall', 'API Gateway', 'Endpoint Detection'];
+  const monitoredHealth = healthSnapshot.services.filter(s => targetServices.includes(s.service_name));
+  const operationalCount = monitoredHealth.filter(h => h.status === 'Operational').length;
+  const engineHealthScore = monitoredHealth.length > 0 
+    ? Math.round((operationalCount / monitoredHealth.length) * 100) 
     : 100;
 
   // 6. Kegagalan Autentikasi & MFA Compliance (Weight 10%)

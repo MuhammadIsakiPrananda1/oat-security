@@ -691,7 +691,14 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
   const { currentOrg, organizations, isBackendOffline } = useAuth();
   const liveState = useLiveConnectionState();
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<any>(() => {
+    try {
+      const cached = sessionStorage.getItem('oat_dashboard_data');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [healthServices, setHealthServices] = useState<ServiceHealthRow[]>([]);
   const [healthLoaded, setHealthLoaded] = useState(false);
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('All');
@@ -899,14 +906,23 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(!data);
     if (isBackendOffline) return;
-    // Auto sync dashboard data in background (WS pushes real-time KPI mutations)
     const timer = setInterval(() => {
       fetchData(true);
     }, 20000);
     return () => clearInterval(timer);
   }, [currentOrg?.id, isBackendOffline]);
+
+  useEffect(() => {
+    if (data) {
+      try {
+        sessionStorage.setItem('oat_dashboard_data', JSON.stringify(data));
+      } catch {
+        // ignore quota error
+      }
+    }
+  }, [data]);
 
   // Real-time telemetry WebSocket stream subscription
   useEffect(() => {
