@@ -4292,8 +4292,11 @@ apiRouter.get('/ai/context', (req: AuthenticatedRequest, res) => {
 
 apiRouter.post('/ai/analyze-event', async (req: AuthenticatedRequest, res) => {
   const orgId = WafDeploymentService.resolveOrgId(req.organizationId || req.user?.organizationId);
-  const { event, promptContext, query, incidentId } = req.body || {};
+  const { event, promptContext, query, incidentId, language } = req.body || {};
   const effectiveQuery = String(query || promptContext || event?.threat || event?.threatName || 'Summarize the perimeter threat posture over the last 24 hours').trim();
+
+  // Explicit language param or infer from headers
+  const reqLang = language === 'id' || language === 'en' ? language : (req.headers['accept-language']?.includes('id') ? 'id' : undefined);
 
   try {
     const result = await processCopilotQuery({
@@ -4301,7 +4304,8 @@ apiRouter.post('/ai/analyze-event', async (req: AuthenticatedRequest, res) => {
       query: effectiveQuery,
       incidentId,
       event,
-      actor: req.user?.email || 'SOC Analyst'
+      actor: req.user?.email || 'SOC Analyst',
+      language: reqLang
     });
     res.json(result);
   } catch (err: any) {

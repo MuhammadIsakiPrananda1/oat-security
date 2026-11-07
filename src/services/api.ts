@@ -945,7 +945,7 @@ export const securityApi = {
     return request<{ success: boolean; telemetry: any }>('/api/ai/context');
   },
 
-  async querySocCopilot(params: { query: string; incidentId?: string; event?: any; promptContext?: string }) {
+  async querySocCopilot(params: { query: string; incidentId?: string; event?: any; promptContext?: string; language?: string }) {
     return request<{
       success: boolean;
       mode: string;

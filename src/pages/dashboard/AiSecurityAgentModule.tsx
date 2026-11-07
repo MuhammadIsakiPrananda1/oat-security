@@ -25,6 +25,7 @@ import { BackendOfflineBanner } from '../../components/common/BackendOfflineBann
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { ModulePageHeader } from '../../components/common/ModulePageHeader';
+import { getLanguage } from '../../i18n/translator';
 
 interface PlaybookStep {
   stage: string;
@@ -68,78 +69,106 @@ interface Message {
   recommendations?: Recommendation[];
 }
 
-const CLIENT_PROMPT_INJECTION_RE = /(ignore\s+(all\s+)?(previous|prior|above|system)|you\s+are\s+now|act\s+as\s+.*unrestricted|jailbreak|dan\s+mode|<script|drop\s+table|delete\s+from|union\s+select)/i;
+const CLIENT_PROMPT_INJECTION_RE = /(ignore\s+(all\s+)?(previous|prior|above|system)|you\s+are\s+now|act\s+as\s+.*unrestricted|jailbreak|dan\s+mode|<script)/i;
 
 const OFFICIAL_SCENARIOS = [
   {
     category: 'incidents',
-    label: 'Insiden & Ancaman',
+    labelEn: 'Incidents & Threats',
+    labelId: 'Insiden & Ancaman',
     prompts: [
       {
-        title: 'Triase Insiden Aktif L1–L3 & Playbook',
-        prompt: 'Triage active incidents in the SOC queue. Break down L1 validation, L2 correlation, and L3 containment playbooks.'
+        titleEn: 'Triage Active Incidents (L1–L3) & Playbook',
+        titleId: 'Triase Insiden Aktif L1–L3 & Playbook',
+        promptEn: 'Triage active incidents in the SOC queue. Break down L1 validation, L2 correlation, and L3 containment playbooks.',
+        promptId: 'Triase insiden aktif di antrean SOC. Jelaskan playbook validasi L1, korelasi L2, dan isolasi L3.'
       },
       {
-        title: 'Analisis Klaster Serangan Aplikasi',
-        prompt: 'Analyze attack clusters on protected applications, identify top targeted endpoints and high-volume adversaries.'
+        titleEn: 'Application Attack Cluster Analysis',
+        titleId: 'Analisis Klaster Serangan Aplikasi',
+        promptEn: 'Analyze attack clusters on protected applications, identify top targeted endpoints and high-volume adversaries.',
+        promptId: 'Analisis klaster serangan pada aplikasi web terproteksi, cari endpoint yang paling sering diserang dan sumber penyerang teratas.'
       },
       {
-        title: 'Investigasi Lonjakan Serangan Kredensial',
-        prompt: 'Explain the spike in credential stuffing from rotating ASNs and propose strict authentication WAF limits.'
+        titleEn: 'Credential Stuffing Investigation',
+        titleId: 'Investigasi Lonjakan Serangan Kredensial',
+        promptEn: 'Explain the spike in credential stuffing from rotating ASNs and propose strict authentication WAF limits.',
+        promptId: 'Jelaskan lonjakan serangan credential stuffing dari berbagai ASN dan rekomendasikan pembatasan WAF pada rute autentikasi.'
       },
       {
-        title: 'Investigasi IP Penyerang Teratas',
-        prompt: 'Investigate the top malicious attacker IP sources identified in the 24-hour perimeter log telemetry.'
+        titleEn: 'Investigate Top Adversary IP',
+        titleId: 'Investigasi IP Penyerang Teratas',
+        promptEn: 'Investigate the top malicious attacker IP sources identified in the 24-hour perimeter log telemetry.',
+        promptId: 'Investigasi sumber IP penyerang teratas yang tercatat pada telemetri log perimeter 24 jam terakhir.'
+      }
+    ]
+  },
+  {
+    category: 'server',
+    labelEn: 'Server & Health Check',
+    labelId: 'Server & Status Sistem',
+    prompts: [
+      {
+        titleEn: 'Comprehensive Server & Engine Health Check',
+        titleId: 'Cek Status Kesehatan Server & Engine Lengkap',
+        promptEn: 'Check the health status of all core security engines, database vault, API gateway, and server infrastructure.',
+        promptId: 'Cek status kesehatan dan kondisi seluruh engine keamanan, database vault, API gateway, dan infrastruktur server.'
+      },
+      {
+        titleEn: 'Endpoint Agent Sensor Diagnostics',
+        titleId: 'Diagnostik Sensor Agen Endpoint Host',
+        promptEn: 'Perform health check diagnostics on enrolled endpoint agents, heartbeat intervals, and rule synchronization.',
+        promptId: 'Lakukan diagnostik kesehatan agen endpoint yang terdaftar, interval heartbeat, dan sinkronisasi aturan keamanan.'
+      },
+      {
+        titleEn: 'Web Ingress & Rate Limiting Audit',
+        titleId: 'Audit Ingress Web & Batas Rate Limit',
+        promptEn: 'Inspect web ingress traffic volume, rate limiting hits, and verify if any backend web service is under excessive load.',
+        promptId: 'Periksa volume lalu lintas ingress web, hit rate limiting, dan pastikan tidak ada layanan web backend yang kelebihan beban.'
       }
     ]
   },
   {
     category: 'waf',
-    label: 'WAF & Firewall Edge',
+    labelEn: 'WAF & Edge Firewall',
+    labelId: 'WAF & Firewall Edge',
     prompts: [
       {
-        title: 'Audit Kebijakan & Aturan WAF Edge',
-        prompt: 'Audit current active WAF policies and rule effectiveness against emerging web exploit techniques.'
+        titleEn: 'Active WAF Policy & Rule Audit',
+        titleId: 'Audit Kebijakan & Aturan WAF Edge',
+        promptEn: 'Audit current active WAF policies and rule effectiveness against emerging web exploit techniques.',
+        promptId: 'Audit efektivitas aturan WAF aktif saat ini terhadap teknik eksploitasi web terbaru.'
       },
       {
-        title: 'Sintesis Aturan Virtual Patching (SQLi/XSS)',
-        prompt: 'Synthesize tightened WAF virtual patch rules for injection payloads targeting API routes.'
+        titleEn: 'Synthesize Virtual Patching (SQLi/XSS)',
+        titleId: 'Sintesis Aturan Virtual Patching (SQLi/XSS)',
+        promptEn: 'Synthesize tightened WAF virtual patch rules for injection payloads targeting API routes.',
+        promptId: 'Buatkan aturan virtual patch WAF ketat untuk payload injeksi SQL dan XSS pada rute API.'
       },
       {
-        title: 'Pengetatan Rate Limiting Endpoint Login',
-        prompt: 'Create tightened WAF rate limiting and bot challenge policies for payment and checkout endpoints.'
-      },
-      {
-        title: 'Blokir Darurat IP Penyerang Teratas',
-        prompt: 'Generate an emergency Firewall DENY rule for the top persistent attacker IP recorded in security events.'
-      }
-    ]
-  },
-  {
-    category: 'malware',
-    label: 'Malware & Sensor Host',
-    prompts: [
-      {
-        title: 'Audit Sampel Karantina di Vault',
-        prompt: 'Audit quarantined malware samples in the security vault and assess risk of webroot payload persistence.'
-      },
-      {
-        title: 'Diagnostik Kesehatan Sensor Agen Host',
-        prompt: 'Perform health check diagnostics on enrolled endpoint agents, heartbeat intervals, and rule synchronization.'
+        titleEn: 'Emergency Block Top Attacker IP',
+        titleId: 'Blokir Darurat IP Penyerang Teratas',
+        promptEn: 'Generate an emergency Firewall DENY rule for the top persistent attacker IP recorded in security events.',
+        promptId: 'Buatkan aturan darurat Firewall DENY untuk memblokir IP penyerang paling agresif di log keamanan.'
       }
     ]
   },
   {
     category: 'posture',
-    label: 'Postur & Laporan',
+    labelEn: 'Posture & Overview',
+    labelId: 'Postur & Laporan',
     prompts: [
       {
-        title: 'Ringkasan Postur Keamanan 24 Jam',
-        prompt: 'Summarize the perimeter threat posture over the last 24 hours, including inspected requests and blocked intrusions.'
+        titleEn: '24h Perimeter Posture Summary',
+        titleId: 'Ringkasan Postur Keamanan 24 Jam',
+        promptEn: 'Summarize the perimeter threat posture over the last 24 hours, including inspected requests and blocked intrusions.',
+        promptId: 'Berikan ringkasan postur ancaman perimeter selama 24 jam terakhir, termasuk total permintaan yang diperiksa dan serangan yang diblokir.'
       },
       {
-        title: 'Evaluasi Kesiapan OWASP Top 10',
-        prompt: 'Evaluate enterprise perimeter defense alignment against OWASP Top 10 attack vectors based on current telemetry.'
+        titleEn: 'OWASP Top 10 Preparedness Evaluation',
+        titleId: 'Evaluasi Kesiapan OWASP Top 10',
+        promptEn: 'Evaluate enterprise perimeter defense alignment against OWASP Top 10 attack vectors based on current telemetry.',
+        promptId: 'Evaluasi keselarasan pertahanan perimeter terhadap vektor serangan OWASP Top 10 berdasarkan telemetri aktual.'
       }
     ]
   }
@@ -147,6 +176,8 @@ const OFFICIAL_SCENARIOS = [
 
 export const AiSecurityAgentModule: React.FC = () => {
   const { currentOrg, isBackendOffline } = useAuth();
+  const currentLang = getLanguage();
+  const isIndo = currentLang === 'id';
   const [telemetry, setTelemetry] = useState<any | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
@@ -158,11 +189,17 @@ export const AiSecurityAgentModule: React.FC = () => {
       sender: 'agent',
       timestamp: formatTimeShort(new Date()),
       engineMode: 'OAT Autonomous SOC Copilot',
-      content: `OAT Autonomous SOC Operations Copilot online for ${currentOrg?.name ?? 'your organization'}.
+      content: isIndo
+        ? `OAT Autonomous SOC Operations Copilot aktif untuk ${currentOrg?.name ?? 'organisasi Anda'}.
 
-The copilot is directly grounded in live perimeter telemetry: inspecting edge ingress, cross-referencing active incident queues (L1–L3), monitoring endpoint agent sensors, and synthesizing real-time WAF and Firewall policies.
+Copilot terhubung langsung dengan telemetri perimeter aktual dan status server: menginspeksi ingress edge, mengorelasikan antrean insiden aktif (L1–L3), memantau kesehatan server & sensor agen endpoint, serta menyintesis kebijakan WAF dan Firewall secara real-time.
 
-Select an active incident to investigate, click a quick triage scenario below, or ask any threat analysis question.`
+Pilih insiden aktif untuk diinvestigasi, klik skenario triase atau cek server cepat di bawah, atau ajukan pertanyaan keamanan apa pun.`
+        : `OAT Autonomous SOC Operations Copilot online for ${currentOrg?.name ?? 'your organization'}.
+
+The copilot is directly grounded in live perimeter telemetry and backend server health: inspecting edge ingress, cross-referencing active incident queues (L1–L3), monitoring server & endpoint agent sensors, and synthesizing real-time WAF and Firewall policies.
+
+Select an active incident to investigate, click a quick triage scenario or server health check below, or ask any threat analysis question.`
     }
   ]);
 
@@ -275,7 +312,8 @@ Select an active incident to investigate, click a quick triage scenario below, o
     try {
       const res = await securityApi.querySocCopilot({
         query,
-        incidentId: targetIncident
+        incidentId: targetIncident,
+        language: currentLang
       });
 
       const analysisData = res.analysis;
@@ -359,8 +397,12 @@ Select an active incident to investigate, click a quick triage scenario below, o
     if (incId) {
       const inc = telemetry?.activeIncidents?.find((i: any) => i.id === incId);
       const prompt = inc 
-        ? `Investigate active incident [${inc.id}] "${inc.title}" on asset ${inc.affectedAsset} (${inc.severity} / ${inc.tier}). Provide immediate triage and containment steps.`
-        : `Triage Incident ${incId} with playbook steps and WAF rule mitigation.`;
+        ? (isIndo
+            ? `Investigasi insiden aktif [${inc.id}] "${inc.title}" pada aset ${inc.affectedAsset} (${inc.severity} / ${inc.tier}). Berikan langkah triase dan isolasi darurat.`
+            : `Investigate active incident [${inc.id}] "${inc.title}" on asset ${inc.affectedAsset} (${inc.severity} / ${inc.tier}). Provide immediate triage and containment steps.`)
+        : (isIndo
+            ? `Triase insiden ${incId} lengkap dengan playbook dan mitigasi aturan WAF.`
+            : `Triage Incident ${incId} with playbook steps and WAF rule mitigation.`);
       void handleSendMessage(prompt, incId);
     }
   };
@@ -722,14 +764,14 @@ Select an active incident to investigate, click a quick triage scenario below, o
               <div className="flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-zinc-500 dark:text-zinc-400 shrink-0 flex items-center gap-1 mr-1">
                   <Terminal className="w-3 h-3 text-indigo-500" />
-                  Skenario:
+                  {isIndo ? 'Skenario:' : 'Scenarios:'}
                 </span>
                 {[
-                  { id: 'all', label: 'Semua' },
-                  { id: 'incidents', label: 'Insiden' },
-                  { id: 'waf', label: 'WAF Edge' },
-                  { id: 'malware', label: 'Malware' },
-                  { id: 'posture', label: 'Postur' }
+                  { id: 'all', labelEn: 'All', labelId: 'Semua' },
+                  { id: 'incidents', labelEn: 'Incidents', labelId: 'Insiden' },
+                  { id: 'server', labelEn: 'Server & Health', labelId: 'Server & Status' },
+                  { id: 'waf', labelEn: 'Edge WAF', labelId: 'WAF Edge' },
+                  { id: 'posture', labelEn: 'Posture', labelId: 'Postur' }
                 ].map(cat => (
                   <button
                     key={cat.id}
@@ -741,7 +783,7 @@ Select an active incident to investigate, click a quick triage scenario below, o
                         : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white bg-transparent'
                     }`}
                   >
-                    {cat.label}
+                    {isIndo ? cat.labelId : cat.labelEn}
                   </button>
                 ))}
               </div>
@@ -758,7 +800,7 @@ Select an active incident to investigate, click a quick triage scenario below, o
                 type="button"
                 onClick={() => scrollScenarios('left')}
                 className="shrink-0 p-1 rounded-md text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition cursor-pointer"
-                title="Geser ke kiri"
+                title={isIndo ? 'Geser ke kiri' : 'Scroll left'}
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -775,10 +817,10 @@ Select an active incident to investigate, click a quick triage scenario below, o
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => handleSendMessage(item.prompt)}
+                      onClick={() => handleSendMessage(isIndo ? item.promptId : item.promptEn)}
                       className="shrink-0 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-[11px] text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition shadow-2xs cursor-pointer whitespace-nowrap active:scale-[0.98]"
                     >
-                      {item.title}
+                      {isIndo ? item.titleId : item.titleEn}
                     </button>
                   ))}
               </div>
@@ -787,7 +829,7 @@ Select an active incident to investigate, click a quick triage scenario below, o
                 type="button"
                 onClick={() => scrollScenarios('right')}
                 className="shrink-0 p-1 rounded-md text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition cursor-pointer"
-                title="Geser ke kanan"
+                title={isIndo ? 'Geser ke kanan' : 'Scroll right'}
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -798,7 +840,9 @@ Select an active incident to investigate, click a quick triage scenario below, o
             <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2 font-mono">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>
-                <strong>Zero-Trust Guardrail Alert:</strong> Input teridentifikasi mengandung pola prompt injection / manipulasi instruksi AI. Silakan gunakan skenario operasional resmi pada dropdown skenario di atas.
+                <strong>Zero-Trust Guardrail Alert:</strong> {isIndo
+                  ? 'Input teridentifikasi mengandung pola prompt injection / manipulasi instruksi AI. Silakan gunakan skenario operasional resmi pada toolbar di atas.'
+                  : 'Input flagged with prompt injection / AI instruction manipulation syntax. Please use authorized operational scenarios from the toolbar above.'}
               </span>
             </div>
           )}
@@ -816,7 +860,9 @@ Select an active incident to investigate, click a quick triage scenario below, o
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
-              placeholder="Ask SOC Copilot to investigate an incident, block an attacker IP, or synthesize an ingress WAF rule..."
+              placeholder={isIndo
+                ? "Tanya SOC Copilot: investigasi insiden, cek status server/infrastruktur, atau buat aturan WAF..."
+                : "Ask SOC Copilot to investigate an incident, check server/infrastructure health, or synthesize WAF rules..."}
               className={`flex-1 min-w-0 bg-white dark:bg-zinc-900 border rounded-xl px-4 py-2.5 text-xs text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none font-sans shadow-2xs ${
                 CLIENT_PROMPT_INJECTION_RE.test(input)
                   ? 'border-rose-500 dark:border-rose-500'
