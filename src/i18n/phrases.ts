@@ -68,9 +68,6 @@ export const EN_TO_ID: Record<string, string> = {
     'No endpoints connected yet. Connect an endpoint agent to start evaluating real-time security posture.':
         'Belum ada endpoint yang terhubung. Hubungkan endpoint agent untuk mulai mengevaluasi postur keamanan secara real-time.',
     'Active web mitigation rules inspecting all ingress payloads.': 'Aturan mitigasi web aktif memeriksa seluruh payload ingress.',
-    'Active firewall ACL rules blocking malicious IPs and unauthorised ports.': 'Aturan ACL firewall aktif memblokir IP berbahaya dan port tak sah.',
-    'Zero unmitigated critical threats endangering the web perimeter.': 'Nol ancaman unmitigated yang mengancam perimeter web.',
-    'Brute-force protection and account access policies operating optimally.': 'Proteksi brute-force dan kebijakan MFA berjalan optimal.',
     'Security Posture & Compliance Breakdown': 'Evaluasi Postur Keamanan & Kepatuhan',
     'Evaluated Policy & Audit Factors': 'Faktor Kebijakan & Audit yang Dievaluasi',
     'Continuous Audit': 'Audit Berkelanjutan',
