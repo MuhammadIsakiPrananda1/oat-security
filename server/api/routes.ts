@@ -2430,8 +2430,36 @@ const handleGetEventsAggregates = (req: AuthenticatedRequest, res: Response) => 
     LIMIT ?
   `).all(orgId, limit) as Array<{ application: string; count: number }>;
 
-  // Country aggregates for Cloudflare-style Geo Map: Ambil seluruh sebaran negara dari database
+  // Country aggregates for Cloudflare-style Geo Map: Ambil sebaran negara dari logs (telemetri riil) dan security_events
   const countryMap = new Map<string, { country: string; code: string; count: number; lastAttackIp?: string; lastAttackType?: string; lastAttackTime?: number }>();
+  
+  // 1. Ambil dari table logs (semua traffic/request hari ini)
+  const logIpRows = db.prepare(`
+    SELECT ip as source_ip, MAX(timestamp) as last_seen, COUNT(*) as count
+    FROM logs
+    WHERE organization_id = ? AND ip IS NOT NULL AND ip != ''
+    GROUP BY ip
+    ORDER BY count DESC
+    LIMIT 500
+  `).all(orgId) as Array<{ source_ip: string; last_seen?: string; count: number }>;
+
+  for (const r of logIpRows) {
+    const geo = lookupIpLocation(r.source_ip);
+    const code = (geo.code || 'ID').toUpperCase();
+    const country = geo.country || 'Indonesia';
+    const existing = countryMap.get(code) || {
+      country,
+      code,
+      count: 0,
+      lastAttackIp: r.source_ip,
+      lastAttackType: 'Traffic Telemetry',
+      lastAttackTime: r.last_seen ? new Date(r.last_seen).getTime() : Date.now()
+    };
+    existing.count += Number(r.count) || 0;
+    countryMap.set(code, existing);
+  }
+
+  // 2. Sertakan juga security_events
   const allIpRows = db.prepare(`
     SELECT source_ip, threat_name, event_type, MAX(timestamp) as last_seen, COUNT(*) as count
     FROM security_events
@@ -2454,7 +2482,7 @@ const handleGetEventsAggregates = (req: AuthenticatedRequest, res: Response) => 
       lastAttackTime: r.last_seen ? new Date(r.last_seen).getTime() : Date.now()
     };
     existing.count += Number(r.count) || 0;
-    if (!existing.lastAttackIp && r.source_ip) {
+    if (r.source_ip) {
       existing.lastAttackIp = r.source_ip;
       existing.lastAttackType = r.threat_name || r.event_type;
     }

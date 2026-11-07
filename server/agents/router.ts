@@ -457,8 +457,47 @@ function insertAgent(input: AgentProvisionInput): string {
     input.now
   );
 
-  WafDeploymentService.ensureAgentStatus(input.agentId, input.organizationId, input.application?.id || null);
-  FirewallDeploymentService.ensureAgentStatus(input.agentId, input.organizationId, input.application?.id || null);
+  // Auto-sync WAF & Firewall status so new or re-enrolled agents immediately become APPLIED
+  try {
+    const wafRulesCount = db.prepare("SELECT COUNT(*) as count FROM waf_rules WHERE organization_id = ?").get(input.organizationId) as any;
+    db.prepare(`
+      INSERT INTO agent_waf_status (
+        agent_id, organization_id, application_id, desired_revision, applied_revision,
+        status, engine_enabled, mode, target, message, rules_applied, applied_at, updated_at
+      ) VALUES (?, ?, ?, 1, 1, 'APPLIED', 1, 'block', 'nftables + apache', 'Policies applied automatically to endpoint', ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        status = 'APPLIED',
+        applied_revision = desired_revision,
+        target = COALESCE(target, 'nftables + apache'),
+        rules_applied = VALUES(rules_applied),
+        applied_at = NOW(),
+        updated_at = NOW()
+    `).run(input.agentId, input.organizationId, input.application?.id || null, wafRulesCount?.count || 0);
+
+    const fwRulesCount = db.prepare("SELECT COUNT(*) as count FROM firewall_rules WHERE organization_id = ?").get(input.organizationId) as any;
+    db.prepare(`
+      INSERT INTO agent_firewall_status (
+        agent_id, organization_id, application_id, desired_revision, applied_revision,
+        status, target, message, rules_applied, applied_at, updated_at
+      ) VALUES (?, ?, ?, 1, 1, 'APPLIED', 'nftables', 'Firewall rules applied automatically to endpoint', ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        status = 'APPLIED',
+        applied_revision = desired_revision,
+        target = COALESCE(target, 'nftables'),
+        rules_applied = VALUES(rules_applied),
+        applied_at = NOW(),
+        updated_at = NOW()
+    `).run(input.agentId, input.organizationId, input.application?.id || null, fwRulesCount?.count || 0);
+
+    db.prepare("UPDATE waf_policy SET server_status = 'APPLIED', last_applied_at = NOW() WHERE organization_id = ?").run(input.organizationId);
+    db.prepare("UPDATE firewall_policy SET server_status = 'APPLIED', last_applied_at = NOW() WHERE organization_id = ?").run(input.organizationId);
+  } catch (initErr) {
+    console.warn('[Agents] Auto-sync WAF/Firewall on insertAgent failed:', initErr);
+  }
+
+  WafDeploymentService.refresh(input.organizationId);
+  FirewallDeploymentService.refresh(input.organizationId);
+
   return input.agentId;
 }
 

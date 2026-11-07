@@ -447,6 +447,30 @@ const EN_PATTERNS: Pattern[] = [
     to: m => `Semua Tindakan (${m[1]})`,
   },
   {
+    re: /^([\d,.]+)\s+of\s+([\d,.]+)\s+WAF rules active and enforced\.$/i,
+    to: m => `${m[1]} dari ${m[2]} aturan WAF aktif ditegakkan.`,
+  },
+  {
+    re: /^([\d,.]+)\s+of\s+([\d,.]+)\s+firewall ACL rules active\.$/i,
+    to: m => `${m[1]} dari ${m[2]} aturan ACL firewall aktif.`,
+  },
+  {
+    re: /^([\d,.]+)\s+active critical threat\(s\) detected \(Penalty: -([\d,.]+) points\)\.$/i,
+    to: m => `${m[1]} ancaman kritis aktif terdeteksi (Penalti: -${m[2]} poin).`,
+  },
+  {
+    re: /^([\d,.]+)\s+security incident\(s\) in NEW\/INVESTIGATING state\.$/i,
+    to: m => `${m[1]} insiden keamanan berstatus NEW/INVESTIGATING.`,
+  },
+  {
+    re: /^([\d,.]+)\s+of\s+([\d,.]+)\s+core defense engines OPERATIONAL\.$/i,
+    to: m => `${m[1]} dari ${m[2]} engine subsistem OPERATIONAL.`,
+  },
+  {
+    re: /^([\d,.]+)\s+authentication failures;\s*([\d,.]+)\/([\d,.]+)\s+operators MFA enabled\.$/i,
+    to: m => `${m[1]} kegagalan autentikasi tercatat; ${m[2]}/${m[3]} operator mengaktifkan MFA.`,
+  },
+  {
     re: /^All levels \(([\d,.]+)\)$/i,
     to: m => `Semua level (${m[1]})`,
   },

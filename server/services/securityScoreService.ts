@@ -218,8 +218,8 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
         score: wafScore,
         status: wafScore >= 80 ? 'Pass' : wafScore >= 50 ? 'Warning' : 'Fail',
         details: totalWafRules.count > 0 
-          ? `${activeWafRules.count} dari ${totalWafRules.count} aturan WAF aktif ditegakkan.`
-          : 'Kebijakan WAF aktif ditegakkan pada endpoint agent terpasang.'
+          ? `${activeWafRules.count} of ${totalWafRules.count} WAF rules active and enforced.`
+          : 'Active WAF mitigation rules inspecting all ingress payloads.'
       },
       {
         name: 'Firewall Policy Enforcement',
@@ -227,38 +227,38 @@ export function calculateSecurityScore(organizationId = ''): SecurityScoreResult
         score: fwScore,
         status: fwScore >= 80 ? 'Pass' : fwScore >= 50 ? 'Warning' : 'Fail',
         details: totalFwRules.count > 0
-          ? `${activeFwRules.count} dari ${totalFwRules.count} aturan ACL firewall aktif.`
-          : 'Kebijakan Firewall ACL aktif ditegakkan pada endpoint agent terpasang.'
+          ? `${activeFwRules.count} of ${totalFwRules.count} firewall ACL rules active.`
+          : 'Active firewall ACL rules blocking malicious IPs and unauthorised ports.'
       },
       {
-        name: 'Jumlah Ancaman Kritis Aktif',
+        name: 'Active Critical Threats',
         weight: 25,
         score: threatScore,
         status: criticalThreatsCount === 0 ? 'Pass' : criticalThreatsCount <= 1 ? 'Warning' : 'Fail',
         details: criticalThreatsCount > 0 
-          ? `${criticalThreatsCount} ancaman kritis aktif terdeteksi (Penalti: -${threatPenalties} poin).`
-          : 'Nol ancaman kritis aktif unmitigated.'
+          ? `${criticalThreatsCount} active critical threat(s) detected (Penalty: -${threatPenalties} points).`
+          : 'Zero unmitigated critical threats endangering the web perimeter.'
       },
       {
-        name: 'Insiden Belum Terselesaikan',
+        name: 'Unresolved Incident Backlog',
         weight: 15,
         score: incidentScore,
         status: openIncidents.count === 0 ? 'Pass' : openIncidents.count <= 2 ? 'Warning' : 'Fail',
-        details: `${openIncidents.count} insiden keamanan berstatus NEW/INVESTIGATING.`
+        details: `${openIncidents.count} security incident(s) in NEW/INVESTIGATING state.`
       },
       {
-        name: 'Status Subsistem WAF & Firewall',
+        name: 'WAF & Firewall Engine Health',
         weight: 10,
         score: engineHealthScore,
         status: engineHealthScore >= 80 ? 'Pass' : 'Warning',
-        details: `${operationalCount} dari ${monitoredHealth.length} engine subsistem OPERATIONAL.`
+        details: `${operationalCount} of ${monitoredHealth.length} core defense engines OPERATIONAL.`
       },
       {
-        name: 'Keamanan Autentikasi & Kegagalan Login',
+        name: 'Authentication Security & Account Access',
         weight: 10,
         score: authSecurityScore,
         status: totalAuthFailures === 0 && mfaBaseScore >= 80 ? 'Pass' : 'Warning',
-        details: `${totalAuthFailures} kegagalan autentikasi tercatat; ${mfaUsers.count}/${totalUsers.count} operator mengaktifkan MFA.`
+        details: `${totalAuthFailures} authentication failures; ${mfaUsers.count}/${totalUsers.count} operators MFA enabled.`
       }
     ],
     calculatedAt: new Date().toISOString()

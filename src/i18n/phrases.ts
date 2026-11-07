@@ -2370,6 +2370,15 @@ export const ID_TO_EN: Record<string, string> = {
     'Download File': 'Unduh Berkas',
     'Artifact Ground Truth Body': 'Isi Artefak Kebenaran Dasar',
     'SHA-256 Fingerprint': 'Sidik Jari SHA-256',
+    'WAF Engine & Policy Coverage': 'Cakupan Aturan & Mesin WAF',
+    'Firewall Policy Enforcement': 'Penegakan Kebijakan Firewall',
+    'Active Critical Threats': 'Jumlah Ancaman Kritis Aktif',
+    'Unresolved Incident Backlog': 'Insiden Belum Terselesaikan',
+    'WAF & Firewall Engine Health': 'Status Subsistem WAF & Firewall',
+    'Authentication Security & Account Access': 'Keamanan Autentikasi & Kegagalan Login',
+    'Top Sources': 'Sumber Teratas',
+    'Requests by country': 'Permintaan berdasarkan negara',
+    'No country traffic recorded yet': 'Belum ada lalu lintas negara tercatat',
 };
 /**
  * Natural combined page-title translations. ModulePageHeader renders the bold
