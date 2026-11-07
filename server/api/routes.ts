@@ -1262,7 +1262,7 @@ function getValidOrgId(req: AuthenticatedRequest): string {
 }
 
 apiRouter.get('/firewall', (req: AuthenticatedRequest, res) => {
-  const orgId = req.organizationId || '';
+  const orgId = getValidOrgId(req);
 
   const totalConnections = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND source = 'firewall'").get(orgId) as { count: number };
   const blockedConnections = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND source = 'firewall' AND action IN ('DENY', 'DROP', 'BLOCK')").get(orgId) as { count: number };
@@ -1674,6 +1674,9 @@ apiRouter.post('/firewall/nat', (req: AuthenticatedRequest, res) => {
     userAgent: req.headers['user-agent']
   });
 
+  SecurityEventBus.publish('rule.updated', { ruleType: 'Firewall', subType: 'NAT', ruleId: id, action: 'created' }, orgId);
+  FirewallDeploymentService.publish(orgId, 'NAT rule created');
+
   const row = db.prepare('SELECT * FROM nat_rules WHERE id = ?').get(id) as any;
   res.status(201).json({ success: true, rule: { ...row, enabled: Boolean(row?.enabled) } });
 });
@@ -1689,6 +1692,20 @@ apiRouter.post('/firewall/nat/:id/toggle', (req: AuthenticatedRequest, res) => {
 
   const newEnabled = rule.enabled ? 0 : 1;
   db.prepare('UPDATE nat_rules SET enabled = ? WHERE id = ?').run(newEnabled, id);
+
+  recordAuditLog({
+    organizationId: orgId,
+    userEmail: req.user?.email || 'secops@oat.net',
+    role: req.user?.role || 'Security Admin',
+    action: newEnabled ? 'Enable NAT Rule' : 'Disable NAT Rule',
+    resource: `NAT Rule ${id} (${rule.name || rule.external_port})`,
+    resourceId: id,
+    ipAddress: req.ip || '127.0.0.1',
+    userAgent: req.headers['user-agent']
+  });
+
+  SecurityEventBus.publish('rule.updated', { ruleType: 'Firewall', subType: 'NAT', ruleId: id, enabled: newEnabled }, orgId);
+  FirewallDeploymentService.publish(orgId, newEnabled ? 'NAT rule enabled' : 'NAT rule disabled');
 
   res.json({ success: true, enabled: Boolean(newEnabled) });
 });
@@ -1714,6 +1731,9 @@ apiRouter.delete('/firewall/nat/:id', (req: AuthenticatedRequest, res) => {
     ipAddress: req.ip || '127.0.0.1',
     userAgent: req.headers['user-agent']
   });
+
+  SecurityEventBus.publish('rule.updated', { ruleType: 'Firewall', subType: 'NAT', ruleId: id, action: 'deleted' }, orgId);
+  FirewallDeploymentService.publish(orgId, 'NAT rule deleted');
 
   res.json({ success: true, message: 'NAT rule deleted.' });
 });
@@ -4046,7 +4066,7 @@ apiRouter.post('/api-keys', (req: AuthenticatedRequest, res) => {
 // 15. Reports Generation & Management (Real-Time Database Ground Truth)
 // ----------------------------------------------------------------------
 apiRouter.get('/reports', (req: AuthenticatedRequest, res) => {
-  const orgId = req.organizationId || '';
+  const orgId = getValidOrgId(req);
   try {
     const rows = db.prepare(
       'SELECT id, organization_id, title, category, period, format, status, summary, file_size, sha256, content, generated_by, created_at FROM reports WHERE organization_id = ? ORDER BY created_at DESC LIMIT 100'
@@ -4077,7 +4097,7 @@ apiRouter.get('/reports', (req: AuthenticatedRequest, res) => {
 });
 
 apiRouter.post('/reports/generate', (req: AuthenticatedRequest, res) => {
-  const orgId = req.organizationId || '';
+  const orgId = getValidOrgId(req);
   const { type, format, period, lang } = req.body || {};
 
   const isId = lang === 'id';
@@ -4227,7 +4247,7 @@ apiRouter.post('/reports/generate', (req: AuthenticatedRequest, res) => {
 });
 
 apiRouter.delete('/reports/:id', (req: AuthenticatedRequest, res) => {
-  const orgId = req.organizationId || '';
+  const orgId = getValidOrgId(req);
   const reportId = req.params.id;
 
   try {

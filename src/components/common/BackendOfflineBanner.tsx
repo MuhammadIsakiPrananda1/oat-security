@@ -35,8 +35,8 @@ export const BackendOfflineBanner: React.FC<BackendOfflineBannerProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-center">
-          {onRetry && (
+        {onRetry && (
+          <div className="flex items-center gap-2 self-end sm:self-center">
             <button
               onClick={onRetry}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 transition cursor-pointer"
@@ -44,17 +44,8 @@ export const BackendOfflineBanner: React.FC<BackendOfflineBannerProps> = ({
               <RefreshCw className="w-3.5 h-3.5" />
               Reconnect Now
             </button>
-          )}
-
-          {/* Operator testing toggle */}
-          <button
-            onClick={toggleBackendOffline}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium text-zinc-600 hover:text-zinc-900 bg-transparent border border-zinc-300 dark:text-gray-300 dark:hover:text-white dark:border-white/15 transition cursor-pointer"
-            title="Toggle simulated connection to test online vs offline enterprise handling"
-          >
-            {isBackendOffline ? 'Switch Online' : 'Simulate Offline'}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

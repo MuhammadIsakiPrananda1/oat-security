@@ -140,21 +140,33 @@ export const FirewallModule: React.FC = () => {
   };
 
   const handleToggleNatRule = async (ruleId: string) => {
+    // Optimistic toggle
+    setData((prev: any) => prev ? {
+      ...prev,
+      natRules: (prev.natRules || []).map((r: any) => r.id === ruleId ? { ...r, enabled: !r.enabled } : r)
+    } : prev);
     try {
       await securityApi.toggleNatRule(ruleId);
       await fetchFirewall();
     } catch (err: any) {
       alert(err?.message || 'Gagal mengubah status NAT rule.');
+      await fetchFirewall();
     }
   };
 
   const handleDeleteNatRule = async (ruleId: string, ruleName: string) => {
     if (!window.confirm(`Hapus aturan port forwarding "${ruleName}"?`)) return;
+    // Optimistic remove
+    setData((prev: any) => prev ? {
+      ...prev,
+      natRules: (prev.natRules || []).filter((r: any) => r.id !== ruleId)
+    } : prev);
     try {
       await securityApi.deleteNatRule(ruleId);
       await fetchFirewall();
     } catch (err: any) {
       alert(err?.message || 'Gagal menghapus aturan NAT.');
+      await fetchFirewall();
     }
   };
 
