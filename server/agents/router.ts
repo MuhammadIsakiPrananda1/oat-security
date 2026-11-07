@@ -18,6 +18,7 @@ import { FirewallDeploymentService } from '../services/firewallDeploy';
 import { pendingActionsForAgent, recordActionResult, scanAndRecord } from '../services/malwareScanner';
 import { broadcastEndpointStatus } from '../services/endpointConnectionService';
 import { getServerNetworkAddresses } from './networkUtils';
+import { pushLogToPipeline } from '../services/logRingBuffer';
 
 export const agentRouter = Router();
 
@@ -1041,13 +1042,6 @@ agentRouter.post('/ingest', (req: AuthenticatedRequest, res: Response) => {
     }
   }
 
-  const insertLog = db.prepare(`
-    INSERT OR IGNORE INTO logs (
-      id, organization_id, timestamp, level, source, event_type,
-      message, host, ip, correlation_id, metadata, raw_log, agent_id
-    ) VALUES (?, ?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   for (const raw of incomingLogs) {
     if (!raw || typeof raw !== 'object') continue;
     const item = raw as Record<string, any>;
@@ -1072,44 +1066,26 @@ agentRouter.post('/ingest', (req: AuthenticatedRequest, res: Response) => {
       applicationDomain: application?.domain || null,
       collector: cleanString(item.collector, 64) || 'agent'
     };
-    const metadataJson = safeJson(metadata);
 
-    try {
-      const result = insertLog.run(
-        logId,
-        agent.organization_id,
-        timestamp,
-        level,
-        eventType,
-        message,
-        host,
-        ip,
-        correlationId,
-        metadataJson,
-        rawLog,
-        agent.id
-      );
+    const logItem = {
+      id: logId,
+      organizationId: agent.organization_id,
+      timestamp,
+      level,
+      source: 'agent',
+      eventType,
+      message,
+      host,
+      ip,
+      correlationId,
+      metadata,
+      rawLog,
+      agentId: agent.id
+    };
 
-      if (Number(result.changes) > 0) {
-        acceptedLogs += 1;
-        SecurityEventBus.publish('log.created', {
-          id: logId,
-          organizationId: agent.organization_id,
-          timestamp,
-          level,
-          source: 'agent',
-          eventType,
-          message,
-          host,
-          ip,
-          correlationId,
-          metadata,
-          rawLog
-        }, agent.organization_id);
-      }
-    } catch (error) {
-      console.warn(`[Agents] Failed to store log from ${agent.id}:`, error);
-    }
+    acceptedLogs += 1;
+    pushLogToPipeline(logItem);
+    SecurityEventBus.publish('log.created', logItem, agent.organization_id);
   }
 
   db.prepare(`

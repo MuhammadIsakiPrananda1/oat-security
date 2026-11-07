@@ -46,6 +46,8 @@ import {
   serializeNetwork,
   validateNetworkInput
 } from '../services/networkInventory';
+import { queryLiveLogs, getLiveLogById } from '../services/logRingBuffer';
+import { processWazuhIncomingLog } from '../services/wazuhSiemPipeline';
 
 export const apiRouter = Router();
 
@@ -3472,143 +3474,133 @@ apiRouter.post('/applications', (req: AuthenticatedRequest, res) => {
 });
 
 // ----------------------------------------------------------------------
-// 10b. Centralized Security Logs
+// 10b. Centralized Security Logs (Wazuh Hybrid: Live Ring Buffer + MySQL Store)
 // ----------------------------------------------------------------------
 apiRouter.get('/logs', (req: AuthenticatedRequest, res) => {
   const orgId = req.organizationId || '';
   const { level, source, eventType, host, search, page = 1, limit = 50 } = req.query;
 
-  let query = 'SELECT * FROM logs WHERE organization_id = ?';
-  const params: any[] = [orgId];
-
-  if (level && level !== 'ALL') {
-    query += ' AND LOWER(level) = ?';
-    params.push(String(level).toLowerCase());
-  }
-  if (source && source !== 'ALL') {
-    query += ' AND LOWER(source) = ?';
-    params.push(String(source).toLowerCase());
-  }
-  if (eventType && eventType !== 'ALL') {
-    query += ' AND LOWER(event_type) = ?';
-    params.push(String(eventType).toLowerCase());
-  }
-  if (host && host !== 'ALL') {
-    query += ' AND LOWER(host) LIKE ?';
-    params.push(`%${String(host).toLowerCase()}%`);
-  }
-  if (search) {
-    query += ' AND (LOWER(message) LIKE ? OR LOWER(ip) LIKE ? OR LOWER(correlation_id) LIKE ? OR LOWER(event_type) LIKE ?)';
-    const term = `%${String(search).toLowerCase()}%`;
-    params.push(term, term, term, term);
-  }
-
-  // Calculate metrics
-  const metricsRow = db.prepare(`
-    SELECT 
-      COUNT(*) as total,
-      SUM(CASE WHEN LOWER(level) = 'critical' THEN 1 ELSE 0 END) as critical,
-      SUM(CASE WHEN LOWER(level) = 'error' THEN 1 ELSE 0 END) as error,
-      SUM(CASE WHEN LOWER(level) = 'warn' THEN 1 ELSE 0 END) as warn,
-      SUM(CASE WHEN LOWER(level) = 'info' THEN 1 ELSE 0 END) as info,
-      SUM(CASE WHEN LOWER(level) = 'debug' THEN 1 ELSE 0 END) as debug
-    FROM logs
-    WHERE organization_id = ?
-  `).get(orgId) as any;
-
-  const metrics = {
-    total: Number(metricsRow?.total) || 0,
-    critical: Number(metricsRow?.critical) || 0,
-    error: Number(metricsRow?.error) || 0,
-    warn: Number(metricsRow?.warn) || 0,
-    info: Number(metricsRow?.info) || 0,
-    debug: Number(metricsRow?.debug) || 0
-  };
-
-  // Top source IPs from logs
-  const topSourceIps = (db.prepare(`
-    SELECT ip, COUNT(*) as count
-    FROM logs
-    WHERE organization_id = ? AND ip IS NOT NULL AND ip != '' AND ip != '—'
-    GROUP BY ip
-    ORDER BY count DESC
-    LIMIT 10
-  `).all(orgId) as Array<{ ip: string; count: number }>).map(row => {
-    const geo = lookupIpLocation(row.ip);
-    return { ...row, sourceCountry: geo.country, sourceCountryCode: geo.code, sourceCountryFlag: geo.flag };
+  // 1. Ambil log real-time dari memory buffer
+  const memResult = queryLiveLogs({
+    organizationId: orgId,
+    level: typeof level === 'string' ? level : undefined,
+    source: typeof source === 'string' ? source : undefined,
+    eventType: typeof eventType === 'string' ? eventType : undefined,
+    host: typeof host === 'string' ? host : undefined,
+    search: typeof search === 'string' ? search : undefined,
+    page: Number(page) || 1,
+    limit: Number(limit) || 50
   });
 
-  // Top sources from logs
-  const topSources = (db.prepare(`
-    SELECT source, COUNT(*) as count
-    FROM logs
-    WHERE organization_id = ? AND source IS NOT NULL AND source != ''
-    GROUP BY source
-    ORDER BY count DESC
-    LIMIT 10
-  `).all(orgId) as Array<{ source: string; count: number }>);
+  // Jika buffer memori masih kosong / baru restart atau query halaman histori lama, fallback query ke MySQL
+  if (memResult.logs.length === 0 || Number(page) > 1) {
+    try {
+      let query = 'SELECT * FROM logs WHERE organization_id = ?';
+      const params: any[] = [orgId];
 
-  // Count matching logs for pagination
-  let countSql = 'SELECT COUNT(*) as count FROM logs WHERE organization_id = ?';
-  if (level && level !== 'ALL') countSql += ' AND LOWER(level) = ?';
-  if (source && source !== 'ALL') countSql += ' AND LOWER(source) = ?';
-  if (eventType && eventType !== 'ALL') countSql += ' AND LOWER(event_type) = ?';
-  if (host && host !== 'ALL') countSql += ' AND LOWER(host) LIKE ?';
-  if (search) countSql += ' AND (LOWER(message) LIKE ? OR LOWER(ip) LIKE ? OR LOWER(correlation_id) LIKE ? OR LOWER(event_type) LIKE ?)';
-  const filteredCount = db.prepare(countSql).get(...params) as { count?: number } | undefined;
-  const totalCount = typeof filteredCount?.count === 'number' ? filteredCount.count : metrics.total;
+      if (level && level !== 'ALL') {
+        query += ' AND level = ?';
+        params.push(String(level).toUpperCase());
+      }
+      if (source && source !== 'ALL') {
+        query += ' AND source = ?';
+        params.push(String(source).toLowerCase());
+      }
+      if (eventType && eventType !== 'ALL') {
+        query += ' AND event_type = ?';
+        params.push(String(eventType).toLowerCase());
+      }
+      if (host && host !== 'ALL') {
+        query += ' AND host LIKE ?';
+        params.push(`%${String(host)}%`);
+      }
+      if (search) {
+        query += ' AND (message LIKE ? OR ip LIKE ? OR correlation_id LIKE ?)';
+        const term = `%${String(search)}%`;
+        params.push(term, term, term);
+      }
 
-  query += ' ORDER BY timestamp DESC';
-  const pageNum = Math.max(1, Number(page) || 1);
-  const limitNum = Math.min(1000, Math.max(1, Number(limit) || 50));
-  const offset = (pageNum - 1) * limitNum;
-  query += ` LIMIT ${limitNum} OFFSET ${offset}`;
+      const totalRow = db.prepare(`SELECT COUNT(*) as count FROM (${query}) as t`).get(...params) as any;
+      const totalCount = Number(totalRow?.count) || memResult.total;
 
-  const rows = db.prepare(query).all(...params) as any[];
+      query += ' ORDER BY timestamp DESC';
+      const pageNum = Math.max(1, Number(page) || 1);
+      const limitNum = Math.min(1000, Math.max(1, Number(limit) || 50));
+      const offset = (pageNum - 1) * limitNum;
+      query += ` LIMIT ${limitNum} OFFSET ${offset}`;
 
-  const logs = rows.map(r => ({
-    id: r.id,
-    timestamp: r.timestamp,
-    level: r.level,
-    source: r.source,
-    eventType: r.event_type,
-    message: r.message,
-    host: r.host,
-    ip: r.ip,
-    correlationId: r.correlation_id,
-    metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
-    rawLog: r.raw_log
-  }));
+      const dbRows = db.prepare(query).all(...params) as any[];
+      if (dbRows.length > 0) {
+        const logs = dbRows.map(r => ({
+          id: r.id,
+          timestamp: r.timestamp,
+          level: r.level,
+          source: r.source,
+          eventType: r.event_type,
+          message: r.message,
+          host: r.host,
+          ip: r.ip,
+          correlationId: r.correlation_id,
+          metadata: r.metadata ? JSON.parse(r.metadata) : undefined,
+          rawLog: r.raw_log
+        }));
+
+        const enrichedTopIps = memResult.topSourceIps.map(r => {
+          const geo = lookupIpLocation(r.ip);
+          return { ...r, sourceCountry: geo.country, sourceCountryCode: geo.code, sourceCountryFlag: geo.flag };
+        });
+
+        return res.json({
+          logs,
+          total: totalCount,
+          page: pageNum,
+          limit: limitNum,
+          metrics: memResult.metrics,
+          topSourceIps: enrichedTopIps,
+          topSources: memResult.topSources
+        });
+      }
+    } catch {
+      // jika query SQL gagal/pending, return memResult
+    }
+  }
+
+  const enrichedTopIps = memResult.topSourceIps.map(r => {
+    const geo = lookupIpLocation(r.ip);
+    return { ...r, sourceCountry: geo.country, sourceCountryCode: geo.code, sourceCountryFlag: geo.flag };
+  });
 
   res.json({
-    logs,
-    total: totalCount,
-    page: pageNum,
-    limit: limitNum,
-    metrics,
-    topSourceIps,
-    topSources
+    ...memResult,
+    topSourceIps: enrichedTopIps
   });
 });
 
 apiRouter.get('/logs/:id', (req: AuthenticatedRequest, res) => {
   const orgId = req.organizationId || '';
-  const log = db.prepare('SELECT * FROM logs WHERE id = ? AND organization_id = ?').get(req.params.id, orgId) as any;
-  if (!log) return res.status(404).json({ error: 'Log entry not found' });
+  const liveLog = getLiveLogById(orgId, req.params.id);
+  if (liveLog) return res.json(liveLog);
 
-  res.json({
-    id: log.id,
-    timestamp: log.timestamp,
-    level: log.level,
-    source: log.source,
-    eventType: log.event_type,
-    message: log.message,
-    host: log.host,
-    ip: log.ip,
-    correlationId: log.correlation_id,
-    metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
-    rawLog: log.raw_log
-  });
+  try {
+    const row = db.prepare('SELECT * FROM logs WHERE id = ? AND organization_id = ?').get(req.params.id, orgId) as any;
+    if (row) {
+      return res.json({
+        id: row.id,
+        timestamp: row.timestamp,
+        level: row.level,
+        source: row.source,
+        eventType: row.event_type,
+        message: row.message,
+        host: row.host,
+        ip: row.ip,
+        correlationId: row.correlation_id,
+        metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+        rawLog: row.raw_log
+      });
+    }
+  } catch {}
+
+  res.status(404).json({ error: 'Log entry not found' });
 });
 
 // SSE Log Stream dedicated endpoint
@@ -3635,6 +3627,18 @@ apiRouter.get('/logs/stream', (req: AuthenticatedRequest, res) => {
   req.on('close', () => {
     SecurityEventBus.off('log.created', onLogCreated);
   });
+});
+
+// Wazuh-compatible HTTP Ingestion (fallback if agent cannot open raw TCP port 1514)
+apiRouter.post('/wazuh/logs', (req: AuthenticatedRequest, res) => {
+  const orgId = req.organizationId || 'org_default';
+  const remoteIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
+  const body = req.body;
+
+  const rawMessage = typeof body === 'string' ? body : JSON.stringify({ ...body, organizationId: orgId });
+  processWazuhIncomingLog(rawMessage, remoteIp, 'tcp');
+
+  res.status(202).json({ success: true, status: 'QUEUED_IN_WAZUH_PIPELINE' });
 });
 
 apiRouter.get('/networks', (req: AuthenticatedRequest, res) => {

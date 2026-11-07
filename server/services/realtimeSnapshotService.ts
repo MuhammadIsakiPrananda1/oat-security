@@ -144,6 +144,6 @@ export function startRealtimeSnapshotService() {
     pending.set(organizationId, setTimeout(() => {
       pending.delete(organizationId);
       publishSnapshots(organizationId);
-    }, 75));
+    }, 400));
   });
 }

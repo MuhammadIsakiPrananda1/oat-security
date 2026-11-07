@@ -3,6 +3,7 @@ import { NormalizedSecurityEvent } from '../parsers/securityEvent';
 import { lookupIpLocation } from '../services/geoIpService';
 import { SecurityEventBus } from '../utils/eventBus';
 import { WafDeploymentService } from '../services/serverWafSync';
+import { pushLogToPipeline } from '../services/logRingBuffer';
 
 export interface ThreatRecord {
   id: string;
@@ -101,7 +102,7 @@ export function processSecurityEvent(event: NormalizedSecurityEvent) {
     return;
   }
 
-  // 1b. Ingest into Centralized Logs table
+  // 1b. Stream live log directly to memory buffer & WebSocket bus (skip DB insertion)
   const logLevel = event.severity === 'Critical' ? 'CRITICAL'
     : (event.severity === 'High' || ['BLOCK', 'DENY', 'DROP'].includes(event.action)) ? 'ERROR'
     : (event.severity === 'Medium' || ['CHALLENGE', 'RATE_LIMIT'].includes(event.action)) ? 'WARN'
@@ -110,47 +111,25 @@ export function processSecurityEvent(event: NormalizedSecurityEvent) {
   const logId = `LOG-${crypto.randomUUID()}`;
   const logMessage = `[${event.source.toUpperCase()}] ${event.threatName || event.eventType}: ${event.method ? event.method + ' ' : ''}${event.uri || ''} (${event.sourceIp} -> ${event.destinationIp}) action=${event.action}`;
   const eventHost = String((event.metadata && event.metadata.hostname) || 'edge-gateway-01').slice(0, 128);
-  
-  try {
-    db.prepare(`
-      INSERT INTO logs (
-        id, organization_id, timestamp, level, source, event_type,
-        message, host, ip, correlation_id, metadata, raw_log, agent_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      logId,
-      event.organizationId,
-      event.timestamp,
-      logLevel,
-      event.source,
-      event.eventType,
-      logMessage,
-      eventHost,
-      event.sourceIp,
-      event.id,
-      event.metadata ? JSON.stringify(event.metadata) : null,
-      JSON.stringify(event),
-      event.agentId || null
-    );
 
-    const logItem = {
-      id: logId,
-      organizationId: event.organizationId,
-      timestamp: event.timestamp,
-      level: logLevel,
-      source: event.source,
-      eventType: event.eventType,
-      message: logMessage,
-      host: eventHost,
-      ip: event.sourceIp,
-      correlationId: event.id,
-      metadata: event.metadata,
-      rawLog: JSON.stringify(event)
-    };
-    SecurityEventBus.publish('log.created', logItem, event.organizationId);
-  } catch (logErr) {
-    console.warn('[ThreatDetector] Error inserting log:', logErr);
-  }
+  const logItem = {
+    id: logId,
+    organizationId: event.organizationId,
+    timestamp: event.timestamp,
+    level: logLevel,
+    source: event.source,
+    eventType: event.eventType,
+    message: logMessage,
+    host: eventHost,
+    ip: event.sourceIp,
+    correlationId: event.id,
+    metadata: event.metadata,
+    rawLog: JSON.stringify(event),
+    agentId: event.agentId || undefined
+  };
+
+  pushLogToPipeline(logItem);
+  SecurityEventBus.publish('log.created', logItem, event.organizationId);
 
   // Attach the GeoIP result to the live event so the realtime UI uses the same
   // country as the REST API instead of applying its own prefix guesses.

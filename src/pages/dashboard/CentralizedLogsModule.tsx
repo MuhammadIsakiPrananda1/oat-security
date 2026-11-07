@@ -211,11 +211,13 @@ export const CentralizedLogsModule: React.FC = () => {
     fetchLogs();
   }, [fetchLogs, isBackendOffline]);
 
-  // Periodic live sync every 2.5s on page 1 so logs stream in without user refresh
+  // Periodic live sync: only when WebSocket disconnected, on page 1, throttled to 8s
   useEffect(() => {
     if (isBackendOffline) return;
     const timer = window.setInterval(async () => {
       if (currentPage !== 1) return;
+      // If WebSocket is alive and delivering real-time logs, skip HTTP polling
+      if (realtimeStatus.includes('LIVE') || realtimeStatus.includes('STREAM')) return;
       try {
         const res = await securityApi.getLogs({
           level: levelFilter !== 'ALL' ? levelFilter : undefined,
@@ -238,9 +240,9 @@ export const CentralizedLogsModule: React.FC = () => {
           if (res.topSources) setTopSourcesAgg(res.topSources);
         }
       } catch {}
-    }, 2500);
+    }, 8000);
     return () => window.clearInterval(timer);
-  }, [isBackendOffline, currentPage, pageSize, levelFilter, sourceFilter, searchTerm]);
+  }, [isBackendOffline, currentPage, pageSize, levelFilter, sourceFilter, searchTerm, realtimeStatus]);
 
   const activeFiltersRef = useRef({ levelFilter, sourceFilter, search: searchTerm });
   useEffect(() => {

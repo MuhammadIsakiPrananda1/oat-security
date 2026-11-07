@@ -43,12 +43,14 @@ try {
 import { startHealthMonitor } from './server/services/systemHealthService';
 import { startEndpointMonitor } from './server/services/endpointConnectionService';
 import { startRealtimeSnapshotService } from './server/services/realtimeSnapshotService';
+import { startWazuhManagerListener } from './server/services/wazuhSiemPipeline';
 
-// Start continuous real-time health telemetry monitor & endpoint connectivity monitor
+// Start continuous real-time health telemetry monitor, endpoint connectivity monitor & Wazuh SIEM listener
 try {
   startHealthMonitor();
   startEndpointMonitor();
   startRealtimeSnapshotService();
+  startWazuhManagerListener();
 } catch (err) {
   console.warn('[OAT SECURITY] Service monitor warning:', err);
 }

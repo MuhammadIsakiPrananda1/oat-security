@@ -5,6 +5,7 @@ import { threatIntelService } from './threatIntelService';
 import { SecurityEventBus } from '../utils/eventBus';
 import { WafDeploymentService } from './serverWafSync';
 import { FirewallDeploymentService } from './firewallDeploy';
+import { getLatestLiveLogMs } from './logRingBuffer';
 
 // ---------------------------------------------------------------------------
 // Core defense engine health.
@@ -86,15 +87,6 @@ function latestEventMs(source: string): number | null {
     const row = db
       .prepare('SELECT MAX(timestamp) AS ts FROM security_events WHERE source = ?')
       .get(source) as any;
-    return parseStoredTime(row?.ts);
-  } catch {
-    return null;
-  }
-}
-
-function latestLogMs(): number | null {
-  try {
-    const row = db.prepare('SELECT MAX(timestamp) AS ts FROM logs').get() as any;
     return parseStoredTime(row?.ts);
   } catch {
     return null;
@@ -252,26 +244,12 @@ export function collectSystemHealth(): SystemHealthSnapshot {
     add('Endpoint Detection', 'Offline', 'Endpoint agent health probe failed');
   }
 
-  // 4. SIEM Monitor — centralised log pipeline.
+  // 4. SIEM Monitor — centralised log pipeline (in-memory stream & WebSocket).
   {
-    const last = latestLogMs();
-    let count = 0;
-    try {
-      const countRow = db.prepare('SELECT COUNT(*) as count FROM logs').get() as any;
-      count = countRow?.count ?? 0;
-    } catch {
-      // ignore
-    }
-
-    if (last === null && count === 0) {
-      add('SIEM Monitor', 'Offline', 'No log records ingested yet');
-    } else if (last !== null) {
-      const age = now - last;
-      const status: HealthStatus = age <= 120 * MINUTE ? 'Operational' : age <= 24 * 60 * MINUTE ? 'Degraded' : 'Offline';
-      add('SIEM Monitor', status, `Log pipeline active · ${count.toLocaleString()} logs · last record ${humanAge(age)} ago`, 0.6, new Date(last).toISOString());
-    } else {
-      add('SIEM Monitor', 'Operational', `Log pipeline active · ${count.toLocaleString()} logs stored`, 0.6);
-    }
+    const last = getLatestLiveLogMs();
+    const age = now - last;
+    const status: HealthStatus = age <= 120 * MINUTE ? 'Operational' : 'Degraded';
+    add('SIEM Monitor', status, `Live in-memory stream active · zero DB bottleneck · last stream ${humanAge(age)} ago`, 0.2, new Date(last).toISOString());
   }
 
   // 5. WebSocket Stream — realtime channel plus connected consoles.
@@ -327,10 +305,12 @@ export function startHealthMonitor(intervalMs: number = 5000) {
     }
   };
 
-  // Broadcast immediately on any security rule or event change
+  let healthDebounceTimer: NodeJS.Timeout | null = null;
+  // Broadcast on security rule or event change, debounced so bursts of logs/events do not hammer the DB
   SecurityEventBus.on('event', (payload) => {
-    if (['rule.updated', 'waf.synced', 'waf.blocked', 'security_event', 'log.created'].includes(payload.type)) {
-      setTimeout(broadcast, 200);
+    if (['rule.updated', 'waf.synced', 'waf.blocked', 'security_event'].includes(payload.type)) {
+      if (healthDebounceTimer) clearTimeout(healthDebounceTimer);
+      healthDebounceTimer = setTimeout(broadcast, 1000);
     }
   });
 
