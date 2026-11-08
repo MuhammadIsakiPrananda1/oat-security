@@ -75,32 +75,37 @@ function classifyIp(ip: string): string {
 
 function requestHaystack(req: Request): string {
   const url = req.url || '';
+  let decodedUrl = '';
+  try {
+    decodedUrl = decodeURIComponent(url);
+  } catch {
+    decodedUrl = unescape(url);
+  }
   const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
   const ua = String(req.headers['user-agent'] || '');
-  return `${url} ${body} ${ua}`;
+  return `${url} ${decodedUrl} ${body} ${ua}`;
 }
 
 /** Returns the matching pattern string if the request matches a rule pattern. */
 function matchesRuleCategory(category: string, req: Request): string | null {
-  const url = req.url || '';
-  const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+  const haystack = requestHaystack(req);
   const ua = String(req.headers['user-agent'] || '');
 
   switch (category.toLowerCase()) {
     case 'sql injection':
-      return /(\bselect\b|\bunion\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|\/\*|\bor\b\s+\d+=\d+)/i.test(url + body)
+      return /(\bselect\b|\bunion\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|\/\*|\bor\b\s+\d+=\d+)/i.test(haystack)
         ? 'SQL injection pattern in request' : null;
 
     case 'xss': case 'xss filter': case 'cross-site scripting':
-      return /(<script|javascript:|onerror=|onload=|<img[^>]+src=|<svg|alert\(|document\.cookie)/i.test(url + body)
+      return /(<script|javascript:|onerror=|onload=|<img[^>]+src=|<svg|alert\(|document\.cookie)/i.test(haystack)
         ? 'XSS pattern detected' : null;
 
     case 'path traversal': case 'lfi':
-      return /(\.\.\/|\.\.\\|%2e%2e%2f|%252e)/i.test(url)
+      return /(\.\.\/|\.\.\\|%2e%2e%2f|%252e)/i.test(haystack)
         ? 'Path traversal attempt' : null;
 
     case 'rce': case 'command injection': case 'remote code execution':
-      return /(\$\(|`|;.*sh|cmd\.exe|\/bin\/|powershell|eval\(|exec\()/i.test(url + body)
+      return /(\$\(|`|;.*sh|cmd\.exe|\/bin\/|powershell|eval\(|exec\()/i.test(haystack)
         ? 'Command injection pattern' : null;
 
     case 'scanner': case 'vulnerability scanner':
@@ -112,7 +117,7 @@ function matchesRuleCategory(category: string, req: Request): string | null {
         ? 'Bad bot User-Agent' : null;
 
     case 'rfi': case 'remote file inclusion':
-      return /(https?:\/\/[^/]+\/.*\.(php|sh|py|rb|pl))/i.test(url + body)
+      return /(https?:\/\/[^/]+\/.*\.(php|sh|py|rb|pl))/i.test(haystack)
         ? 'Remote file inclusion attempt' : null;
 
     default:

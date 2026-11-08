@@ -134,7 +134,17 @@ export function computedAgentStatus(row: {
 }
 
 export function splitWafList(value: string | null | undefined): string[] {
-  return String(value || '')
+  const raw = String(value || '').trim();
+  if (!raw) return [];
+  if (raw.startsWith('[') && raw.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map(entry => String(entry || '').trim()).filter(Boolean);
+      }
+    } catch {}
+  }
+  return raw
     .split(/[\n,]/)
     .map(entry => entry.trim())
     .filter(Boolean);

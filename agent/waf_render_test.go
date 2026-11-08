@@ -25,8 +25,8 @@ func TestRenderApacheCustomPattern(t *testing.T) {
 	}
 	for _, want := range []string{
 		"<IfModule mod_rewrite.c>",
-		`RewriteCond %{THE_REQUEST} "(?i)union\s+select" [NC,OR]`,
-		`RewriteCond %{HTTP_USER_AGENT} "(?i)union\s+select" [NC]`,
+		`RewriteCond %{THE_REQUEST} "(?i)union(?:\s|%20|\+)+select" [NC,OR]`,
+		`RewriteCond %{HTTP_USER_AGENT} "(?i)union(?:\s|%20|\+)+select" [NC]`,
 		"RewriteRule ^ - [F,L]",
 		"# Revision: 7",
 	} {

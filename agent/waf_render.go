@@ -159,26 +159,54 @@ func wafApacheAction(policy *WAFPolicy, action string) string {
 	return "[F,L]"
 }
 
+func normalizeWafSpacePattern(p string) string {
+	if strings.Contains(p, "%20") {
+		return p
+	}
+	p = strings.ReplaceAll(p, `\s+`, "__WAF_ONE_OR_MORE__")
+	p = strings.ReplaceAll(p, `\s*`, "__WAF_ZERO_OR_MORE__")
+	p = strings.ReplaceAll(p, `\s`, "__WAF_ONE_SPACE__")
+
+	var sb strings.Builder
+	runes := []rune(p)
+	for i := 0; i < len(runes); i++ {
+		if runes[i] == ' ' && (i == 0 || runes[i-1] != '\\') {
+			for i+1 < len(runes) && runes[i+1] == ' ' {
+				i++
+			}
+			sb.WriteString("__WAF_ONE_OR_MORE__")
+		} else {
+			sb.WriteRune(runes[i])
+		}
+	}
+	p = sb.String()
+
+	p = strings.ReplaceAll(p, "__WAF_ZERO_OR_MORE__", `(?:\s|%20|\+)*`)
+	p = strings.ReplaceAll(p, "__WAF_ONE_OR_MORE__", `(?:\s|%20|\+)+`)
+	p = strings.ReplaceAll(p, "__WAF_ONE_SPACE__", `(?:\s|%20|\+)`)
+	return p
+}
+
 func wafRulePattern(rule WAFRule) (string, string, bool) {
 	pattern := strings.TrimSpace(rule.Pattern)
 	if pattern != "" {
 		if strings.ContainsAny(pattern, "\r\n\x00\"") || endsWithUnescapedBackslash(pattern) {
 			return "", "", false
 		}
-		return "%{THE_REQUEST}", pattern, true
+		return "%{THE_REQUEST}", normalizeWafSpacePattern(pattern), true
 	}
 
 	switch strings.ToLower(strings.TrimSpace(rule.Category)) {
 	case "sql injection":
-		return "%{THE_REQUEST}", `(\bunion\b|\bselect\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|/\*|\bor\b\s+\d+=\d+)`, true
+		return "%{THE_REQUEST}", `(?i)(\bunion\b|\bselect\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|/\*|\bor(?:\s|%20|\+)+\d+=\d+)`, true
 	case "xss", "xss filter", "cross-site scripting":
-		return "%{THE_REQUEST}", `(<script|javascript:|onerror=|onload=|<img[^>]+src=|<svg|alert\(|document\.cookie)`, true
+		return "%{THE_REQUEST}", `(?i)(<script|javascript:|onerror=|onload=|<img[^>]+src=|<svg|alert\(|document\.cookie)`, true
 	case "path traversal", "lfi":
-		return "%{THE_REQUEST}", `(\.\./|\.\.\\|%2e%2e%2f|%252e)`, true
+		return "%{THE_REQUEST}", `(?i)(\.\./|\.\.\\|%2e%2e%2f|%252e)`, true
 	case "rce", "command injection", "remote code execution":
 		return "%{THE_REQUEST}", `(\$\(|` + "`" + `|;.*sh|cmd\.exe|/bin/|powershell|eval\(|exec\()`, true
 	case "rfi", "remote file inclusion":
-		return "%{THE_REQUEST}", `(https?://[^/]+/.*\.(php|sh|py|rb|pl))`, true
+		return "%{THE_REQUEST}", `(?i)(https?://[^/]+/.*\.(php|sh|py|rb|pl))`, true
 	case "bot protection", "bad bot", "scanner":
 		return "%{HTTP_USER_AGENT}", `(nikto|nmap|masscan|sqlmap|nessus|openvas|acunetix|burpsuite|w3af|skipfish|dirbuster|scrapy|zgrab|python-requests/|go-http-client|curl/|wget/|libwww-perl)`, true
 	default:
