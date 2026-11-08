@@ -2146,14 +2146,83 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-              {visibleHealthRows.map(row => (
-                <EngineCard
-                  key={row.service_name}
-                  row={row}
-                  onClick={() => setSelectedEngine(row)}
-                />
-              ))}
+            <div className="overflow-x-auto rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-2xs">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/60 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    <th scope="col" className="py-3 px-4">Engine / Service</th>
+                    <th scope="col" className="py-3 px-4">Status</th>
+                    <th scope="col" className="py-3 px-4">Latency</th>
+                    <th scope="col" className="py-3 px-4">Telemetry Diagnostics</th>
+                    <th scope="col" className="py-3 px-4">Last Check</th>
+                    <th scope="col" className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-sans">
+                  {visibleHealthRows.map(row => {
+                    const meta = ENGINE_META[row.service_name] || DEFAULT_ENGINE_META;
+                    const tone = statusTone(row.status);
+                    const readout = parseEngineReadout(row);
+                    const hasLatency = row.latency_ms !== null && row.latency_ms !== undefined;
+                    return (
+                      <tr
+                        key={row.service_name}
+                        onClick={() => setSelectedEngine(row)}
+                        className="group hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 transition cursor-pointer"
+                      >
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-8 h-8 rounded-lg border border-zinc-200/70 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center shrink-0 ${iconColors[tone]}`}>
+                              <FontAwesomeIcon icon={meta.icon} className="text-sm" />
+                            </span>
+                            <div>
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                <span>{row.service_name}</span>
+                              </div>
+                              <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
+                                {meta.descriptor}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {engineStatusPill(tone, row.status)}
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs">
+                          {hasLatency ? (
+                            <span className={`font-semibold ${row.latency_ms! < 1.0 ? 'text-emerald-600 dark:text-emerald-400' : (row.latency_ms! < 2.5 ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400')}`}>
+                              {row.latency_ms!.toFixed(2)} ms
+                            </span>
+                          ) : (
+                            <span className="text-zinc-400 dark:text-zinc-500 font-sans text-[11px]">
+                              {readout.value}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-zinc-600 dark:text-zinc-300 max-w-xs md:max-w-md truncate">
+                          <span title={row.details || '-'}>{row.details || '-'}</span>
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap text-zinc-400 dark:text-zinc-500 font-mono text-[11px]">
+                          {row.last_check ? formatTime(row.last_check) : 'Just now'}
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEngine(row);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-zinc-200/80 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 bg-white dark:bg-zinc-800 text-[11px] font-medium text-zinc-700 dark:text-zinc-200 transition cursor-pointer shadow-2xs"
+                          >
+                            <span>Inspect</span>
+                            <FontAwesomeIcon icon={faArrowRight} className="text-[9px] text-zinc-400" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

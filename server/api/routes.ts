@@ -199,12 +199,14 @@ apiRouter.get('/health', (_req, res) => {
 // Core defense engine health — derived from live server signals on every call
 // so silent or inactive engines are reported as Degraded/Offline instead of a
 // static "everything is fine".
-apiRouter.get('/system/health', (_req: AuthenticatedRequest, res) => {
-  res.json(collectSystemHealth());
+apiRouter.get('/system/health', (req: AuthenticatedRequest, res) => {
+  const targetOrgId = req.organizationId || req.user?.organizationId;
+  res.json(collectSystemHealth(targetOrgId));
 });
 
-apiRouter.get('/system/status', (_req: AuthenticatedRequest, res) => {
-  const snapshot = collectSystemHealth();
+apiRouter.get('/system/status', (req: AuthenticatedRequest, res) => {
+  const targetOrgId = req.organizationId || req.user?.organizationId;
+  const snapshot = collectSystemHealth(targetOrgId);
   const healthObj: Record<string, string> = {};
   for (const service of snapshot.services) {
     const key = HEALTH_KEY_BY_SERVICE[service.service_name];
