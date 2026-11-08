@@ -721,7 +721,9 @@ apiRouter.get('/dashboard/summary', (req: AuthenticatedRequest, res) => {
   const blockedRequests = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND action IN ('BLOCK', 'BLOCKED', 'DENY', 'DROP')").get(orgId) as { count: number };
   const allowedRequests = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND action IN ('ALLOW', 'ALLOWED')").get(orgId) as { count: number };
   const totalThreats = db.prepare('SELECT COUNT(*) as count FROM threats WHERE organization_id = ?').get(orgId) as { count: number };
-  const criticalAlerts = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND severity = 'Critical' AND status = 'ACTIVE'").get(orgId) as { count: number };
+  const criticalThreats = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND (severity = 'Critical' OR severity = 'CRITICAL') AND status = 'ACTIVE'").get(orgId) as { count: number };
+  const criticalSecurityEvents = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND (severity = 'Critical' OR severity = 'CRITICAL')").get(orgId) as { count: number };
+  const criticalAlerts = { count: Math.max(criticalThreats?.count || 0, criticalSecurityEvents?.count || 0) };
   const totalApps = db.prepare('SELECT COUNT(*) as count FROM applications WHERE organization_id = ?').get(orgId) as { count: number };
   const totalNets = db.prepare('SELECT COUNT(*) as count FROM networks WHERE organization_id = ?').get(orgId) as { count: number };
 
@@ -780,7 +782,9 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
 
   const blockedRequests = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND action IN ('BLOCK', 'BLOCKED', 'DENY', 'DROP')").get(orgId) as { count: number };
   const activeThreats = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND status = 'ACTIVE'").get(orgId) as { count: number };
-  const criticalAlerts = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND severity = 'Critical' AND status = 'ACTIVE'").get(orgId) as { count: number };
+  const criticalThreatsOverview = db.prepare("SELECT COUNT(*) as count FROM threats WHERE organization_id = ? AND (severity = 'Critical' OR severity = 'CRITICAL') AND status = 'ACTIVE'").get(orgId) as { count: number };
+  const criticalEventsOverview = db.prepare("SELECT COUNT(*) as count FROM security_events WHERE organization_id = ? AND (severity = 'Critical' OR severity = 'CRITICAL')").get(orgId) as { count: number };
+  const criticalAlerts = { count: Math.max(criticalThreatsOverview?.count || 0, criticalEventsOverview?.count || 0) };
   const totalApps = db.prepare('SELECT COUNT(*) as count FROM applications WHERE organization_id = ?').get(orgId) as { count: number };
   const totalNets = db.prepare('SELECT COUNT(*) as count FROM networks WHERE organization_id = ?').get(orgId) as { count: number };
 

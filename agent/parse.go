@@ -262,6 +262,10 @@ func detectEvents(cfg *Config, path, line string, timestamp time.Time) ([]Event,
 			if severity == "Critical" {
 				level = "CRITICAL"
 			}
+			webAction := "LOG"
+			if statusCode == 403 || statusCode == 401 || statusCode == 429 || severity == "Critical" || severity == "High" {
+				webAction = "BLOCK"
+			}
 			events = append(events, Event{
 				Timestamp:      ts,
 				EventType:      "web_attack",
@@ -270,7 +274,7 @@ func detectEvents(cfg *Config, path, line string, timestamp time.Time) ([]Event,
 				DestinationIP:  destination,
 				Protocol:       "TCP",
 				Application:    "web",
-				Action:         "LOG",
+				Action:         webAction,
 				URI:            truncate(uri, 2000),
 				Method:         method,
 				StatusCode:     statusCode,

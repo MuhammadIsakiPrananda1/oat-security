@@ -1201,7 +1201,7 @@ export function normalizeRealtimeSecurityEvent(msg: any): SecurityEvent | null {
   const raw = msg.data && typeof msg.data === 'object' ? msg.data : null;
 
   // Canonical normalized security event from detector, agent, WAF, or firewall
-  if ((type === 'security_event' || type === 'security_event.created' || type === 'waf.event' || type === 'firewall.event') && raw) {
+  if ((type === 'security_event' || type === 'security_event.created' || type === 'waf.event' || type === 'waf.blocked' || type === 'firewall.event') && raw) {
     const sourceIp = raw.sourceIp || raw.source_ip || raw.ip || '0.0.0.0';
     const destinationIp = raw.destinationIp || raw.destination_ip || '';
     const threat = raw.threat || raw.threatName || raw.threat_name || raw.message || 'Security Event';

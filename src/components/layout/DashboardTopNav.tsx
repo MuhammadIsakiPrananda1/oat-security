@@ -102,16 +102,13 @@ function isNotifiableIncident(evt: SecurityEvent): boolean {
   const action = String(evt.action || '').toUpperCase();
   const severity = String(evt.severity || '').toUpperCase();
 
-  // Explicitly exclude pure log/allow entries — these are routine telemetry
-  if (['LOG', 'ALLOW', 'ALLOWED', 'PASS', 'MONITOR'].includes(action)) return false;
-  if (severity === 'LOW' || severity === 'INFO' || severity === 'DEBUG') return false;
-
-  const isMitigation = ['BLOCK', 'BLOCKED', 'DENY', 'DROP', 'QUARANTINE'].includes(action);
+  const isMitigation = ['BLOCK', 'BLOCKED', 'DENY', 'DROP', 'QUARANTINE', 'CHALLENGE', 'RATE_LIMIT'].includes(action);
   const isElevated = severity === 'CRITICAL' || severity === 'HIGH';
   const isThreatOrIncident = (
     eventType === 'threat' || eventType === 'incident' ||
     eventType === 'malware' || eventType.includes('malware') ||
-    evt.source === 'threat' || evt.source === 'correlation'
+    eventType === 'web_attack' || eventType.includes('attack') ||
+    evt.source === 'threat' || evt.source === 'correlation' || evt.source === 'waf'
   );
   const isAuthFailure = [
     'ssh_failed_login',
@@ -119,7 +116,11 @@ function isNotifiableIncident(evt: SecurityEvent): boolean {
     'authentication_failure'
   ].includes(eventType);
 
-  if (isAuthFailure || isThreatOrIncident) return true;
+  if (isAuthFailure || isThreatOrIncident || (isElevated && !['ALLOW', 'ALLOWED', 'PASS'].includes(action))) return true;
+
+  // Explicitly exclude pure log/allow entries — these are routine telemetry
+  if (['LOG', 'ALLOW', 'ALLOWED', 'PASS', 'MONITOR'].includes(action)) return false;
+  if (severity === 'LOW' || severity === 'INFO' || severity === 'DEBUG') return false;
 
   return isMitigation || isElevated;
 }
