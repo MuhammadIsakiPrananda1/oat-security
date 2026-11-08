@@ -1548,6 +1548,9 @@ export const WafModule: React.FC<WafModuleProps> = ({ onNavigate }) => {
                     <option>XSS Filter</option>
                     <option>Path Traversal</option>
                     <option>Command Injection</option>
+                    <option>SSRF</option>
+                    <option>XXE</option>
+                    <option>SSTI</option>
                     <option>Bad Bot</option>
                     <option>Custom Policy</option>
                   </select>

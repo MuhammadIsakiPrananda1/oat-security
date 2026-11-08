@@ -197,17 +197,23 @@ func wafRulePattern(rule WAFRule) (string, string, bool) {
 	}
 
 	switch strings.ToLower(strings.TrimSpace(rule.Category)) {
-	case "sql injection":
-		return "%{THE_REQUEST}", `(?i)(\bunion\b|\bselect\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|/\*|\bor(?:\s|%20|\+)+\d+=\d+)`, true
-	case "xss", "xss filter", "cross-site scripting":
-		return "%{THE_REQUEST}", `(?i)(<script|javascript:|onerror=|onload=|<img[^>]+src=|<svg|alert\(|document\.cookie)`, true
-	case "path traversal", "lfi":
-		return "%{THE_REQUEST}", `(?i)(\.\./|\.\.\\|%2e%2e%2f|%252e)`, true
-	case "rce", "command injection", "remote code execution":
-		return "%{THE_REQUEST}", `(\$\(|` + "`" + `|;.*sh|cmd\.exe|/bin/|powershell|eval\(|exec\()`, true
+	case "sql injection", "sqli", "owasp a03 - sql injection":
+		return "%{THE_REQUEST}", `(?i)(\bunion(?:\s|%20|\+)+select|\bselect.+from|--|/\*|\bor(?:\s|%20|\+)+\d+=\d+|\bdrop(?:\s|%20|\+)+table|\binsert(?:\s|%20|\+)+into|\bdelete(?:\s|%20|\+)+from|sleep\(\d+\)|benchmark\(\d+|information_schema|xp_cmdshell)`, true
+	case "xss", "xss filter", "cross-site scripting", "owasp a03 - xss":
+		return "%{THE_REQUEST}", `(?i)(<script|%3cscript|javascript:|onerror(?:\s|%20|\+)*=|onload(?:\s|%20|\+)*=|<img[^>]+src=|<svg|alert\(|document\.cookie|<iframe|<embed|<object)`, true
+	case "path traversal", "lfi", "owasp a01 - broken access control":
+		return "%{THE_REQUEST}", `(?i)(\.\./|\.\.\\|%2e%2e%2f|%2e%2e/|%252e|/etc/(?:passwd|shadow|hosts)|/proc/self/environ|win\.ini|boot\.ini|/\.(?:git|env|svn|htaccess|htpasswd)|server-status)`, true
+	case "rce", "command injection", "remote code execution", "owasp a03 - command injection":
+		return "%{THE_REQUEST}", `(?i)(\$\(|` + "`" + `|;.*?(?:sh|bash|cmd|powershell)|cmd\.exe|/bin/(?:sh|bash|zsh)|powershell(?:\.exe)?|eval\(|exec\(|system\(|passthru\(|shell_exec\()`, true
+	case "ssrf", "server-side request forgery", "owasp a10 - ssrf":
+		return "%{THE_REQUEST}", `(?i)(https?://(?:127\.0\.0\.1|localhost|0\.0\.0\.0|169\.254\.169\.254|metadata\.google\.internal|(?:10|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.\d+\.\d+)|file://|gopher://|dict://)`, true
+	case "xxe", "xml external entity", "owasp a05 - xxe":
+		return "%{THE_REQUEST}", `(?i)(<!ENTITY|SYSTEM\s+["'](?:file|http)|<!DOCTYPE.*?\[)`, true
+	case "ssti", "server-side template injection":
+		return "%{THE_REQUEST}", `(\{\{.*?\}\}|\$\{.*?\}|<%.*?%>)`, true
 	case "rfi", "remote file inclusion":
 		return "%{THE_REQUEST}", `(?i)(https?://[^/]+/.*\.(php|sh|py|rb|pl))`, true
-	case "bot protection", "bad bot", "scanner":
+	case "bot protection", "bad bot", "scanner", "owasp automated threat":
 		return "%{HTTP_USER_AGENT}", `(nikto|nmap|masscan|sqlmap|nessus|openvas|acunetix|burpsuite|w3af|skipfish|dirbuster|scrapy|zgrab|python-requests/|go-http-client|curl/|wget/|libwww-perl)`, true
 	default:
 		return "", "", false

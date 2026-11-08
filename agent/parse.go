@@ -26,9 +26,11 @@ var (
 	genericDptRe  = regexp.MustCompile(`DPT=(\d+)`)
 	fail2banBanRe = regexp.MustCompile(`(?i)\[(\S+)\]\s+Ban\s+([0-9a-fA-F:.]+)`)
 	fail2banUnbanRe = regexp.MustCompile(`(?i)\[(\S+)\]\s+Unban\s+([0-9a-fA-F:.]+)`)
-	sqlAttackRe   = regexp.MustCompile(`(?i)(union(\s|%20|\+)+(all(\s|%20|\+)+)?select|select.+from|or(\s|%20|\+)+1=1|sleep\(|benchmark\(|information_schema|xp_cmdshell)`)
-	xssAttackRe   = regexp.MustCompile(`(?i)(<script|%3cscript|javascript:|onerror(\s|%20)*=|onload(\s|%20)*=)`)
-	traversalRe   = regexp.MustCompile(`(?i)(\.\./|%2e%2e%2f|/etc/passwd|/proc/self/environ|boot\.ini)`)
+	sqlAttackRe   = regexp.MustCompile(`(?i)(union(\s|%20|\+)+(all(\s|%20|\+)+)?select|select.+from|or(\s|%20|\+)+1=1|sleep\(|benchmark\(|information_schema|xp_cmdshell|--|/\*)`)
+	xssAttackRe   = regexp.MustCompile(`(?i)(<script|%3cscript|javascript:|onerror(\s|%20|\+)*=|onload(\s|%20|\+)*=|<img[^>]+src=|<svg|alert\(|document\.cookie|<iframe)`)
+	traversalRe   = regexp.MustCompile(`(?i)(\.\./|\.\.\\|%2e%2e%2f|%2e%2e/|%252e|/etc/(?:passwd|shadow|hosts)|/proc/self/environ|win\.ini|boot\.ini)`)
+	ssrfAttackRe  = regexp.MustCompile(`(?i)(https?://(?:127\.0\.0\.1|localhost|0\.0\.0\.0|169\.254\.169\.254|metadata\.google\.internal)|file://|gopher://|dict://)`)
+	rceAttackRe   = regexp.MustCompile(`(?i)(\$\(|` + "`" + `|;.*?(?:sh|bash|cmd|powershell)|cmd\.exe|/bin/(?:sh|bash|zsh)|powershell(?:\.exe)?|eval\(|exec\(|system\()`)
 	reconRe       = regexp.MustCompile(`(?i)(wp-login\.php|xmlrpc\.php|/\.env|/\.git/config|phpmyadmin|/server-status)`)
 )
 
@@ -252,6 +254,12 @@ func detectEvents(cfg *Config, path, line string, timestamp time.Time) ([]Event,
 			severity = "High"
 		} else if traversalRe.MatchString(uri) {
 			attackName = "Web Attack (Path Traversal)"
+			severity = "High"
+		} else if rceAttackRe.MatchString(uri) {
+			attackName = "Web Attack (Command Injection / RCE)"
+			severity = "Critical"
+		} else if ssrfAttackRe.MatchString(uri) {
+			attackName = "Web Attack (SSRF)"
 			severity = "High"
 		} else if reconRe.MatchString(uri) {
 			attackName = "Web Reconnaissance"

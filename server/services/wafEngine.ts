@@ -93,30 +93,62 @@ function matchesRuleCategory(category: string, req: Request): string | null {
 
   switch (category.toLowerCase()) {
     case 'sql injection':
-      return /(\bselect\b|\bunion\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|\/\*|\bor\b\s+\d+=\d+)/i.test(haystack)
+    case 'sqli':
+    case 'owasp a03 - sql injection':
+      return /(\bselect\b|\bunion\b|\bdrop\b|\binsert\b|\bupdate\b|\bdelete\b|\bexec\b|--|\/\*|\bor(?:\s|%20|\+)+\d+=\d+|sleep\(\d+\)|benchmark\(\d+|information_schema|xp_cmdshell)/i.test(haystack)
         ? 'SQL injection pattern in request' : null;
 
-    case 'xss': case 'xss filter': case 'cross-site scripting':
-      return /(<script|javascript:|onerror=|onload=|<img[^>]+src=|<svg|alert\(|document\.cookie)/i.test(haystack)
+    case 'xss':
+    case 'xss filter':
+    case 'cross-site scripting':
+    case 'owasp a03 - xss':
+      return /(<script|%3cscript|javascript:|onerror(?:\s|%20|\+)*=|onload(?:\s|%20|\+)*=|<img[^>]+src=|<svg|alert\(|document\.cookie|<iframe|<embed|<object)/i.test(haystack)
         ? 'XSS pattern detected' : null;
 
-    case 'path traversal': case 'lfi':
-      return /(\.\.\/|\.\.\\|%2e%2e%2f|%252e)/i.test(haystack)
+    case 'path traversal':
+    case 'lfi':
+    case 'owasp a01 - broken access control':
+      return /(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e\/|%252e|\/etc\/(?:passwd|shadow|hosts)|\/proc\/self\/environ|win\.ini|boot\.ini|\/\.(?:git|env|svn|htaccess|htpasswd)|server-status)/i.test(haystack)
         ? 'Path traversal attempt' : null;
 
-    case 'rce': case 'command injection': case 'remote code execution':
-      return /(\$\(|`|;.*sh|cmd\.exe|\/bin\/|powershell|eval\(|exec\()/i.test(haystack)
+    case 'rce':
+    case 'command injection':
+    case 'remote code execution':
+    case 'owasp a03 - command injection':
+      return /(\$\(|`|;.*?(?:sh|bash|cmd|powershell)|cmd\.exe|\/bin\/(?:sh|bash|zsh)|powershell(?:\.exe)?|eval\(|exec\(|system\(|passthru\(|shell_exec\()/i.test(haystack)
         ? 'Command injection pattern' : null;
 
-    case 'scanner': case 'vulnerability scanner':
+    case 'ssrf':
+    case 'server-side request forgery':
+    case 'owasp a10 - ssrf':
+      return /(https?:\/\/(?:127\.0\.0\.1|localhost|0\.0\.0\.0|169\.254\.169\.254|metadata\.google\.internal|(?:10|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168)\.\d+\.\d+)|file:\/\/|gopher:\/\/|dict:\/\/)/i.test(haystack)
+        ? 'SSRF internal target attempt' : null;
+
+    case 'xxe':
+    case 'xml external entity':
+    case 'owasp a05 - xxe':
+      return /(<!ENTITY|SYSTEM\s+["'](?:file|http)|<!DOCTYPE.*?\[)/i.test(haystack)
+        ? 'XXE injection attempt' : null;
+
+    case 'ssti':
+    case 'server-side template injection':
+      return /(\{\{.*?\}\}|\$\{.*?\}|<%.*?%>)/.test(haystack)
+        ? 'Server-side template injection attempt' : null;
+
+    case 'scanner':
+    case 'vulnerability scanner':
       return /(nikto|nmap|masscan|sqlmap|nessus|openvas|acunetix|burpsuite|w3af|skipfish|dirbuster)/i.test(ua)
         ? 'Security scanner User-Agent' : null;
 
-    case 'bad bot': case 'bot': case 'bot protection':
+    case 'bad bot':
+    case 'bot':
+    case 'bot protection':
+    case 'owasp automated threat':
       return /(scrapy|zgrab|python-requests\/|go-http-client|curl\/|wget\/|libwww-perl)/i.test(ua)
         ? 'Bad bot User-Agent' : null;
 
-    case 'rfi': case 'remote file inclusion':
+    case 'rfi':
+    case 'remote file inclusion':
       return /(https?:\/\/[^/]+\/.*\.(php|sh|py|rb|pl))/i.test(haystack)
         ? 'Remote file inclusion attempt' : null;
 
