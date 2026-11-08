@@ -240,9 +240,11 @@ func renderNFTablesFirewall(policy *FirewallPolicy) (string, int, []string) {
 	})
 
 	lines := []string{
-		"add table inet oat_ngfw",
-		"add chain inet oat_ngfw input { type filter hook input priority -10; policy accept; }",
-		"flush chain inet oat_ngfw input",
+		"table inet oat_ngfw {}",
+		"delete table inet oat_ngfw",
+		"table inet oat_ngfw {",
+		"    chain input {",
+		"        type filter hook input priority -10; policy accept;",
 	}
 
 	applied := 0
@@ -252,9 +254,9 @@ func renderNFTablesFirewall(policy *FirewallPolicy) (string, int, []string) {
 			warnings = append(warnings, warn)
 			continue
 		}
-		lines = append(lines, "    # "+sanitizeFwComment(rule.ID))
+		lines = append(lines, "        # "+sanitizeFwComment(rule.ID))
 		for _, line := range ruleLines {
-			lines = append(lines, "    "+line)
+			lines = append(lines, "        "+line)
 		}
 		applied++
 	}
@@ -262,5 +264,6 @@ func renderNFTablesFirewall(policy *FirewallPolicy) (string, int, []string) {
 		return "", 0, warnings
 	}
 
+	lines = append(lines, "    }", "}")
 	return strings.Join(lines, "\n"), applied, warnings
 }

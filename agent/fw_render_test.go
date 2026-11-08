@@ -27,9 +27,8 @@ func TestRenderNFTablesFirewallOrderingAndShapes(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"add table inet oat_ngfw",
-		"add chain inet oat_ngfw input { type filter hook input priority -10; policy accept; }",
-		"flush chain inet oat_ngfw input",
+		"table inet oat_ngfw {",
+		"type filter hook input priority -10; policy accept;",
 		// DENY: rate-limited log line plus an unlimited drop.
 		`ip saddr 203.0.113.9 tcp dport 22 counter limit rate 60/second log prefix "OAT_NGFW_DROP: "`,
 		`ip saddr 203.0.113.9 tcp dport 22 counter drop`,

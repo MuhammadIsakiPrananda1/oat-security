@@ -147,7 +147,7 @@ func TestRenderNFTables(t *testing.T) {
 
 	script, warnings := renderNFTables(policy)
 	for _, want := range []string{
-		"add table inet oat_waf",
+		"table inet oat_waf {",
 		"ip saddr 198.51.100.5 drop",
 		"ip saddr 203.0.113.0/24 drop",
 		"ip6 saddr 2001:db8::/32 drop",

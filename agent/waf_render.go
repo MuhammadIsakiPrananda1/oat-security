@@ -250,14 +250,20 @@ func renderNFTables(policy *WAFPolicy) (string, []string) {
 	}
 
 	lines := []string{
-		"add table inet oat_waf",
-		"add chain inet oat_waf input { type filter hook input priority -50; policy accept; }",
-		"flush chain inet oat_waf input",
+		"table inet oat_waf {}",
+		"delete table inet oat_waf",
+		"table inet oat_waf {",
+		"    chain input {",
+		"        type filter hook input priority -50; policy accept;",
 		"",
 	}
-	lines = append(lines, blockLines...)
-	lines = append(lines, rateLines...)
-	lines = append(lines, "")
+	for _, bl := range blockLines {
+		lines = append(lines, "        "+strings.TrimSpace(bl))
+	}
+	for _, rl := range rateLines {
+		lines = append(lines, "        "+strings.TrimSpace(rl))
+	}
+	lines = append(lines, "    }", "}")
 	return strings.Join(lines, "\n"), warnings
 }
 
