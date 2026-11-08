@@ -33,37 +33,37 @@ function severityConfig(severity: string) {
   const s = severity?.toUpperCase?.() || '';
   if (s === 'SUCCESS' || s === 'RESOLVED') {
     return {
-      dot: 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]',
-      border: 'border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_4px_20px_-4px_rgba(16,185,129,0.15)]',
+      dot: 'bg-emerald-500',
+      border: 'border-emerald-500/20 hover:border-emerald-500/40',
       badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      accentGlow: 'bg-emerald-500/5',
-      icon: <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-500 text-sm" />
+      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      icon: <FontAwesomeIcon icon={faCircleCheck} className="text-xs" />
     };
   }
   if (s === 'CRITICAL' || s === 'ERROR' || s === 'HIGH') {
     return {
-      dot: 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse',
-      border: 'border-rose-500/40 hover:border-rose-500/60 shadow-[0_4px_24px_-4px_rgba(244,63,94,0.18)]',
-      badgeBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30',
-      accentGlow: 'bg-rose-500/5',
-      icon: <FontAwesomeIcon icon={faShieldHalved} className="text-rose-500 text-sm" />
+      dot: 'bg-rose-500',
+      border: 'border-rose-500/25 hover:border-rose-500/45',
+      badgeBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25',
+      iconBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      icon: <FontAwesomeIcon icon={faShieldHalved} className="text-xs" />
     };
   }
   if (s === 'MEDIUM' || s === 'WARNING' || s === 'WARN') {
     return {
-      dot: 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]',
-      border: 'border-amber-500/30 hover:border-amber-500/50 shadow-[0_4px_20px_-4px_rgba(245,158,11,0.15)]',
-      badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25',
-      accentGlow: 'bg-amber-500/5',
-      icon: <FontAwesomeIcon icon={faTriangleExclamation} className="text-amber-500 text-sm" />
+      dot: 'bg-amber-500',
+      border: 'border-amber-500/20 hover:border-amber-500/40',
+      badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      icon: <FontAwesomeIcon icon={faTriangleExclamation} className="text-xs" />
     };
   }
   return {
-    dot: 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]',
-    border: 'border-blue-500/30 hover:border-blue-500/50 shadow-[0_4px_20px_-4px_rgba(59,130,246,0.15)]',
-    badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25',
-    accentGlow: 'bg-blue-500/5',
-    icon: <FontAwesomeIcon icon={faCircleInfo} className="text-blue-500 text-sm" />
+    dot: 'bg-blue-500',
+    border: 'border-blue-500/20 hover:border-blue-500/40',
+    badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    icon: <FontAwesomeIcon icon={faCircleInfo} className="text-xs" />
   };
 }
 
@@ -116,7 +116,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
 
   const live = itemsList.filter(t => !t.closing);
 
-  // Top-anchored layout: stacks gracefully from the top-right
+  // Top-anchored layout right below DashboardTopNav: stacks downwards
   const layout = useCallback(() => {
     if (!listRef.current) return;
     const els = [...listRef.current.querySelectorAll<HTMLElement>('[data-toast]:not([data-closing])')];
@@ -126,7 +126,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
     }
     const heights = els.map(li => {
       const child = li.firstElementChild as HTMLElement;
-      return child ? child.offsetHeight : 72;
+      return child ? child.offsetHeight : 68;
     });
     const front = heights[heights.length - 1] || 0;
     let y = 0;
@@ -234,7 +234,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
   return (
     <aside
       aria-label="Security Notifications"
-      className="pointer-events-none fixed top-4 right-4 z-[9999] w-[calc(100vw-2rem)] sm:w-[420px]"
+      className="pointer-events-none fixed top-[4.75rem] right-4 sm:right-6 z-[9999] w-[calc(100vw-2rem)] sm:w-[410px]"
     >
       <div
         ref={boxRef}
@@ -268,13 +268,13 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
           flags.current.focus = false;
           sync();
         }}
-        className="pointer-events-auto relative w-full"
+        className="pointer-events-auto relative w-full flex flex-col justify-start"
       >
         {/* Header toolbar when multi-alerts are present */}
         {live.length > 1 && (
           <div className="mb-2 flex items-center justify-between px-1">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="size-1.5 rounded-full bg-emerald-500" />
               {getLanguage() === 'id' ? 'Peringatan Keamanan' : 'Security Alerts'}
             </span>
             <div className="flex items-center gap-2">
@@ -309,16 +309,16 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
                   data-toast=""
                   data-closing={toast.closing ? '' : undefined}
                   onKeyDown={event => event.key === 'Escape' && dismiss(toast.id)}
-                  className={`group/toast absolute inset-x-0 top-0 origin-top rounded-2xl border bg-white/95 backdrop-blur-md dark:bg-zinc-950/95 transition-[translate,scale,height,opacity] duration-300 ease-out data-closing:opacity-0 data-closing:scale-95 data-folded:overflow-hidden motion-reduce:transition-none ${cfg.border}`}
+                  className={`group/toast absolute inset-x-0 top-0 origin-top rounded-xl border bg-white dark:bg-[#121215] shadow-lg shadow-black/10 dark:shadow-black/40 transition-[translate,scale,height,opacity] duration-300 ease-out data-closing:opacity-0 data-closing:scale-95 data-folded:overflow-hidden motion-reduce:transition-none ${cfg.border}`}
                 >
-                  <div className={`p-3.5 flex items-start gap-3 rounded-2xl ${cfg.accentGlow}`}>
-                    <div className="mt-0.5 shrink-0 flex items-center justify-center size-7 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800">
+                  <div className="p-3.5 flex items-start gap-3 rounded-xl">
+                    <div className={`mt-0.5 shrink-0 flex items-center justify-center size-7 rounded-lg border border-black/5 dark:border-white/5 ${cfg.iconBg}`}>
                       {cfg.icon}
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${cfg.badgeBg}`}>
+                        <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${cfg.badgeBg}`}>
                           {toast.severity || 'ALERT'}
                         </span>
                         <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
@@ -338,7 +338,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
                               toast.onNavigate?.();
                               dismiss(toast.id);
                             }}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
                           >
                             <span>{getLanguage() === 'id' ? 'Lihat detail' : 'View detail'}</span>
                             <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
@@ -351,7 +351,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
                       type="button"
                       onClick={() => dismiss(toast.id)}
                       aria-label="Dismiss notification"
-                      className="shrink-0 size-6 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                      className="shrink-0 size-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
                       <FontAwesomeIcon icon={faXmark} className="text-xs" />
                     </button>

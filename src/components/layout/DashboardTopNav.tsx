@@ -102,6 +102,10 @@ function isNotifiableIncident(evt: SecurityEvent): boolean {
   const action = String(evt.action || '').toUpperCase();
   const severity = String(evt.severity || '').toUpperCase();
 
+  // Strict check: routine logs or permitted telemetry must NEVER become notifiable alerts/critical
+  if (['LOG', 'ALLOW', 'ALLOWED', 'PASS', 'MONITOR'].includes(action)) return false;
+  if (severity === 'LOW' || severity === 'INFO' || severity === 'DEBUG') return false;
+
   const isMitigation = ['BLOCK', 'BLOCKED', 'DENY', 'DROP', 'QUARANTINE', 'CHALLENGE', 'RATE_LIMIT'].includes(action);
   const isElevated = severity === 'CRITICAL' || severity === 'HIGH';
   const isThreatOrIncident = (
@@ -116,13 +120,9 @@ function isNotifiableIncident(evt: SecurityEvent): boolean {
     'authentication_failure'
   ].includes(eventType);
 
-  if (isAuthFailure || isThreatOrIncident || (isElevated && !['ALLOW', 'ALLOWED', 'PASS'].includes(action))) return true;
+  if (isAuthFailure || isThreatOrIncident || isMitigation) return true;
 
-  // Explicitly exclude pure log/allow entries — these are routine telemetry
-  if (['LOG', 'ALLOW', 'ALLOWED', 'PASS', 'MONITOR'].includes(action)) return false;
-  if (severity === 'LOW' || severity === 'INFO' || severity === 'DEBUG') return false;
-
-  return isMitigation || isElevated;
+  return isElevated;
 }
 
 function actionLabelFor(action?: string, isId: boolean = false): string {
@@ -180,6 +180,7 @@ function formatNotifContent(n: TopNotification, isId: boolean) {
       .replace('Serangan SQL Injection', isId ? 'Serangan SQL Injection' : 'SQL Injection Attack')
       .replace('Serangan Brute Force SSH', isId ? 'Serangan Brute Force SSH' : 'SSH Brute Force Attack')
       .replace('Kegagalan Firewall Engine', isId ? 'Kegagalan Firewall Engine' : 'Firewall Engine Failure')
+      .replace('Firewall Engine Failure', isId ? 'Peringatan Firewall' : 'Firewall Alert')
       .replace('Malware Terdeteksi', isId ? 'Malware Terdeteksi' : 'Malware Detected')
       .replace('Insiden Keamanan Terdeteksi', isId ? 'Insiden Keamanan Terdeteksi' : 'Security Incident Detected');
   }
@@ -218,7 +219,16 @@ function cleanThreatTitle(rawThreat: string, isId: boolean = false): string {
   if (lower.includes('sqli') || lower.includes('sql injection')) return isId ? 'Serangan SQL Injection' : 'SQL Injection Attack';
   if (lower.includes('brute') || lower.includes('ssh_failed')) return isId ? 'Serangan Brute Force SSH' : 'SSH Brute Force Attack';
   if (lower.includes('endpoint')) return isId ? 'Ancaman Terdeteksi di Endpoint' : 'Threat Detected on Endpoint';
-  if (lower.includes('firewall')) return isId ? 'Kegagalan Firewall Engine' : 'Firewall Engine Failure';
+  if (lower.includes('firewall_failure') || lower.includes('firewall failed') || lower.includes('installation failed') || lower.includes('engine failure')) {
+    return isId ? 'Kegagalan Firewall Engine' : 'Firewall Engine Failure';
+  }
+  if (lower.includes('firewall block') || lower.includes('firewall drop') || lower.includes('ngfw drop') || lower.includes('acl deny')) {
+    return isId ? 'Koneksi Diblokir Firewall' : 'Firewall Blocked Connection';
+  }
+  if (lower.includes('firewall log') || lower.includes('firewall permit') || lower.includes('firewall allow') || lower.includes('packet_filter')) {
+    return isId ? 'Aktivitas Firewall' : 'Firewall Activity';
+  }
+  if (lower.includes('firewall')) return isId ? 'Peringatan Firewall' : 'Firewall Alert';
   if (lower.includes('malware')) return isId ? 'Malware Terdeteksi' : 'Malware Detected';
   if (t) return t;
   return isId ? 'Insiden Keamanan Terdeteksi' : 'Security Incident Detected';
@@ -252,7 +262,16 @@ function loadStoredNotifications(): TopNotification[] {
     const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed as TopNotification[];
+      if (Array.isArray(parsed)) {
+        // Filter out false positive critical alerts caused by earlier faulty titles or non-incidents
+        return (parsed as TopNotification[]).filter(n => {
+          const t = (n.title || '').toLowerCase();
+          const d = (n.desc || '').toLowerCase();
+          // Remove rogue false engine failure alerts where from IP is 0.0.0.0
+          if (t.includes('firewall engine failure') && (d.includes('0.0.0.0') || n.sourceIp === '0.0.0.0')) return false;
+          return true;
+        });
+      }
     }
   } catch {
     // fallback
