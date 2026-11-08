@@ -225,10 +225,12 @@ function cleanThreatTitle(rawThreat: string, isId: boolean = false): string {
 }
 
 function makeToastDedupKey(evt: SecurityEvent): string {
-  const srcIp = (evt.sourceIp || evt.source || '').toString().slice(0, 64);
-  const threat = (evt.threat || evt.eventType || evt.action || '').toString().slice(0, 64);
-  const src = (evt.source || '').toString().slice(0, 16);
-  return `${src}:${srcIp}:${threat}`;
+  // Normalize source IP and threat/attack signature
+  const srcIp = (evt.sourceIp || (evt as any).source_ip || '').toString().trim().toLowerCase();
+  const rawThreat = (evt.threat || evt.threatName || evt.eventType || '').toString().trim().toLowerCase();
+  // Strip category prefix like [threat] or [agent] to group related alerts for the same event
+  const threatNorm = rawThreat.replace(/^(web attack|endpoint attack|policy violation|scanning)[:\s-]*/i, '').trim();
+  return `${srcIp}:${threatNorm || 'alert'}`;
 }
 
 function isToastDuplicateWithin(key: string): boolean {
@@ -1069,9 +1071,6 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
           </div>
         </div>
       </header>
-
-      {/* Toast Notification Container (Top Anchored Stacked Toasts) */}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* Edit Profile Modal */}
       {showEditProfileModal && (

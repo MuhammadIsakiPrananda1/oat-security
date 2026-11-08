@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faShieldHalved, faTriangleExclamation, faCircleCheck, faCircleInfo, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { getLanguage } from '../../i18n/translator';
 
 export interface ToastItem {
@@ -22,62 +22,48 @@ interface ToastContainerProps {
   onDismiss: (id: string) => void;
 }
 
-// Folded, up to two older toasts peek out 10px each behind the newest; open, they stand 8px apart.
-const PEEK = 10;
-const GAP = 8;
+// Folded, up to two older toasts peek out 8px each behind the newest; open, they stand 10px apart.
+const PEEK = 8;
+const GAP = 10;
 const FOLD = 2;
-const LIFE = 6000;
-const MAX = 5;
+const LIFE = 6500;
+const MAX = 4;
 
 function severityConfig(severity: string) {
   const s = severity?.toUpperCase?.() || '';
   if (s === 'SUCCESS' || s === 'RESOLVED') {
     return {
-      dot: 'bg-emerald-500',
-      badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-      iconSvg: (
-        <svg className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" />
-          <path d="m16 9-5.5 5.5L8 12" />
-        </svg>
-      )
+      dot: 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]',
+      border: 'border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_4px_20px_-4px_rgba(16,185,129,0.15)]',
+      badgeBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      accentGlow: 'bg-emerald-500/5',
+      icon: <FontAwesomeIcon icon={faCircleCheck} className="text-emerald-500 text-sm" />
     };
   }
   if (s === 'CRITICAL' || s === 'ERROR' || s === 'HIGH') {
     return {
-      dot: 'bg-rose-500',
-      badge: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-      iconSvg: (
-        <svg className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-      )
+      dot: 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse',
+      border: 'border-rose-500/40 hover:border-rose-500/60 shadow-[0_4px_24px_-4px_rgba(244,63,94,0.18)]',
+      badgeBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30',
+      accentGlow: 'bg-rose-500/5',
+      icon: <FontAwesomeIcon icon={faShieldHalved} className="text-rose-500 text-sm" />
     };
   }
   if (s === 'MEDIUM' || s === 'WARNING' || s === 'WARN') {
     return {
-      dot: 'bg-amber-500',
-      badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-      iconSvg: (
-        <svg className="mt-0.5 size-5 shrink-0 text-amber-500 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      )
+      dot: 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]',
+      border: 'border-amber-500/30 hover:border-amber-500/50 shadow-[0_4px_20px_-4px_rgba(245,158,11,0.15)]',
+      badgeBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25',
+      accentGlow: 'bg-amber-500/5',
+      icon: <FontAwesomeIcon icon={faTriangleExclamation} className="text-amber-500 text-sm" />
     };
   }
   return {
-    dot: 'bg-blue-500',
-    badge: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-    iconSvg: (
-      <svg className="mt-0.5 size-5 shrink-0 text-neutral-950 dark:text-neutral-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
-        <path d="m21.854 2.147-10.94 10.939" />
-      </svg>
-    )
+    dot: 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]',
+    border: 'border-blue-500/30 hover:border-blue-500/50 shadow-[0_4px_20px_-4px_rgba(59,130,246,0.15)]',
+    badgeBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25',
+    accentGlow: 'bg-blue-500/5',
+    icon: <FontAwesomeIcon icon={faCircleInfo} className="text-blue-500 text-sm" />
   };
 }
 
@@ -95,7 +81,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
 
   const reduce = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Sync incoming props into itemsList (newest at the end for bottom-pinned layout)
+  // Sync incoming props into itemsList (newest at the end for clean top stack)
   useEffect(() => {
     setItemsList(prev => {
       const existingIds = new Set(prev.map(p => p.id));
@@ -103,7 +89,6 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
 
       incomingToasts.forEach(t => {
         if (!existingIds.has(t.id)) {
-          // New toast pushes to bottom
           nextItems.push({ ...t, closing: false });
           clocks.current.set(t.id, { left: LIFE, since: 0, id: 0 });
         }
@@ -131,8 +116,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
 
   const live = itemsList.filter(t => !t.closing);
 
-  // Places every toast: newest at the bottom; folded, the older ones behind it, smaller, with
-  // their words faded; open, each above the next at its own height.
+  // Top-anchored layout: stacks gracefully from the top-right
   const layout = useCallback(() => {
     if (!listRef.current) return;
     const els = [...listRef.current.querySelectorAll<HTMLElement>('[data-toast]:not([data-closing])')];
@@ -142,7 +126,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
     }
     const heights = els.map(li => {
       const child = li.firstElementChild as HTMLElement;
-      return child ? child.offsetHeight : 64;
+      return child ? child.offsetHeight : 72;
     });
     const front = heights[heights.length - 1] || 0;
     let y = 0;
@@ -150,15 +134,15 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
       const li = els[els.length - 1 - d];
       const h = heights[els.length - 1 - d];
       if (openRef.current) {
-        li.style.translate = `0 ${-y}px`;
+        li.style.translate = `0 ${y}px`;
         li.style.scale = '1';
         li.style.height = `${h}px`;
         li.style.opacity = '';
         li.removeAttribute('data-folded');
         y += h + GAP;
       } else {
-        li.style.translate = `0 ${-Math.min(d, FOLD) * PEEK}px`;
-        li.style.scale = String(1 - Math.min(d, FOLD + 1) * 0.05);
+        li.style.translate = `0 ${Math.min(d, FOLD) * PEEK}px`;
+        li.style.scale = String(1 - Math.min(d, FOLD + 1) * 0.04);
         li.style.height = `${front}px`;
         li.style.opacity = d > FOLD ? '0' : '';
         li.toggleAttribute('data-folded', d > 0);
@@ -222,13 +206,6 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
     return () => document.removeEventListener('pointerdown', onDown);
   }, []);
 
-  const away = () => {
-    const from = back.current as HTMLElement | null;
-    if (from && from.isConnected && from.getClientRects().length) {
-      from.focus();
-    }
-  };
-
   const drop = (ids: string[]) => {
     setTimeout(
       () => {
@@ -244,43 +221,20 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
     if (!li || li.hasAttribute('data-closing')) return;
     hold(id);
     clocks.current.delete(id);
-    if (li.contains(document.activeElement)) {
-      if (!listRef.current) return;
-      const els = [...listRef.current.querySelectorAll<HTMLElement>('[data-toast]:not([data-closing])')];
-      const at = els.indexOf(li);
-      const next = els[at + 1] || els[at - 1];
-      if (next) {
-        next.querySelector<HTMLElement>('[data-dismiss]')?.focus();
-      } else {
-        away();
-      }
-    }
-    setItemsList(list => list.map(toast => (toast.id === id ? { ...toast, closing: true } : toast)));
+    li.setAttribute('data-closing', '');
     drop([id]);
   };
 
   const clearAll = () => {
-    away();
-    clocks.current.forEach(c => clearTimeout(c.id));
-    clocks.current.clear();
     const ids = itemsList.map(toast => toast.id);
     setItemsList(list => list.map(toast => ({ ...toast, closing: true })));
     drop(ids);
   };
 
-  // Auto-run clocks on itemsList update
-  useEffect(() => {
-    itemsList.forEach(t => {
-      if (!t.closing) run(t.id);
-    });
-  }, [itemsList]);
-
-  if (itemsList.length === 0) return null;
-
   return (
-    <section
-      aria-label="Notifications"
-      className="pointer-events-none fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 sm:right-[max(1.5rem,env(safe-area-inset-right))] sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:left-auto sm:w-96"
+    <aside
+      aria-label="Security Notifications"
+      className="pointer-events-none fixed top-4 right-4 z-[9999] w-[calc(100vw-2rem)] sm:w-[420px]"
     >
       <div
         ref={boxRef}
@@ -314,30 +268,29 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
           flags.current.focus = false;
           sync();
         }}
-        className="pointer-events-auto absolute inset-x-0 bottom-0"
+        className="pointer-events-auto relative w-full"
       >
-        <div className="mb-2 flex items-center justify-end gap-2">
-          <p
-            id="toast-stack-count"
-            className="inline-flex h-7 items-center rounded-full bg-white px-2.5 text-xs font-medium whitespace-nowrap text-neutral-600 tabular-nums shadow-md ring-1 ring-neutral-950/10 dark:bg-neutral-900 dark:text-neutral-400 dark:ring-neutral-800"
-          >
-            {getLanguage() === 'id'
-              ? `${live.length} notifikasi`
-              : `${live.length} notification${live.length === 1 ? '' : 's'}`}
-          </p>
-          <button
-            type="button"
-            id="toast-stack-clear"
-            onClick={clearAll}
-            className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full bg-white px-2.5 text-xs font-medium whitespace-nowrap text-neutral-950 shadow-md ring-1 ring-neutral-950/10 transition-colors duration-150 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 motion-reduce:transition-none dark:bg-neutral-900 dark:text-neutral-50 dark:ring-neutral-800 dark:hover:bg-neutral-800 dark:focus-visible:outline-zinc-50"
-          >
-            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
-            {getLanguage() === 'id' ? 'Hapus semua' : 'Clear all'}
-          </button>
-        </div>
+        {/* Header toolbar when multi-alerts are present */}
+        {live.length > 1 && (
+          <div className="mb-2 flex items-center justify-between px-1">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {getLanguage() === 'id' ? 'Peringatan Keamanan' : 'Security Alerts'}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 items-center rounded-md bg-zinc-200/70 px-2 text-[10px] font-bold tabular-nums text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                {live.length}
+              </span>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-[11px] font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+              >
+                {getLanguage() === 'id' ? 'Hapus semua' : 'Clear all'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div role="status" aria-atomic="false">
           <ol
@@ -346,7 +299,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
             className="relative transition-[height] duration-300 ease-out motion-reduce:transition-none"
           >
             {itemsList.map(toast => {
-              const icons = severityConfig(toast.severity);
+              const cfg = severityConfig(toast.severity);
               return (
                 <li
                   key={toast.id}
@@ -356,41 +309,51 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
                   data-toast=""
                   data-closing={toast.closing ? '' : undefined}
                   onKeyDown={event => event.key === 'Escape' && dismiss(toast.id)}
-                  className="group/toast absolute inset-x-0 bottom-0 origin-top rounded-3xl bg-white shadow-2xl ring-1 ring-neutral-950/10 transition-[translate,scale,height,opacity] duration-300 ease-out data-closing:opacity-0 data-folded:overflow-hidden motion-reduce:transition-none dark:bg-neutral-900 dark:ring-neutral-800 starting:opacity-0"
+                  className={`group/toast absolute inset-x-0 top-0 origin-top rounded-2xl border bg-white/95 backdrop-blur-md dark:bg-zinc-950/95 transition-[translate,scale,height,opacity] duration-300 ease-out data-closing:opacity-0 data-closing:scale-95 data-folded:overflow-hidden motion-reduce:transition-none ${cfg.border}`}
                 >
-                  <div className="flex items-start gap-3 p-4 transition-opacity duration-200 group-data-folded/toast:opacity-0 motion-reduce:transition-none">
-                    {icons.iconSvg}
-                    <div className="min-w-0 grow basis-40 text-sm break-words">
-                      <p className="font-medium text-neutral-950 dark:text-neutral-50">
-                        {toast.title}
-                      </p>
-                      <p className="mt-0.5 text-neutral-600 dark:text-neutral-400">
+                  <div className={`p-3.5 flex items-start gap-3 rounded-2xl ${cfg.accentGlow}`}>
+                    <div className="mt-0.5 shrink-0 flex items-center justify-center size-7 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800">
+                      {cfg.icon}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${cfg.badgeBg}`}>
+                          {toast.severity || 'ALERT'}
+                        </span>
+                        <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                          {toast.title}
+                        </h4>
+                      </div>
+
+                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed break-words line-clamp-2">
                         {toast.desc}
                       </p>
+
                       {toast.onNavigate && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            toast.onNavigate?.();
-                            dismiss(toast.id);
-                          }}
-                          className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                        >
-                          {getLanguage() === 'id' ? 'Lihat detail' : 'View detail'} <FontAwesomeIcon icon={faArrowRight} className="text-[9px]" />
-                        </button>
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              toast.onNavigate?.();
+                              dismiss(toast.id);
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
+                          >
+                            <span>{getLanguage() === 'id' ? 'Lihat detail' : 'View detail'}</span>
+                            <FontAwesomeIcon icon={faArrowRight} className="text-[10px]" />
+                          </button>
+                        </div>
                       )}
                     </div>
+
                     <button
                       type="button"
-                      data-dismiss=""
                       onClick={() => dismiss(toast.id)}
-                      aria-label={getLanguage() === 'id' ? 'Tutup notifikasi' : 'Close notification'}
-                      className="-mt-1 -mr-1 inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-xl text-neutral-600 transition-colors duration-150 hover:bg-neutral-100 hover:text-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 motion-reduce:transition-none dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-50 dark:focus-visible:outline-zinc-50"
+                      aria-label="Dismiss notification"
+                      className="shrink-0 size-6 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
                     >
-                      <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                      </svg>
+                      <FontAwesomeIcon icon={faXmark} className="text-xs" />
                     </button>
                   </div>
                 </li>
@@ -399,6 +362,6 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts: incoming
           </ol>
         </div>
       </div>
-    </section>
+    </aside>
   );
 };
