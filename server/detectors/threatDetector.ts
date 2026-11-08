@@ -25,10 +25,10 @@ export interface ThreatRecord {
 }
 
 export function processSecurityEvent(event: NormalizedSecurityEvent) {
-  // Dynamic WAF Policy evaluation
-  if (event.source === 'waf' && event.organizationId) {
+  // Dynamic WAF & Firewall Policy evaluation
+  if ((event.source === 'waf' || event.source === 'agent' || event.eventType === 'web_attack') && event.organizationId) {
     try {
-      const policy = db.prepare('SELECT * FROM waf_policy WHERE organization_id = ?').get(event.organizationId);
+      const policy = db.prepare('SELECT * FROM waf_policy WHERE organization_id = ?').get(event.organizationId) as any;
       if (policy) {
         const ip = event.sourceIp;
         // 1. IP Allowlist
@@ -56,8 +56,15 @@ export function processSecurityEvent(event: NormalizedSecurityEvent) {
             event.threatName = 'Automated Scanner / Bad Bot (' + ua.slice(0, 32) + ')';
           }
         }
-        // 4. WAF Mode: monitor
-        if (String(policy.mode || '').toLowerCase() === 'monitor' && (event.action === 'BLOCK' || event.action === 'DENY')) {
+
+        // 4. If WAF Engine is enabled and active in 'block' mode, automatically enforce BLOCK on verified attacks
+        const isBlockMode = String(policy.mode || 'block').toLowerCase() === 'block';
+        const isEngineActive = policy.engine_enabled === 1 || policy.engine_enabled === true;
+        if (isEngineActive && isBlockMode) {
+          if (event.eventType === 'web_attack' || event.severity === 'Critical' || event.severity === 'High') {
+            event.action = 'BLOCK';
+          }
+        } else if (String(policy.mode || '').toLowerCase() === 'monitor' && (event.action === 'BLOCK' || event.action === 'DENY')) {
           event.action = 'LOG';
         }
       }

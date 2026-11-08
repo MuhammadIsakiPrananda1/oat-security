@@ -234,15 +234,15 @@ apiRouter.get('/organizations', (req: AuthenticatedRequest, res) => {
     }
 
     const targetOrgId = req.user?.organizationId || req.organizationId;
+    if (!targetOrgId) {
+      return res.json({ organizations: [] });
+    }
+
+    // Tenant isolation: users can ONLY see their own bound organization
     const records = db.prepare(`
       SELECT o.id, o.name, o.domain, o.industry, o.tier 
       FROM organizations o
       WHERE o.id = ?
-        AND EXISTS (
-          SELECT 1 FROM agents a
-          WHERE a.organization_id = o.id
-            AND (a.revoked_at IS NULL OR a.revoked_at = '')
-        )
     `).all(targetOrgId) as any[];
 
     res.json({
@@ -813,20 +813,33 @@ apiRouter.get('/dashboard', (req: AuthenticatedRequest, res) => {
 
   const scoreResult = calculateSecurityScore(orgId);
 
-  // Group threats by severity
-  const severityRows = db.prepare(`
-    SELECT severity, COUNT(*) as count FROM threats
+  // Group threats & security events by severity so overview matches real-time security events
+  const eventSeverityRows = db.prepare(`
+    SELECT LOWER(severity) as severity, COUNT(*) as count FROM security_events
     WHERE organization_id = ?
-    GROUP BY severity
+    GROUP BY LOWER(severity)
+  `).all(orgId) as Array<{ severity: string; count: number }>;
+
+  const threatSeverityRows = db.prepare(`
+    SELECT LOWER(severity) as severity, COUNT(*) as count FROM threats
+    WHERE organization_id = ?
+    GROUP BY LOWER(severity)
   `).all(orgId) as Array<{ severity: string; count: number }>;
 
   const threatOverview = { critical: 0, high: 0, medium: 0, low: 0 };
-  severityRows.forEach(r => {
-    const key = r.severity.toLowerCase() as keyof typeof threatOverview;
+  // Combine counts taking the maximum between threats and security events so verified incidents are never hidden
+  for (const r of threatSeverityRows) {
+    const key = (r.severity || '').toLowerCase() as keyof typeof threatOverview;
     if (threatOverview[key] !== undefined) {
-      threatOverview[key] = r.count;
+      threatOverview[key] = Math.max(threatOverview[key], Number(r.count) || 0);
     }
-  });
+  }
+  for (const r of eventSeverityRows) {
+    const key = (r.severity || '').toLowerCase() as keyof typeof threatOverview;
+    if (threatOverview[key] !== undefined) {
+      threatOverview[key] = Math.max(threatOverview[key], Number(r.count) || 0);
+    }
+  }
 
   // Recent 5 events mapped to standard client event model.
   const rawRecent = db.prepare(`

@@ -82,8 +82,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
   // Theme state
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
-      const stored = localStorage.getItem('theme');
-      if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+      const stored = localStorage.getItem('oat-theme-mode') || localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark' || stored === 'system') return stored as ThemeMode;
     } catch { }
     return 'dark';
   });
@@ -94,17 +94,25 @@ export const AuthView: React.FC<AuthViewProps> = ({ onSuccess, onCancel, variant
   useEffect(() => {
     try {
       localStorage.setItem('theme', theme);
+      localStorage.setItem('oat-theme-mode', theme);
     } catch { }
 
     const root = document.documentElement;
     if (theme === 'system') {
       const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (systemDark) root.classList.add('dark');
-      else root.classList.remove('dark');
+      if (systemDark) {
+        root.classList.add('dark');
+        root.classList.remove('light');
+      } else {
+        root.classList.remove('dark');
+        root.classList.add('light');
+      }
     } else if (theme === 'dark') {
       root.classList.add('dark');
+      root.classList.remove('light');
     } else {
       root.classList.remove('dark');
+      root.classList.add('light');
     }
   }, [theme]);
 

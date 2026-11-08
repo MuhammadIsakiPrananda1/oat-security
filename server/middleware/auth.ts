@@ -62,7 +62,7 @@ export function authMiddleware(req: AuthenticatedRequest, _res: Response, next: 
       req.user = { ...payload, socTier };
       const customOrg = (req.headers['x-organization-id'] as string) ||
         (realtimeStream ? String(req.query.org || '') : '');
-      if (customOrg && (payload.role === 'Super Admin' || payload.role === 'Security Admin') && checkOrgExists(customOrg)) {
+      if (customOrg && payload.role === 'Super Admin' && checkOrgExists(customOrg)) {
         req.organizationId = customOrg.trim();
       } else if (checkOrgExists(payload.organizationId)) {
         req.organizationId = payload.organizationId;
@@ -108,9 +108,13 @@ export function authMiddleware(req: AuthenticatedRequest, _res: Response, next: 
   }
 
   // Ensure both req.organizationId and req.user.organizationId are valid and matching in DB
-  req.organizationId = resolveDatabaseOrgId(req.organizationId);
-  if (req.user) {
-    req.user.organizationId = req.organizationId;
+  if (req.user && req.user.role !== 'Super Admin' && req.user.organizationId && checkOrgExists(req.user.organizationId)) {
+    req.organizationId = req.user.organizationId;
+  } else {
+    req.organizationId = resolveDatabaseOrgId(req.organizationId);
+    if (req.user) {
+      req.user.organizationId = req.organizationId;
+    }
   }
 
   next();

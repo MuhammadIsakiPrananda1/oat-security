@@ -244,7 +244,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    */
   const loadOrganizations = useCallback(async (options: { announce?: boolean } = {}) => {
     try {
-      const res = await fetch('/api/organizations');
+      const headers: Record<string, string> = {};
+      const activeToken = token || localStorage.getItem(SESSION_STORAGE_KEY) ? JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || '{}').token : null;
+      if (activeToken) {
+        headers['Authorization'] = `Bearer ${activeToken}`;
+      }
+      const res = await fetch('/api/organizations', { headers });
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
       const list: Organization[] = Array.isArray(data?.organizations) ? data.organizations : [];
@@ -284,7 +289,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Keep the current tenant on a transient failure.
     }
-  }, []);
+  }, [token]);
 
   // Fetch organizations from API on mount, then keep the list current.
   useEffect(() => {
