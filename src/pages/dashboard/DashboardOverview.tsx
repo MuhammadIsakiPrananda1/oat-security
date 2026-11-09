@@ -852,7 +852,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     // Auto-sync polling every 15s as fallback (realtime WS event stream pushes instant events)
     const timer = window.setInterval(loadEvents, 15000);
     return () => { isMounted = false; window.clearInterval(timer); };
-  }, [isBackendOffline, activityPage, activityPageSize, activityFilterAction, activityFilterSeverity, activitySearchTerm]);
+  }, [currentOrg?.id, isBackendOffline, activityPage, activityPageSize, activityFilterAction, activityFilterSeverity, activitySearchTerm]);
 
   // Load aggregate counts for the filter dropdowns
   useEffect(() => {
@@ -873,31 +873,30 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     loadAggregates();
     const timer = window.setInterval(loadAggregates, 30000);
     return () => { isMounted = false; window.clearInterval(timer); };
-  }, [isBackendOffline]);
+  }, [currentOrg?.id, isBackendOffline]);
+
+  // Track the previous org to cleanly reset dashboard telemetry when switching users or organizations
+  const prevOrgIdRef = useRef<string | undefined>(currentOrg?.id);
+  useEffect(() => {
+    if (prevOrgIdRef.current !== currentOrg?.id) {
+      prevOrgIdRef.current = currentOrg?.id;
+      setData(null);
+      setActivityEvents([]);
+      setActivityTotal(0);
+      setCountryTrafficData([]);
+      setActivityAggregateActions(null);
+      setActivityAggregateSeverities(null);
+      try {
+        sessionStorage.removeItem('oat_dashboard_data');
+      } catch {}
+    }
+  }, [currentOrg?.id]);
 
   const fetchData = async (isBackground = false) => {
     setError(null);
     try {
       const res = await securityApi.getDashboard();
-      setData((prev: any) => {
-        if (!res) return prev;
-        // Merge real-time counters so polling response never resets active live streaming counters
-        return {
-          ...res,
-          isLiveTraffic: res.isLiveTraffic || prev?.isLiveTraffic,
-          trafficHistory: (res.trafficHistory && res.trafficHistory.length > 0)
-            ? res.trafficHistory
-            : (prev?.trafficHistory || []),
-          metrics: {
-            ...res.metrics,
-            requestsToday: Math.max(res.metrics?.requestsToday ?? 0, prev?.metrics?.requestsToday ?? 0),
-            blockedRequests: Math.max(res.metrics?.blockedRequests ?? 0, prev?.metrics?.blockedRequests ?? 0),
-            securityEventsCount: Math.max(res.metrics?.securityEventsCount ?? 0, prev?.metrics?.securityEventsCount ?? 0),
-            activeThreats: Math.max(res.metrics?.activeThreats ?? 0, prev?.metrics?.activeThreats ?? 0),
-            criticalAlerts: Math.max(res.metrics?.criticalAlerts ?? 0, prev?.metrics?.criticalAlerts ?? 0)
-          }
-        };
-      });
+      setData(res);
       if (!isBackground && res?.recentEvents && activityEvents.length === 0) {
         setActivityEvents(res.recentEvents.slice(0, activityPageSize));
         setActivityTotal(res.recentEvents.length);
@@ -931,6 +930,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
     if (isBackendOffline) return;
     const unsub = telemetryStreamManager.subscribe(
       (msg: any) => {
+        // Enforce tenant isolation: drop messages from other organizations
+        const msgOrg = msg?.data?.organizationId || msg?.organizationId;
+        if (msgOrg && currentOrg?.id && msgOrg !== currentOrg.id) {
+          return;
+        }
+
         // Increment requestsToday live when new log or event is ingested
         if (msg?.type === 'log.created' || msg?.type === 'security_event' || msg?.type === 'security_event.created') {
           setData((prev: any) => {
@@ -1099,7 +1104,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
       () => { }
     );
     return () => unsub();
-  }, [isBackendOffline, activityFilterAction, activityFilterSeverity, activitySearchTerm, activityPage, activityPageSize]);
+  }, [currentOrg?.id, isBackendOffline, activityFilterAction, activityFilterSeverity, activitySearchTerm, activityPage, activityPageSize]);
 
   // Core defense engine health — realtime over the /ws stream. The server
   // broadcasts a fresh snapshot every second and immediately after any

@@ -98,11 +98,17 @@ export const EndpointConnectionProvider: React.FC<{ children: React.ReactNode }>
           setIsLoading(false);
         }
       } else if (msg.type === 'agent.heartbeat' || msg.type === 'agent.enrolled') {
-        // Immediate optimistic flag: an endpoint is communicating!
-        setHasConnectedEndpoints(true);
-        setLastUpdate(new Date());
+        // Only refresh or flag if matching current organization
+        const agentOrg = msg.data?.organizationId || msg.organizationId;
+        if (agentOrg && currentOrg?.id && agentOrg !== currentOrg.id) {
+          return;
+        }
         fetchStatus();
       } else if (msg.type === 'agent.removed' || msg.type === 'agent.offline') {
+        const agentOrg = msg.data?.organizationId || msg.organizationId;
+        if (agentOrg && currentOrg?.id && agentOrg !== currentOrg.id) {
+          return;
+        }
         fetchStatus();
       }
     });

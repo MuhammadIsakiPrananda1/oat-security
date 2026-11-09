@@ -200,39 +200,14 @@ export class SecurityWebSocketServer {
     this.wss.clients.forEach((client) => {
       const extWs = client as ExtendedWebSocket;
       if (extWs.readyState === WebSocket.OPEN) {
-        // Multi-tenant filter: if event has organizationId and client specified organizationId
-        const isAgentStatusEvent = payload.type === 'agent.heartbeat' ||
-          payload.type === 'agent.enrolled' ||
-          payload.type === 'agent.updated' ||
-          payload.type === 'agent.restored' ||
-          payload.type === 'endpoint.status' ||
-          payload.type === 'agent.status' ||
-          payload.type === 'waf.agent_status' ||
-          payload.type === 'waf.deployment_queued' ||
-          payload.type === 'firewall.agent_status' ||
-          payload.type === 'firewall.deployment_queued' ||
-          payload.type === 'rule.updated';
-
-        const isSecurityTelemetryEvent = payload.type === 'security_event' ||
-          payload.type === 'security_event.created' ||
-          payload.type === 'security.alert' ||
-          payload.type === 'threat.created' ||
-          payload.type === 'threat.updated' ||
-          payload.type === 'log.created' ||
-          payload.type === 'waf.event' ||
-          payload.type === 'waf.blocked' ||
-          payload.type === 'malware.detected' ||
-          payload.type === 'firewall.event';
-
-        if (
-          payload.organizationId &&
-          !isAgentStatusEvent &&
-          !isSecurityTelemetryEvent &&
-          (!extWs.authenticated ||
-            (!extWs.organizationId && extWs.userRole !== 'Super Admin') ||
-            (extWs.organizationId !== payload.organizationId && extWs.userRole !== 'Super Admin'))
-        ) {
-          return;
+        // Multi-tenant filter: enforce tenant isolation across all events.
+        // A client only receives events that match their authenticated organizationId,
+        // unless they are a global Super Admin.
+        if (payload.organizationId) {
+          if (!extWs.authenticated) return;
+          if (extWs.userRole !== 'Super Admin' && extWs.organizationId !== payload.organizationId) {
+            return;
+          }
         }
 
         // SOC tier scope: never leak another tier's incident queue.

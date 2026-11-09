@@ -231,7 +231,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     setToken(null);
+    setCurrentOrg(null);
+    setOrganizations([]);
     setAuthToken(null);
+    setActiveOrganization('');
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem('oat-active-org');
+      sessionStorage.removeItem('oat_dashboard_data');
+    } catch {}
   };
 
   /**

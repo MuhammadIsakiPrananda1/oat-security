@@ -73,6 +73,15 @@ export function isSimulatedOffline() {
 
 export function setAuthToken(token: string | null) {
   activeAuthToken = token;
+  if (!token) {
+    try {
+      localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
+      localStorage.removeItem('oat-session');
+      sessionStorage.removeItem('oat_dashboard_data');
+    } catch {}
+    activeOrganizationId = '';
+    globalRealtimeClient.setOrganization('');
+  }
 }
 
 export function setActiveOrganization(orgId: string) {
