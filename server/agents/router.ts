@@ -1707,44 +1707,14 @@ agentRouter.delete('/:id', (req: AuthenticatedRequest, res: Response) => {
   }, agent.organization_id);
   broadcastEndpointStatus(agent.organization_id);
 
-  // Websites this agent discovered leave the inventory too, unless another
-  // agent still reports them.
-  const discovered = db.prepare(
-    "SELECT id, name, domain, organization_id FROM applications WHERE agent_id = ? AND source = 'agent'"
-  ).all(agent.id) as Array<{ id: string; name: string; domain: string; organization_id: string }>;
-  for (const app of discovered) {
-    const stillReported = db.prepare(
-      'SELECT COUNT(*) as count FROM agents WHERE application_id = ? AND id != ? AND revoked_at IS NULL'
-    ).get(app.id, agent.id) as { count: number } | undefined;
-    if (Number(stillReported?.count || 0) === 0) {
-      removeApplication(app.id, app.organization_id, 'The endpoint agent that protected it was removed');
-    }
-  }
+  // When an endpoint is removed, preserve registered applications/websites in the tenant.
+  // We simply decouple the removed agent reference (agent_id = NULL) so the website
+  // remains active and visible in Applications & WAF modules.
+  db.prepare('UPDATE applications SET agent_id = NULL WHERE agent_id = ?').run(agent.id);
 
-  if (agent.application_id) {
-    const stillReported = db.prepare(
-      'SELECT COUNT(*) as count FROM agents WHERE application_id = ? AND id != ? AND revoked_at IS NULL'
-    ).get(agent.application_id, agent.id) as { count: number } | undefined;
-    if (Number(stillReported?.count || 0) === 0) {
-      removeApplication(agent.application_id, agent.organization_id, 'The endpoint agent that protected it was removed');
-    }
-  }
-
-  // If no other agents remain in this organization, automatically clean up
-  // the tenant organization as well so it disappears from the console immediately.
-  const remainingAgents = Number(
-    (db.prepare('SELECT COUNT(*) as count FROM agents WHERE organization_id = ?').get(agent.organization_id) as { count: number } | undefined)?.count || 0
-  );
-  const remainingUsers = Number(
-    (db.prepare('SELECT COUNT(*) as count FROM users WHERE organization_id = ?').get(agent.organization_id) as { count: number } | undefined)?.count || 0
-  );
-  let orgRemoved = false;
-  if (remainingAgents === 0 && remainingUsers === 0) {
-    orgRemoved = removeOrganization(agent.organization_id, 'The endpoint agent that provisioned it was removed');
-  } else {
-    WafDeploymentService.refresh(agent.organization_id);
-    FirewallDeploymentService.refresh(agent.organization_id);
-  }
+  // Keep tenant organization intact even if 0 agents remain.
+  WafDeploymentService.refresh(agent.organization_id);
+  FirewallDeploymentService.refresh(agent.organization_id);
 
   recordAuditLog({
     organizationId: agent.organization_id,

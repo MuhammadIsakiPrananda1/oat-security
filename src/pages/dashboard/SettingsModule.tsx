@@ -8,8 +8,11 @@ import {
   UserPlus,
   FlaskConical,
   AlertCircle,
+  AlertTriangle,
   Languages,
-  Check
+  Check,
+  RotateCcw,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -27,7 +30,8 @@ export const SETTINGS_SECTIONS = [
   { id: 'settings-organization', label: 'Organization Setup' },
   { id: 'settings-waf-policy', label: 'WAF Paranoia & Automation' },
   { id: 'settings-alert-routing', label: 'Alert Routing & Paging' },
-  { id: 'settings-session-retention', label: 'Session & Retention' }
+  { id: 'settings-session-retention', label: 'Session & Retention' },
+  { id: 'settings-danger-zone', label: 'Danger Zone & Permanent Reset' }
 ] as const;
 
 export const SettingsModule: React.FC = () => {
@@ -57,6 +61,35 @@ export const SettingsModule: React.FC = () => {
   // Development telemetry injector (server rejects it on production builds).
   const [injecting, setInjecting] = useState<string | null>(null);
   const [injectFeedback, setInjectFeedback] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
+
+  // Permanent Workspace Reset states
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmationInput, setResetConfirmationInput] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetFeedback, setResetFeedback] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
+
+  const handlePermanentReset = async () => {
+    if (resetConfirmationInput !== 'RESET') return;
+    setResetting(true);
+    setResetFeedback(null);
+    try {
+      const res = await securityApi.resetWorkspace();
+      setResetFeedback({ tone: 'ok', text: res?.message || 'Workspace has been permanently reset.' });
+      setShowResetModal(false);
+      setResetConfirmationInput('');
+      try {
+        sessionStorage.removeItem('oat_dashboard_data');
+      } catch {}
+      // Reload page cleanly to re-hydrate empty fresh workspace
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (err: any) {
+      setResetFeedback({ tone: 'err', text: err?.message || 'Failed to reset workspace.' });
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // No server-side configuration service exists yet, so preferences are stored
   // per-organization in this browser and reported as exactly that.
@@ -415,6 +448,43 @@ export const SettingsModule: React.FC = () => {
           </div>
         </div>
 
+        {/* 07 — Danger Zone: Permanent Reset */}
+        <div id="settings-danger-zone" className="scroll-mt-4 p-5 rounded-xl border border-rose-200/80 dark:border-rose-900/50 bg-rose-50/30 dark:bg-rose-950/10 space-y-4 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-rose-700 dark:text-rose-400">
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <span>Danger Zone: Permanent Workspace Reset</span>
+            </div>
+            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-semibold tracking-wider">
+              Irreversible
+            </span>
+          </div>
+
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+            Hapus dan reset permanen seluruh telemetri, log lalu lintas (All Requests), security events, endpoints, aplikasi, dan aturan keamanan di workspace <strong>{currentOrg?.name || 'ini'}</strong> kembali ke keadaan awal bersih (fresh slate). Akun login Anda tetap aman.
+          </p>
+
+          {resetFeedback && (
+            <div className={`p-3 rounded-lg text-xs font-medium border ${resetFeedback.tone === 'ok' ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'}`}>
+              {resetFeedback.text}
+            </div>
+          )}
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setResetConfirmationInput('');
+                setShowResetModal(true);
+              }}
+              className="px-4 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700 text-xs font-semibold shadow-xs transition flex items-center gap-2 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Hapus Permanen &amp; Reset Workspace
+            </button>
+          </div>
+        </div>
+
         <div className="flex justify-end">
           <button
             type="submit"
@@ -424,6 +494,69 @@ export const SettingsModule: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* Confirmation Modal for Permanent Workspace Reset */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Konfirmasi Hapus Permanen</h3>
+                <p className="text-xs text-zinc-500">Tindakan ini tidak dapat dibatalkan</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+              Semua telemetri, All Requests, security events, endpoints, aplikasi, dan riwayat di workspace <strong>{currentOrg?.name}</strong> akan dihapus dan direset ke 0.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Ketik <span className="font-mono text-rose-600 dark:text-rose-400 font-bold">RESET</span> untuk konfirmasi:
+              </label>
+              <input
+                type="text"
+                value={resetConfirmationInput}
+                onChange={e => setResetConfirmationInput(e.target.value)}
+                placeholder="RESET"
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-mono text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-hidden focus:ring-1 focus:ring-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResetModal(false);
+                  setResetConfirmationInput('');
+                }}
+                disabled={resetting}
+                className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handlePermanentReset}
+                disabled={resetConfirmationInput !== 'RESET' || resetting}
+                className="px-4 py-2 rounded-lg bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+              >
+                {resetting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Mereset...
+                  </>
+                ) : (
+                  'Ya, Hapus & Reset Permanen'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -950,6 +950,12 @@ export const securityApi = {
     });
   },
 
+  async resetWorkspace() {
+    return request<{ success: boolean; message: string; organizationId: string }>('/api/workspace/reset', {
+      method: 'POST',
+    });
+  },
+
   async getAiCopilotContext() {
     return request<{ success: boolean; telemetry: any }>('/api/ai/context');
   },

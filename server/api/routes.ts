@@ -270,6 +270,111 @@ apiRouter.delete('/organizations/:id', (req: AuthenticatedRequest, res) => {
   res.json({ success: true, removed: true, id: orgId });
 });
 
+/**
+ * Reset Workspace / Organization permanently back to fresh, empty state.
+ * Clears all telemetry, logs, threats, incidents, endpoints/agents, applications, networks,
+ * and rules belonging strictly to this organization so it is completely clean and fresh.
+ */
+apiRouter.post('/workspace/reset', (req: AuthenticatedRequest, res: Response) => {
+  const orgId = req.organizationId || req.user?.organizationId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Active organization is required' });
+  }
+
+  try {
+    const orgScopedTables = [
+      'security_events',
+      'threats',
+      'incidents',
+      'logs',
+      'audit_logs',
+      'applications',
+      'networks',
+      'nat_rules',
+      'waf_rules',
+      'firewall_rules',
+      'agent_enrollment_tokens',
+      'integration_configs',
+      'api_keys',
+      'notifications',
+      'reports',
+      'contact_messages',
+      'malware_scans',
+      'fail2ban_bans',
+      'uptime_records'
+    ];
+
+    for (const table of orgScopedTables) {
+      try {
+        db.prepare(`DELETE FROM ${table} WHERE organization_id = ?`).run(orgId);
+      } catch (err) {
+        // Continue if table doesn't have organization_id
+      }
+    }
+
+    // Delete all agents enrolled in this workspace
+    try {
+      const agentRows = db.prepare('SELECT id FROM agents WHERE organization_id = ?').all(orgId) as Array<{ id: string }>;
+      for (const agt of agentRows) {
+        db.prepare('DELETE FROM agent_firewall_status WHERE agent_id = ?').run(agt.id);
+        db.prepare('DELETE FROM agent_waf_status WHERE agent_id = ?').run(agt.id);
+      }
+      db.prepare('DELETE FROM agents WHERE organization_id = ?').run(orgId);
+    } catch {}
+
+    // Reset default WAF policy for this tenant to initial clean state
+    try {
+      db.prepare(`
+        UPDATE waf_policy SET
+          engine_enabled = 1,
+          mode = 'block',
+          rate_limit_requests = 100,
+          rate_limit_window_s = 10,
+          ip_allowlist = '[]',
+          ip_blocklist = '[]',
+          geo_block_countries = '[]',
+          bot_protection_enabled = 1,
+          server_status = 'ACTIVE',
+          revision = 1
+        WHERE organization_id = ?
+      `).run(orgId);
+    } catch {}
+
+    // Broadcast reset event to all frontend subscribers of this workspace
+    SecurityEventBus.publish('analytics.snapshot', { reset: true }, orgId);
+    SecurityEventBus.publish('endpoint.status', {
+      hasConnectedEndpoints: false,
+      connectedCount: 0,
+      totalAgents: 0,
+      endpoints: [],
+      timestamp: new Date().toISOString()
+    }, orgId);
+
+    recordAuditLog({
+      organizationId: orgId,
+      userId: req.user?.userId,
+      userEmail: req.user?.email || 'operator',
+      role: req.user?.role || 'Admin',
+      action: 'workspace.reset.permanent',
+      resource: `Workspace (${orgId})`,
+      resourceId: orgId,
+      ipAddress: req.ip || '127.0.0.1',
+      userAgent: String(req.headers['user-agent'] || 'OAT Web Console'),
+      metadata: { cleared: true, timestamp: new Date().toISOString() }
+    });
+
+    console.log(`[Workspace] Permanently reset workspace ${orgId} to initial fresh state.`);
+    return res.json({
+      success: true,
+      message: 'Workspace has been permanently reset to fresh state',
+      organizationId: orgId
+    });
+  } catch (err: any) {
+    console.error(`[Workspace] Failed to reset workspace ${orgId}:`, err);
+    return res.status(500).json({ error: 'Failed to reset workspace: ' + (err?.message || 'Internal error') });
+  }
+});
+
 // ----------------------------------------------------------------------
 // 2. Authentication & Users
 // ----------------------------------------------------------------------
