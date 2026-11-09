@@ -644,7 +644,7 @@ export const AgentsModule: React.FC = () => {
     setRevoking(true);
     setRevokeError('');
     try {
-      await securityApi.revokeAgent(revokeTarget.id, purgeAgentData);
+      await securityApi.revokeAgent(revokeTarget.id, false);
       setRevokeTarget(null);
       setPurgeAgentData(false);
       if (selectedAgent?.agent.id === revokeTarget.id) setSelectedAgent(null);
@@ -1638,19 +1638,6 @@ export const AgentsModule: React.FC = () => {
                 </div>
               </div>
 
-              <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2 dark:border-zinc-800 dark:bg-zinc-900/50">
-                <input
-                  type="checkbox"
-                  checked={purgeAgentData}
-                  onChange={event => setPurgeAgentData(event.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-zinc-300 text-rose-600 focus:ring-rose-500 dark:border-zinc-600 dark:bg-zinc-800"
-                />
-                <span className="text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                  <span className="font-semibold text-zinc-700 dark:text-zinc-200">Also delete the telemetry it collected</span>
-                  <br />
-                  Off by default: the events and logs it already sent stay in the tenant timeline, only the link to this agent is removed.
-                </span>
-              </label>
               {revokeError && (
                 <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300">
                   {revokeError}

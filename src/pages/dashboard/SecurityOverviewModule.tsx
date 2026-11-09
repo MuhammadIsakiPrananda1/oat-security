@@ -281,7 +281,7 @@ export const SecurityOverviewModule: React.FC<SecurityOverviewModuleProps> = ({ 
           note="Active web applications secured"
         />
         <SummaryStat
-          label="Requests Today"
+          label="All Requests"
           value={<CountUpNumber value={metrics?.requestsToday ?? 0} />}
           note="Inspected at the edge pipeline"
         />

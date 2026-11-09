@@ -1689,14 +1689,10 @@ agentRouter.delete('/:id', (req: AuthenticatedRequest, res: Response) => {
   const eventCount = Number((db.prepare('SELECT COUNT(*) as count FROM security_events WHERE agent_id = ?').get(agent.id) as { count: number } | undefined)?.count || 0);
   const logCount = Number((db.prepare('SELECT COUNT(*) as count FROM logs WHERE agent_id = ?').get(agent.id) as { count: number } | undefined)?.count || 0);
 
-  if (purge) {
-    db.prepare('DELETE FROM security_events WHERE agent_id = ?').run(agent.id);
-    db.prepare('DELETE FROM logs WHERE agent_id = ?').run(agent.id);
-  } else {
-    // Keep the collected evidence, but do not leave a dangling agent reference.
-    db.prepare('UPDATE security_events SET agent_id = NULL WHERE agent_id = ?').run(agent.id);
-    db.prepare('UPDATE logs SET agent_id = NULL WHERE agent_id = ?').run(agent.id);
-  }
+  // Strict policy: Never purge security events or live traffic logs when removing an agent.
+  // Historical telemetry is preserved in the tenant timeline, unlinking the agent reference.
+  db.prepare('UPDATE security_events SET agent_id = NULL WHERE agent_id = ?').run(agent.id);
+  db.prepare('UPDATE logs SET agent_id = NULL WHERE agent_id = ?').run(agent.id);
 
   // The enrollment token stays (it is single-use and already marked as used),
   // it just must not point at an agent that no longer exists.

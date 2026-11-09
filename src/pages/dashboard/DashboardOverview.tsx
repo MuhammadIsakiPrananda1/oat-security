@@ -1379,7 +1379,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
             onClick={() => onNavigate("networks")}
           />
           <EnhancedKpiCard
-            label="Requests Today"
+            label="All Requests"
             icon={<FontAwesomeIcon icon={faArrowTrendUp} className="text-base" />}
             iconColor="indigo"
             value={<CountUpNumber value={metrics.requestsToday ?? 0} />}

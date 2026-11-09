@@ -225,9 +225,11 @@ export function collectSystemHealth(targetOrgId?: string): SystemHealthSnapshot 
 
   // 3. Endpoint Detection — enrolled endpoint agents are the only telemetry source.
   try {
-    const agentRows = db.prepare(`
+    const agentRows = orgId ? (db.prepare(`
+      SELECT last_seen FROM agents WHERE revoked_at IS NULL AND organization_id = ?
+    `).all(orgId) as Array<{ last_seen: string | null }>) : (db.prepare(`
       SELECT last_seen FROM agents WHERE revoked_at IS NULL
-    `).all() as Array<{ last_seen: string | null }>;
+    `).all() as Array<{ last_seen: string | null }>);
     const total = agentRows.length;
     const heartbeats = agentRows
       .map(row => parseStoredTime(row.last_seen))
