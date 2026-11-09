@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Trash2,
   UserPlus,
-  FlaskConical,
   AlertCircle,
   AlertTriangle,
   Languages,
@@ -26,7 +25,6 @@ import { getLanguage, setLanguage as persistLanguage, type Language } from '../.
 // section it names — no placeholder destinations.
 export const SETTINGS_SECTIONS = [
   { id: 'settings-language', label: 'Language & Translation' },
-  { id: 'settings-telemetry-injector', label: 'Telemetry Injector' },
   { id: 'settings-organization', label: 'Organization Setup' },
   { id: 'settings-waf-policy', label: 'WAF Paranoia & Automation' },
   { id: 'settings-alert-routing', label: 'Alert Routing & Paging' },
@@ -57,10 +55,6 @@ export const SettingsModule: React.FC = () => {
   const [slackWebhook, setSlackWebhook] = useState('');
   const [logRetentionDays, setLogRetentionDays] = useState(365);
   const [sessionTimeoutMins, setSessionTimeoutMins] = useState(15);
-
-  // Development telemetry injector (server rejects it on production builds).
-  const [injecting, setInjecting] = useState<string | null>(null);
-  const [injectFeedback, setInjectFeedback] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
 
   // Permanent Workspace Reset states
   const [showResetModal, setShowResetModal] = useState(false);
@@ -123,22 +117,6 @@ export const SettingsModule: React.FC = () => {
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 4000);
-  };
-
-  const handleInject = async (type: 'sqli' | 'xss' | 'ssh_brute' | 'normal') => {
-    setInjecting(type);
-    setInjectFeedback(null);
-    try {
-      const res = await securityApi.sendDevTestEvent(type);
-      setInjectFeedback({ tone: 'ok', text: res?.message || `Event "${type}" injected through the ingest pipeline.` });
-    } catch {
-      setInjectFeedback({
-        tone: 'err',
-        text: 'Injection refused — the development ingest endpoint is disabled on this server.'
-      });
-    } finally {
-      setInjecting(null);
-    }
   };
 
   const handleRemoveOrg = async (orgId: string, orgName: string) => {
@@ -233,53 +211,9 @@ export const SettingsModule: React.FC = () => {
       {saved && (
         <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
-          <span>Preferences stored in this browser for {currentOrg?.name ?? 'this organization'} — no server-side configuration service is connected yet.</span>
+          <span>Settings saved for <strong>{currentOrg?.name ?? 'this organization'}</strong>.</span>
         </div>
       )}
-
-      {/* Development telemetry injector — real events through the ingest path. */}
-      <div id="settings-telemetry-injector" className="scroll-mt-4 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] space-y-4 transition-colors">
-        <div className="flex items-center gap-2">
-          <FlaskConical className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-          <span className="text-sm font-semibold text-zinc-900 dark:text-white">Development Telemetry Injector</span>
-        </div>
-        <p className="text-xs text-zinc-500 dark:text-slate-400">
-          Pushes a genuine detection event through the same ingest pipeline used by endpoint agents, so the
-          dashboard reflects real processed telemetry. Disabled automatically on production servers.
-        </p>
-
-        {injectFeedback && (
-          <div
-            className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
-              injectFeedback.tone === 'ok'
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
-            }`}
-          >
-            {injectFeedback.tone === 'ok' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            <span>{injectFeedback.text}</span>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {([
-            { key: 'sqli', label: 'SQL Injection (WAF)' },
-            { key: 'xss', label: 'XSS Payload (WAF)' },
-            { key: 'ssh_brute', label: 'SSH Brute Force (Agent)' },
-            { key: 'normal', label: 'Allowed Traffic' }
-          ] as const).map(item => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => handleInject(item.key)}
-              disabled={injecting !== null}
-              className="px-3 py-1.5 rounded-lg bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900/40 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {injecting === item.key ? 'Injecting…' : item.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Organization Management */}
       <div id="settings-organization" className="scroll-mt-4 p-5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] space-y-4 transition-colors">
