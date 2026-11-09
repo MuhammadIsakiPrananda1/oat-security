@@ -1206,30 +1206,30 @@ export const SecurityEventsModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Table Container — responsive, no forced horizontal overflow on desktop */}
-          <div className="h-[580px] overflow-y-auto overflow-x-auto sm:overflow-x-hidden custom-scrollbar">
-            <table className="w-full table-fixed border-separate border-spacing-0 text-left text-xs">
+          {/* Table Container */}
+          <div className="h-[580px] overflow-y-auto overflow-x-auto custom-scrollbar">
+            <table className="w-full min-w-[860px] border-separate border-spacing-0 text-left text-xs">
               <thead>
                 <tr className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                  <th className="sticky top-0 z-20 w-[12%] border-b border-zinc-200/80 bg-zinc-50 pl-4 pr-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[90px] border-b border-zinc-200/80 bg-zinc-50 pl-4 pr-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Time
                   </th>
-                  <th className="sticky top-0 z-20 w-[16%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[140px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Source IP
                   </th>
-                  <th className="sticky top-0 z-20 w-[12%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[90px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
                     Engine
                   </th>
-                  <th className="sticky top-0 z-20 w-[15%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[150px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Application
                   </th>
-                  <th className="sticky top-0 z-20 w-[23%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium dark:border-zinc-800 dark:bg-zinc-900">
                     Detected Threat
                   </th>
-                  <th className="sticky top-0 z-20 w-[11%] border-b border-zinc-200/80 bg-zinc-50 px-2 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[100px] border-b border-zinc-200/80 bg-zinc-50 px-3 py-2.5 font-medium text-center dark:border-zinc-800 dark:bg-zinc-900">
                     Severity
                   </th>
-                  <th className="sticky top-0 z-20 w-[11%] border-b border-zinc-200/80 bg-zinc-50 pl-2 pr-4 sm:pr-6 py-2.5 font-medium text-right dark:border-zinc-800 dark:bg-zinc-900">
+                  <th className="sticky top-0 z-20 w-[100px] border-b border-zinc-200/80 bg-zinc-50 pl-2 pr-4 py-2.5 font-medium text-right dark:border-zinc-800 dark:bg-zinc-900">
                     Action
                   </th>
                 </tr>
@@ -1284,19 +1284,19 @@ export const SecurityEventsModule: React.FC = () => {
                         }`}
                       >
                         {/* Time */}
-                        <td className="border-b border-zinc-100 pl-4 pr-2 py-2.5 font-mono text-[11px] text-zinc-400 whitespace-nowrap truncate dark:border-zinc-800/60 dark:text-zinc-500">
+                        <td className="border-b border-zinc-100 pl-4 pr-3 py-2.5 font-mono text-[11px] text-zinc-400 whitespace-nowrap dark:border-zinc-800/60 dark:text-zinc-500">
                           {formatTime(evt.timestamp)}
                         </td>
 
-                        {/* Source IP — no flag per user request */}
-                        <td className="border-b border-zinc-100 px-3 py-2.5 font-mono text-[11px] truncate dark:border-zinc-800/60" title={evt.sourceIp}>
-                          <span className="font-medium text-zinc-700 dark:text-zinc-300 truncate">
+                        {/* Source IP */}
+                        <td className="border-b border-zinc-100 px-3 py-2.5 font-mono text-[11px] whitespace-nowrap dark:border-zinc-800/60" title={evt.sourceIp}>
+                          <span className="font-medium text-zinc-700 dark:text-zinc-300">
                             {evt.sourceIp === '0.0.0.0' ? '0.0.0.0 (Internal)' : evt.sourceIp}
                           </span>
                         </td>
 
                         {/* Engine */}
-                        <td className="border-b border-zinc-100 px-2 py-2.5 text-center dark:border-zinc-800/60">
+                        <td className="border-b border-zinc-100 px-3 py-2.5 text-center whitespace-nowrap dark:border-zinc-800/60">
                           <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${engine.className}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${engine.dot}`} />
                             {engine.short}
@@ -1304,26 +1304,26 @@ export const SecurityEventsModule: React.FC = () => {
                         </td>
 
                         {/* Application */}
-                        <td className="border-b border-zinc-100 px-3 py-2.5 truncate dark:border-zinc-800/60" title={appLabel}>
+                        <td className="border-b border-zinc-100 px-3 py-2.5 whitespace-nowrap dark:border-zinc-800/60" title={appLabel}>
                           <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                             {appLabel}
                           </span>
                         </td>
 
                         {/* Threat Description */}
-                        <td className="border-b border-zinc-100 px-3 py-2.5 truncate dark:border-zinc-800/60" title={threatName}>
-                          <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate block">
+                        <td className="border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800/60" title={threatName}>
+                          <span className="text-[11px] font-medium text-zinc-800 dark:text-zinc-200">
                             {threatName}
                           </span>
                         </td>
 
                         {/* Severity */}
-                        <td className="border-b border-zinc-100 px-2 py-2.5 text-center whitespace-nowrap dark:border-zinc-800/60">
+                        <td className="border-b border-zinc-100 px-3 py-2.5 text-center whitespace-nowrap dark:border-zinc-800/60">
                           <StatusBadge type="severity" value={evt.severity} size="sm" />
                         </td>
 
                         {/* Action */}
-                        <td className="border-b border-zinc-100 pl-2 pr-4 sm:pr-6 py-2.5 text-right whitespace-nowrap dark:border-zinc-800/60">
+                        <td className="border-b border-zinc-100 pl-2 pr-4 py-2.5 text-right whitespace-nowrap dark:border-zinc-800/60">
                           <StatusBadge type="action" value={evt.action} size="sm" />
                         </td>
                       </tr>

@@ -62,11 +62,11 @@ export const SuperAdminAccessDenied: React.FC = () => {
           <FontAwesomeIcon icon={faLock} className="text-2xl" />
         </div>
         <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-[11px] font-semibold uppercase tracking-wider mb-2">
-          Clearance Restricted • 403 Forbidden
+          403 Forbidden
         </div>
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">Super Admin Clearance Required</h1>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight">Access Restricted</h1>
         <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-2 leading-relaxed">
-          The Global Multi-Tenant Observability Command Center is isolated and accessible exclusively to operators with the <span className="font-semibold text-rose-600 dark:text-rose-300">Super Admin</span> role.
+          This page is only accessible to <span className="font-semibold text-rose-600 dark:text-rose-300">Super Admin</span> users.
         </p>
 
         <div className="mt-4 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 text-left text-xs space-y-1.5">
@@ -80,7 +80,7 @@ export const SuperAdminAccessDenied: React.FC = () => {
           </div>
           <div className="flex justify-between">
             <span className="text-zinc-500">Scope Level:</span>
-            <span className="text-zinc-500 dark:text-zinc-400">Single Tenant Workspace</span>
+            <span className="text-zinc-500 dark:text-zinc-400">Standard user</span>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export const SuperAdminAccessDenied: React.FC = () => {
           className="mt-6 w-full h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="text-xs" />
-          Return to Tenant Workspace
+          Back to Dashboard
         </button>
       </div>
     </div>
@@ -385,56 +385,32 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
         <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-7 custom-scrollbar">
           <div className="max-w-7xl mx-auto w-full space-y-5">
             {/* Standard Dashboard Theme Header */}
+            {(() => {
+              const tabMeta: Record<string, { icon: React.ReactNode; title: string }> = {
+                users:          { icon: <FontAwesomeIcon icon={faUsers} />,        title: 'User Accounts' },
+                tenants:        { icon: <FontAwesomeIcon icon={faBuilding} />,     title: 'Organizations' },
+                events:         { icon: <FontAwesomeIcon icon={faBolt} />,         title: 'Security Events' },
+                traffic:        { icon: <FontAwesomeIcon icon={faTowerBroadcast} />, title: 'Live Traffic' },
+                fleet:          { icon: <FontAwesomeIcon icon={faServer} />,       title: 'Endpoint Agents' },
+                'audit-log':    { icon: <FontAwesomeIcon icon={faScroll} />,       title: 'Audit Log' },
+                'waf-cluster':  { icon: <FontAwesomeIcon icon={faShieldVirus} />,  title: 'WAF Cluster' },
+                engines:        { icon: <FontAwesomeIcon icon={faMicrochip} />,    title: 'System Health' },
+                'engine-config':{ icon: <FontAwesomeIcon icon={faSliders} />,      title: 'Engine Configuration' },
+                telemetry:      { icon: <FontAwesomeIcon icon={faWaveSquare} />,   title: 'Telemetry Pipeline' },
+                maintenance:    { icon: <FontAwesomeIcon icon={faCloudArrowUp} />, title: 'Maintenance' },
+              };
+              const meta = tabMeta[currentTab] ?? { icon: <FontAwesomeIcon icon={faShieldHalved} />, title: 'Overview' };
+              return (
             <ModulePageHeader
-              icon={
-                currentTab === 'users' ? <FontAwesomeIcon icon={faUsers} /> :
-                currentTab === 'tenants' ? <FontAwesomeIcon icon={faBuilding} /> :
-                currentTab === 'events' ? <FontAwesomeIcon icon={faBolt} /> :
-                currentTab === 'traffic' ? <FontAwesomeIcon icon={faTowerBroadcast} /> :
-                currentTab === 'fleet' ? <FontAwesomeIcon icon={faServer} /> :
-                currentTab === 'audit-log' ? <FontAwesomeIcon icon={faScroll} /> :
-                currentTab === 'waf-cluster' ? <FontAwesomeIcon icon={faShieldVirus} /> :
-                currentTab === 'engines' ? <FontAwesomeIcon icon={faMicrochip} /> :
-                currentTab === 'engine-config' ? <FontAwesomeIcon icon={faSliders} /> :
-                currentTab === 'telemetry' ? <FontAwesomeIcon icon={faWaveSquare} /> :
-                currentTab === 'maintenance' ? <FontAwesomeIcon icon={faCloudArrowUp} /> :
-                <FontAwesomeIcon icon={faShieldHalved} />
-              }
-              title={
-                currentTab === 'users' ? 'Users & RBAC' :
-                currentTab === 'tenants' ? 'Tenant Directory' :
-                currentTab === 'events' ? 'Security Events' :
-                currentTab === 'traffic' ? 'Live Traffic' :
-                currentTab === 'fleet' ? 'Agent Fleet' :
-                currentTab === 'audit-log' ? 'Global Audit' :
-                currentTab === 'waf-cluster' ? 'WAF Cluster' :
-                currentTab === 'engines' ? 'Engine Health' :
-                currentTab === 'engine-config' ? 'Engine Config' :
-                currentTab === 'telemetry' ? 'Telemetry Stream' :
-                currentTab === 'maintenance' ? 'Platform Maintenance' :
-                'SuperAdmin Command'
-              }
-              titleTail={
-                currentTab === 'users' ? 'Management' :
-                currentTab === 'tenants' ? 'Overview' :
-                currentTab === 'events' ? 'Telemetry' :
-                currentTab === 'traffic' ? 'Stream' :
-                currentTab === 'fleet' ? 'Infrastructure' :
-                currentTab === 'audit-log' ? 'Logs' :
-                currentTab === 'waf-cluster' ? 'Monitoring' :
-                currentTab === 'engines' ? 'Diagnostics' :
-                currentTab === 'engine-config' ? 'Settings' :
-                currentTab === 'telemetry' ? 'Pipeline' :
-                currentTab === 'maintenance' ? 'Controls' :
-                'Center'
-              }
+              icon={meta.icon}
+              title={meta.title}
               badge={
                 <ModulePageBadge>
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                  Global Clearance
+                  Super Admin
                 </ModulePageBadge>
               }
-              subtitle="Full visibility, user accounts provisioning, role assignment, and multi-tenant security operations."
+              subtitle="Manage tenants, users, security events, and platform health."
               actions={
                 <div className="flex items-center gap-2">
                   <button
@@ -469,6 +445,8 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                 </div>
               }
             />
+              );
+            })()}
 
             {error && (
               <div className="rounded-xl border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 p-4 text-xs text-rose-800 dark:text-rose-300 flex items-center justify-between gap-3 shadow-2xs">
@@ -489,7 +467,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-4 shadow-xs">
                 <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">Tenants</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Organizations</span>
                   <FontAwesomeIcon icon={faBuilding} className="text-indigo-500 text-xs" />
                 </div>
                 <div className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-zinc-950 dark:text-white tabular-nums">
@@ -502,7 +480,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
 
               <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-4 shadow-xs">
                 <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">Fleet Agents</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Active Agents</span>
                   <FontAwesomeIcon icon={faServer} className="text-emerald-500 text-xs" />
                 </div>
                 <div className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums">
@@ -516,7 +494,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
 
               <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-4 shadow-xs">
                 <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">Websites</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Protected Apps</span>
                   <FontAwesomeIcon icon={faGlobe} className="text-sky-500 text-xs" />
                 </div>
                 <div className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-zinc-950 dark:text-white tabular-nums">
@@ -529,7 +507,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
 
               <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-4 shadow-xs">
                 <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">Blocked 24h</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Blocked Today</span>
                   <FontAwesomeIcon icon={faFire} className="text-rose-500 text-xs" />
                 </div>
                 <div className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400 tabular-nums">
@@ -542,7 +520,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
 
               <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-4 shadow-xs">
                 <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">Total Events</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Security Events</span>
                   <FontAwesomeIcon icon={faBolt} className="text-amber-500 text-xs" />
                 </div>
                 <div className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-zinc-950 dark:text-white tabular-nums">
@@ -555,7 +533,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
 
               <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] p-3.5 sm:p-4 shadow-xs">
                 <div className="flex items-center justify-between text-zinc-500 dark:text-zinc-400 text-xs">
-                  <span className="font-semibold uppercase tracking-wider text-[10px]">Core Daemons</span>
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">System Health</span>
                   <FontAwesomeIcon icon={faMicrochip} className="text-purple-500 text-xs" />
                 </div>
                 <div className="mt-2 text-xl sm:text-2xl font-bold tracking-tight text-purple-600 dark:text-purple-400 tabular-nums">
@@ -607,7 +585,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Filter across telemetry…"
+                  placeholder="Search…"
                   className="h-8.5 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] pl-8.5 pr-3 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-indigo-500 shadow-2xs transition-colors"
                 />
               </div>
@@ -621,7 +599,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                     <div>
                       <h2 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-                        Fleet Deployment Overview
+                        Deployment Summary
                       </h2>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                         High-level fleet distribution across all organizations
@@ -632,7 +610,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                       onClick={() => setCurrentTab('fleet')}
                       className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                     >
-                      View All Fleet →
+                      View all →
                     </button>
                   </div>
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -656,10 +634,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                     <div>
                       <h2 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-                        Recent Cross-Tenant Incidents
+                        Recent Security Events
                       </h2>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                        Latest suspicious events ingested across tenant perimeter
+                        Latest security events across all organizations
                       </p>
                     </div>
                     <button
@@ -667,7 +645,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                       onClick={() => setCurrentTab('events')}
                       className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                     >
-                      View All Security Events →
+                      View all →
                     </button>
                   </div>
                   <div className="divide-y divide-zinc-100 dark:divide-zinc-800/60 text-xs">
@@ -697,10 +675,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                   <div>
                     <h2 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-                      Global Endpoint Fleet
+                      Endpoint Agents
                     </h2>
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Live status of all agents enrolled across all organizations
+                      Live status of all enrolled endpoint agents
                     </p>
                   </div>
                   <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
@@ -850,10 +828,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                   <div>
                     <h2 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-                      Cross-Tenant Threat Telemetry
+                      Security Events
                     </h2>
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Ingress inspection and attack detections from all monitored tenant workloads
+                      Attack detections and security events across all organizations
                     </p>
                   </div>
                   <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
@@ -954,15 +932,12 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                     <div>
                       <h2 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Global Real-Time Ingress Stream
+                        Live Traffic
                       </h2>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                        Live connection activity across edge ingress proxies
+                        Real-time request stream across all endpoints
                       </p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-mono font-semibold">
-                      Connected to /ws
-                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
@@ -1028,10 +1003,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
                   <div>
                     <h2 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
-                      Tenant Organizations Directory
+                      Organizations
                     </h2>
                     <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Multi-tenant directory, fleet size, and security resource consumption
+                      All registered organizations and their resource usage
                     </p>
                   </div>
                   <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
@@ -1111,13 +1086,13 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <FontAwesomeIcon icon={faScroll} className="text-indigo-500" />
-                      Global Administrative Audit Trail
+                      Audit Log
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Immutable record of privilege grants, role changes, and system modifications
+                      Record of user activity and role assignments
                     </p>
                   </div>
-                  <span className="text-xs font-mono text-zinc-400">{managedUsers.length} Recorded Users</span>
+                  <span className="text-xs font-mono text-zinc-400">{managedUsers.length} users</span>
                 </div>
 
                 <div className="overflow-x-auto custom-scrollbar rounded-xl border border-zinc-200/80 dark:border-zinc-800">
@@ -1179,9 +1154,9 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                     <div>
                       <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <FontAwesomeIcon icon={faUsers} className="text-indigo-500" />
-                        Global User Accounts & Credentials
+                        User Accounts
                       </h3>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Manage operator accounts across all system tenants</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Manage user accounts across all organizations</p>
                     </div>
                     <button
                       type="button"
@@ -1283,9 +1258,9 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                     <div>
                       <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <FontAwesomeIcon icon={faShieldHalved} className="text-emerald-500" />
-                        Role-Based Access Control (RBAC) Levels
+                        Roles
                       </h3>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">System authorization and privileges</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Manage access roles and permissions</p>
                     </div>
                     <button
                       type="button"
@@ -1315,9 +1290,6 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                             )}
                           </div>
                           <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed">{r.description || 'No description provided.'}</p>
-                        </div>
-                        <div className="mt-3 pt-2 border-t border-zinc-200/70 dark:border-zinc-800/50 text-[10px] text-zinc-400 font-mono">
-                          ID: {r.id}
                         </div>
                       </div>
                     ))}
@@ -1381,27 +1353,27 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
                     <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80">
-                      <div className="text-zinc-500 text-[10px]">DAEMON RUNTIME</div>
-                      <div className="mt-1 font-bold text-zinc-900 dark:text-white text-base">Node.js Engine</div>
-                      <div className="text-[10px] text-zinc-400 mt-0.5">Heap optimized</div>
+                      <div className="text-zinc-500 text-[10px]">RUNTIME</div>
+                      <div className="mt-1 font-bold text-zinc-900 dark:text-white text-base">Node.js</div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">API server</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80">
-                      <div className="text-zinc-500 text-[10px]">DATABASE ENGINE</div>
-                      <div className="mt-1 font-bold text-emerald-600 dark:text-emerald-400 text-base">MySQL 8 Storage</div>
-                      <div className="text-[10px] text-zinc-400 mt-0.5">Active pool</div>
+                      <div className="text-zinc-500 text-[10px]">DATABASE</div>
+                      <div className="mt-1 font-bold text-emerald-600 dark:text-emerald-400 text-base">MySQL 8.0</div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">Connected</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80">
-                      <div className="text-zinc-500 text-[10px]">WEBSOCKET REALTIME</div>
-                      <div className="mt-1 font-bold text-indigo-600 dark:text-indigo-400 text-base">Channel /ws</div>
-                      <div className="text-[10px] text-zinc-400 mt-0.5">Broadcast operational</div>
+                      <div className="text-zinc-500 text-[10px]">REALTIME</div>
+                      <div className="mt-1 font-bold text-indigo-600 dark:text-indigo-400 text-base">WebSocket</div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">Connected</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80">
-                      <div className="text-zinc-500 text-[10px]">SECURITY EVENT BUS</div>
-                      <div className="mt-1 font-bold text-purple-600 dark:text-purple-400 text-base">Memory Hub</div>
-                      <div className="text-[10px] text-zinc-400 mt-0.5">In-memory telemetry</div>
+                      <div className="text-zinc-500 text-[10px]">EVENT BUS</div>
+                      <div className="mt-1 font-bold text-purple-600 dark:text-purple-400 text-base">In-memory</div>
+                      <div className="text-[10px] text-zinc-400 mt-0.5">Active</div>
                     </div>
                   </div>
                 </div>
@@ -1415,20 +1387,20 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <FontAwesomeIcon icon={faShieldVirus} className="text-purple-500" />
-                      Edge WAF Cluster Distribution
+                      WAF Cluster
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Distributed inspection proxies filtering HTTP/HTTPS ingress traffic
+                      WAF inspection nodes protecting all tenant endpoints
                     </p>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-semibold">
-                    Coraza & CRS Active
+                    Active
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800/80">
-                    <div className="text-[10px] text-zinc-400 uppercase">Core Inspection Nodes</div>
+                    <div className="text-[10px] text-zinc-400 uppercase">Inspection Nodes</div>
                     <div className="text-xl font-bold text-zinc-900 dark:text-white mt-1 tabular-nums">4 Active Nodes</div>
                     <div className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">100% Availability</div>
                   </div>
@@ -1453,10 +1425,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <FontAwesomeIcon icon={faSliders} className="text-indigo-500" />
-                      Global Security Engine Parameters
+                      Engine Configuration
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      System-wide thresholds, rate limiting baselines, and detection heuristics
+                      Global security thresholds and detection settings
                     </p>
                   </div>
                 </div>
@@ -1486,10 +1458,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <FontAwesomeIcon icon={faWaveSquare} className="text-sky-500" />
-                      Platform Telemetry Event Bus
+                      Telemetry Pipeline
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Cross-process RPC and message queue pipelines
+                      Real-time data ingestion and event streaming
                     </p>
                   </div>
                 </div>
@@ -1513,10 +1485,10 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <FontAwesomeIcon icon={faCloudArrowUp} className="text-emerald-500" />
-                      Maintenance & Backup Snapshot Controls
+                      Maintenance
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Database integrity checks, schema migrations, and point-in-time restore
+                      Database health, backups, and system integrity
                     </p>
                   </div>
                 </div>
@@ -1539,8 +1511,8 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
       {userModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-5 sm:p-6 shadow-2xl text-left">
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Create User Account</h3>
-            <p className="text-xs text-zinc-500 mb-4">Provision credentials for cross-tenant operator or analyst</p>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Create User</h3>
+            <p className="text-xs text-zinc-500 mb-4">Add a new user account</p>
             
             <form onSubmit={handleCreateUser} className="space-y-3 text-xs">
               <div>
@@ -1619,20 +1591,20 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
 
               <div>
                 <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">
-                  SOC Incident Scope
+                  SOC Access Level
                 </label>
                 <select
                   value={userForm.socTier}
                   onChange={e => setUserForm({ ...userForm, socTier: e.target.value })}
                   className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 cursor-pointer"
                 >
-                  <option value="">All SOC tiers (unrestricted)</option>
-                  <option value="L1">SOC L1 only — Triage workspace</option>
-                  <option value="L2">SOC L2 only — Investigation workspace</option>
-                  <option value="L3">SOC L3 only — Crisis workspace</option>
+                  <option value="">All tiers</option>
+                  <option value="L1">SOC L1 — Triage</option>
+                  <option value="L2">SOC L2 — Investigation</option>
+                  <option value="L3">SOC L3 — Crisis Response</option>
                 </select>
                 <p className="mt-1 text-[10px] text-zinc-400">
-                  L1/L2 analysts only see incidents in their own tier and can escalate upward.
+                  Restrict this user to a specific SOC tier.
                 </p>
               </div>
 
@@ -1660,8 +1632,8 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
       {roleModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-5 sm:p-6 shadow-2xl text-left">
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Create RBAC Role</h3>
-            <p className="text-xs text-zinc-500 mb-4">Add a new operational clearance tier</p>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-1">Create Role</h3>
+            <p className="text-xs text-zinc-500 mb-4">Define a new access role</p>
             
             <form onSubmit={handleCreateRole} className="space-y-3 text-xs">
               <div>
