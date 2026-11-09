@@ -26,6 +26,7 @@ import { BackendOfflineBanner } from '../../components/common/BackendOfflineBann
 import { ModulePageHeader, ModulePageBadge } from '../../components/common/ModulePageHeader';
 import { SecurityEvent } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useEndpointConnection } from '../../context/EndpointConnectionContext';
 import { DashboardView } from '../../components/layout/DashboardSidebar';
 import { formatDateTime, formatTime } from '../../utils/dateTime';
 import { useLiveConnectionState } from '../../hooks/useRealtimeStatus';
@@ -689,6 +690,7 @@ const EngineInspectorDrawer: React.FC<EngineInspectorDrawerProps> = ({ row, onCl
 
 export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate }) => {
   const { currentOrg, organizations, isBackendOffline } = useAuth();
+  const { hasConnectedEndpoints } = useEndpointConnection();
   const liveState = useLiveConnectionState();
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(() => {
@@ -1349,8 +1351,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onNavigate
         title="Security Operations"
         titleTail="Overview"
         badge={
-          <ModulePageBadge isDimmed={organizations.length === 0 || !currentOrg?.name}>
-            {organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'No Endpoints Enrolled'}
+          <ModulePageBadge isDimmed={!hasConnectedEndpoints || organizations.length === 0 || !currentOrg?.name}>
+            {hasConnectedEndpoints && organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'No Endpoints Enrolled'}
           </ModulePageBadge>
         }
         subtitle="Real-time perimeter monitoring, threat analytics, and active defense telemetry."

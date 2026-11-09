@@ -517,7 +517,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 setShowUserDropdown(false);
                 setShowNotifications(false);
               }}
-              title={currentOrg ? `Active Organization: ${currentOrg.name}` : 'Select Organization'}
+              title={hasConnectedEndpoints && currentOrg ? `Active Organization: ${currentOrg.name}` : 'No Endpoints Enrolled'}
               className="w-full h-10 px-2.5 sm:px-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition flex items-center justify-between gap-2 text-left group shadow-2xs cursor-pointer"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -526,10 +526,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 </span>
                 <div className="min-w-0 flex-1 leading-tight">
                   <div className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                    {organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'No Endpoints Enrolled'}
+                    {hasConnectedEndpoints && organizations.length > 0 && currentOrg?.name ? currentOrg.name : 'No Endpoints Enrolled'}
                   </div>
                   <div className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 tabular-nums hidden xs:block sm:block">
-                    {organizations.length > 0 && currentOrg?.domain ? `${currentOrg.domain} • ${currentOrg.tier}` : 'Enroll endpoint agent first'}
+                    {hasConnectedEndpoints && organizations.length > 0 && currentOrg?.domain ? `${currentOrg.domain} • ${currentOrg.tier}` : 'Enroll endpoint agent first'}
                   </div>
                 </div>
               </div>
@@ -544,11 +544,11 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
               <div className="absolute left-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-24px)] rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl p-2.5 z-50">
                 <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2 py-1.5 border-b border-zinc-100 dark:border-zinc-800 mb-1.5 flex items-center justify-between">
                   <span>Switch Organization</span>
-                  <span className="text-[11px] text-zinc-400 tabular-nums">{organizations.length > 0 ? `${organizations.length} Tenant` : 'None'}</span>
+                  <span className="text-[11px] text-zinc-400 tabular-nums">{hasConnectedEndpoints && organizations.length > 0 ? `${organizations.length} Tenant` : 'None'}</span>
                 </div>
 
                 <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
-                  {organizations.length === 0 ? (
+                  {!hasConnectedEndpoints || organizations.length === 0 ? (
                     <div className="px-3 py-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
                       <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-center text-zinc-400 dark:text-zinc-500">
                         <FontAwesomeIcon icon={faDesktop} className="text-base" />
