@@ -1713,6 +1713,7 @@ agentRouter.delete('/:id', (req: AuthenticatedRequest, res: Response) => {
   db.prepare('UPDATE applications SET agent_id = NULL WHERE agent_id = ?').run(agent.id);
 
   // Keep tenant organization intact even if 0 agents remain.
+  const orgRemoved = false;
   WafDeploymentService.refresh(agent.organization_id);
   FirewallDeploymentService.refresh(agent.organization_id);
 
