@@ -1683,8 +1683,11 @@ export const superAdminApi = {
     return request<{ events: any[] }>(`/api/super-admin/events?${q.toString()}`);
   },
   getUsers: () => request<{ users: any[] }>('/api/super-admin/users'),
+  getUserActivities: (userId: string) => request<{ user: any; activities: any[]; connectedApps: any[] }>(`/api/super-admin/users/${userId}/activities`),
   createUser: (data: { name: string; email: string; username?: string; password: string; role: string; organizationId?: string; socTier?: string | null }) =>
     request<{ ok: boolean; user: any }>('/api/super-admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id: string, data: { name?: string; email?: string; username?: string; password?: string; role?: string; organizationId?: string; socTier?: string | null }) =>
+    request<{ ok: boolean; message: string }>(`/api/super-admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   updateUserSocTier: (id: string, socTier: string | null) =>
     request<{ ok: boolean; socTier: string | null }>(`/api/super-admin/users/${id}/soc-tier`, {
       method: 'PUT',

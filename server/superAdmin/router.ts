@@ -217,14 +217,136 @@ superAdminRouter.get('/users', (_req: AuthenticatedRequest, res: Response) => {
   try {
     const users = db.prepare(`
       SELECT u.id, u.organization_id, u.name, u.email, u.username, u.role, u.soc_tier, u.mfa_enabled, u.last_login, u.created_at,
-             o.name as organization_name
+             o.name as organization_name, o.domain as organization_domain,
+             (SELECT COUNT(*) FROM audit_logs a WHERE a.user_id = u.id OR a.user_email = u.email) as activity_count,
+             (SELECT MAX(timestamp) FROM audit_logs a WHERE a.user_id = u.id OR a.user_email = u.email) as last_activity
       FROM users u
       LEFT JOIN organizations o ON u.organization_id = o.id
       ORDER BY u.created_at DESC
-    `).all();
-    return res.json({ users });
+    `).all() as any[];
+
+    // Include connected domains (from tenant organization and active applications)
+    const apps = db.prepare(`SELECT organization_id, name, domain, environment, status FROM applications`).all() as any[];
+    const appsByOrg: Record<string, any[]> = {};
+    for (const app of apps) {
+      if (!appsByOrg[app.organization_id]) appsByOrg[app.organization_id] = [];
+      appsByOrg[app.organization_id].push(app);
+    }
+
+    const enhancedUsers = users.map(u => {
+      const orgApps = u.organization_id ? (appsByOrg[u.organization_id] || []) : [];
+      const domainList = new Set<string>();
+      if (u.organization_domain) domainList.add(u.organization_domain);
+      for (const a of orgApps) {
+        if (a.domain) domainList.add(a.domain);
+      }
+      return {
+        ...u,
+        connected_domains: Array.from(domainList),
+        protected_apps_count: orgApps.length
+      };
+    });
+
+    return res.json({ users: enhancedUsers });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Failed to list users' });
+  }
+});
+
+/**
+ * Get detailed real-time activity and audit trail for a specific user
+ */
+superAdminRouter.get('/users/:id/activities', (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const targetUser = db.prepare('SELECT id, email, username, name, organization_id FROM users WHERE id = ?').get(userId) as any;
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const activities = db.prepare(`
+      SELECT a.id, a.timestamp, a.action, a.resource, a.resource_id, a.ip_address, a.user_agent, a.metadata,
+             o.name as organization_name, o.domain as organization_domain
+      FROM audit_logs a
+      LEFT JOIN organizations o ON a.organization_id = o.id
+      WHERE a.user_id = ? OR a.user_email = ?
+      ORDER BY a.timestamp DESC
+      LIMIT 100
+    `).all(targetUser.id, targetUser.email) as any[];
+
+    // Also get connected tenant and web app domains for this user
+    const tenantApps = targetUser.organization_id
+      ? db.prepare(`SELECT id, name, domain, environment, status, protocol, port FROM applications WHERE organization_id = ?`).all(targetUser.organization_id) as any[]
+      : [];
+
+    return res.json({
+      user: targetUser,
+      activities,
+      connectedApps: tenantApps
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch user activities' });
+  }
+});
+
+/**
+ * Edit user profile & domain/workspace binding (Full CMS control)
+ */
+superAdminRouter.put('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.params.id;
+    const { name, email, username, role, organizationId, socTier, password } = req.body || {};
+
+    const target = db.prepare('SELECT id, organization_id, email, username FROM users WHERE id = ?').get(userId) as any;
+    if (!target) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cleanEmail = email ? String(email).trim().toLowerCase() : target.email;
+    const cleanUsername = username ? String(username).trim().toLowerCase() : target.username;
+    const cleanName = name ? String(name).trim() : null;
+    const cleanSocTier = normalizeSocTierInput(socTier);
+
+    // Verify email/username uniqueness if changed
+    if (cleanEmail !== target.email || cleanUsername !== target.username) {
+      const duplicate = db.prepare('SELECT id FROM users WHERE (email = ? OR username = ?) AND id != ?').get(cleanEmail, cleanUsername, userId) as any;
+      if (duplicate) {
+        return res.status(409).json({ error: 'Email or username already used by another account' });
+      }
+    }
+
+    if (password && String(password).trim().length > 0) {
+      if (String(password).length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+      const hashedPassword = await hashPassword(String(password));
+      db.prepare(`
+        UPDATE users
+        SET name = COALESCE(?, name),
+            email = ?,
+            username = ?,
+            role = COALESCE(?, role),
+            organization_id = COALESCE(?, organization_id),
+            soc_tier = ?,
+            password_hash = ?
+        WHERE id = ?
+      `).run(cleanName, cleanEmail, cleanUsername, role ? String(role).trim() : null, organizationId || null, cleanSocTier, hashedPassword, userId);
+    } else {
+      db.prepare(`
+        UPDATE users
+        SET name = COALESCE(?, name),
+            email = ?,
+            username = ?,
+            role = COALESCE(?, role),
+            organization_id = COALESCE(?, organization_id),
+            soc_tier = ?
+        WHERE id = ?
+      `).run(cleanName, cleanEmail, cleanUsername, role ? String(role).trim() : null, organizationId || null, cleanSocTier, userId);
+    }
+
+    return res.json({ ok: true, message: 'User updated successfully' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to update user' });
   }
 });
 

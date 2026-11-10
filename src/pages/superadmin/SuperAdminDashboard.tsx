@@ -32,7 +32,13 @@ import {
   faShieldVirus,
   faSliders,
   faWaveSquare,
-  faCloudArrowUp
+  faCloudArrowUp,
+  faPenToSquare,
+  faEye,
+  faClockRotateLeft,
+  faLink,
+  faKey,
+  faXmark
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
 import { superAdminApi, SuperAdminOverviewData } from '../../services/api';
@@ -114,11 +120,45 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<string>('all');
 
-  // User and Role Management State
+  const [globalAuditLogs, setGlobalAuditLogs] = useState<any[]>([]);
+  const [loadingGlobalAudit, setLoadingGlobalAudit] = useState(false);
+
+  const fetchGlobalAuditLogs = useCallback(async () => {
+    setLoadingGlobalAudit(true);
+    try {
+      const res = await fetch('/api/audit-logs?limit=50', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setGlobalAuditLogs(data.logs || data.auditLogs || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch real global audit logs', err);
+    } finally {
+      setLoadingGlobalAudit(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentTab === 'audit-log') {
+      fetchGlobalAuditLogs();
+    }
+  }, [currentTab, fetchGlobalAuditLogs]);
   const [managedUsers, setManagedUsers] = useState<any[]>([]);
   const [managedRoles, setManagedRoles] = useState<any[]>([]);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editUserModalOpen, setEditUserModalOpen] = useState(false);
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [activeUserDetail, setActiveUserDetail] = useState<any | null>(null);
+  const [activeUserActivities, setActiveUserActivities] = useState<any[]>([]);
+  const [activeUserConnectedApps, setActiveUserConnectedApps] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+
   const [userForm, setUserForm] = useState({
     name: '',
     email: '',
@@ -128,8 +168,70 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
     organizationId: '',
     socTier: ''
   });
+
+  const [editUserForm, setEditUserForm] = useState({
+    id: '',
+    name: '',
+    email: '',
+    username: '',
+    password: '',
+    role: 'Security Analyst',
+    organizationId: '',
+    socTier: ''
+  });
+
   const [roleForm, setRoleForm] = useState({ name: '', description: '' });
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const openEditUser = (user: any) => {
+    setEditUserForm({
+      id: user.id,
+      name: user.name || '',
+      email: user.email || '',
+      username: user.username || '',
+      password: '',
+      role: user.role || 'Security Analyst',
+      organizationId: user.organization_id || '',
+      socTier: user.soc_tier || ''
+    });
+    setEditUserModalOpen(true);
+  };
+
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await superAdminApi.updateUser(editUserForm.id, {
+        name: editUserForm.name,
+        email: editUserForm.email,
+        username: editUserForm.username,
+        role: editUserForm.role,
+        organizationId: editUserForm.organizationId,
+        socTier: editUserForm.socTier || null,
+        password: editUserForm.password || undefined
+      });
+      setEditUserModalOpen(false);
+      setActionFeedback(`User ${editUserForm.name} updated successfully`);
+      setTimeout(() => setActionFeedback(null), 4000);
+      fetchUsersAndRoles();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update user');
+    }
+  };
+
+  const viewUserActivities = async (user: any) => {
+    setActiveUserDetail(user);
+    setActivityModalOpen(true);
+    setLoadingActivities(true);
+    try {
+      const res = await superAdminApi.getUserActivities(user.id);
+      setActiveUserActivities(res.activities || []);
+      setActiveUserConnectedApps(res.connectedApps || []);
+    } catch (err: any) {
+      console.warn('Failed to fetch user activities', err);
+    } finally {
+      setLoadingActivities(false);
+    }
+  };
 
   const handleUpdateUserRole = async (id: string, newRole: string) => {
     try {
@@ -1086,13 +1188,20 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                   <div>
                     <h3 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <FontAwesomeIcon icon={faScroll} className="text-indigo-500" />
-                      Audit Log
+                      Global Platform Audit Trail
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                      Record of user activity and role assignments
+                      Immutable record of system operations, authentication, and operator changes
                     </p>
                   </div>
-                  <span className="text-xs font-mono text-zinc-400">{managedUsers.length} users</span>
+                  <button
+                    type="button"
+                    onClick={fetchGlobalAuditLogs}
+                    className="h-7 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FontAwesomeIcon icon={faRotateRight} className={loadingGlobalAudit ? 'animate-spin text-indigo-500' : ''} />
+                    <span>Refresh</span>
+                  </button>
                 </div>
 
                 <div className="overflow-x-auto custom-scrollbar rounded-xl border border-zinc-200/80 dark:border-zinc-800">
@@ -1100,38 +1209,49 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                     <thead className="bg-zinc-50 dark:bg-zinc-900/80 text-[10px] font-semibold uppercase text-zinc-500 border-b border-zinc-200 dark:border-zinc-800">
                       <tr>
                         <th className="px-4 py-3">Timestamp</th>
-                        <th className="px-4 py-3">Actor / Identity</th>
-                        <th className="px-4 py-3">Action Scope</th>
-                        <th className="px-4 py-3">Target Tenant</th>
-                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Actor / Email</th>
+                        <th className="px-4 py-3">Action</th>
+                        <th className="px-4 py-3">Resource Target</th>
+                        <th className="px-4 py-3">Origin IP</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-sans">
-                      {managedUsers.map(u => (
-                        <tr key={u.id} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-900/30">
-                          <td className="px-4 py-3 font-mono text-[11px] text-zinc-500">
-                            {formatRelative(u.last_login)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="font-semibold text-zinc-900 dark:text-white">{u.name}</span>
-                            <span className="text-[11px] text-zinc-400 block font-mono">@{u.username}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
-                              ROLE_ASSIGN ({u.role})
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-zinc-500">
-                            {u.organization_name || 'Global'}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                              <FontAwesomeIcon icon={faCircleCheck} className="text-xs" />
-                              VERIFIED
-                            </span>
+                      {loadingGlobalAudit ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-xs text-zinc-400">
+                            Loading immutable audit stream…
                           </td>
                         </tr>
-                      ))}
+                      ) : globalAuditLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-xs text-zinc-400">
+                            No global audit records logged yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        globalAuditLogs.map(log => (
+                          <tr key={log.id} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-900/30">
+                            <td className="px-4 py-3 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                              {formatRelative(log.timestamp)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="font-semibold text-zinc-900 dark:text-white">{log.user_email || log.userEmail || 'System'}</span>
+                              <span className="text-[10px] text-zinc-400 block font-mono">Role: {log.role || 'Super Admin'}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-zinc-600 dark:text-zinc-300">
+                              {log.resource} {log.resource_id ? `(${log.resource_id})` : ''}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-[11px] text-zinc-500">
+                              {log.ip_address || log.ipAddress || '127.0.0.1'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1173,18 +1293,26 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                       <thead className="bg-zinc-50 dark:bg-zinc-900/80 text-[10px] font-semibold uppercase text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
                         <tr>
                           <th className="px-4 py-3">User / Identity</th>
-                          <th className="px-4 py-3">Tenant</th>
+                          <th className="px-4 py-3">Workspace / Tenant</th>
+                          <th className="px-4 py-3">Connected Domains</th>
                           <th className="px-4 py-3">Assigned Role</th>
-                          <th className="px-4 py-3">Last Login</th>
-                          <th className="px-4 py-3 text-right">Actions</th>
+                          <th className="px-4 py-3">Activity Status</th>
+                          <th className="px-4 py-3 text-right">CMS Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-sans">
                         {filteredUsers.map(u => (
                           <tr key={u.id} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-900/30 transition">
                             <td className="px-4 py-3">
-                              <div className="font-semibold text-zinc-900 dark:text-white">{u.name}</div>
-                              <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                              <div className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
+                                <span>{u.name}</span>
+                                {u.id === user?.id && (
+                                  <span className="px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+                                    YOU
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5 font-mono">
                                 <span>@{u.username || 'unassigned'}</span>
                                 <span>•</span>
                                 <span>{u.email}</span>
@@ -1194,6 +1322,25 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                               <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[11px] text-zinc-700 dark:text-zinc-300 font-mono">
                                 {u.organization_name || 'Global'}
                               </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {u.connected_domains && u.connected_domains.length > 0 ? (
+                                <div className="flex flex-col gap-1 max-w-[220px]">
+                                  {u.connected_domains.slice(0, 2).map((dom: string) => (
+                                    <span key={dom} className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-800 dark:text-zinc-200 truncate" title={dom}>
+                                      <FontAwesomeIcon icon={faLink} className="text-[10px] text-indigo-500 shrink-0" />
+                                      <span className="truncate">{dom}</span>
+                                    </span>
+                                  ))}
+                                  {u.connected_domains.length > 2 && (
+                                    <span className="text-[10px] text-zinc-400 font-mono">
+                                      +{u.connected_domains.length - 2} other domains
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-zinc-400 font-mono italic">No domain bound</span>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex flex-col items-start gap-1.5">
@@ -1230,20 +1377,45 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-[11px] text-zinc-500 font-mono">
-                              {formatRelative(u.last_login)}
+                            <td className="px-4 py-3">
+                              <div className="text-[11px] text-zinc-600 dark:text-zinc-300 flex items-center gap-1">
+                                <FontAwesomeIcon icon={faClockRotateLeft} className="text-[10px] text-zinc-400" />
+                                <span>{formatRelative(u.last_activity || u.last_login)}</span>
+                              </div>
+                              <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                                {Number(u.activity_count || 0)} recorded logs
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              {u.id !== user?.id && (
+                              <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   type="button"
-                                  onClick={() => handleDeleteUser(u.id, u.name)}
-                                  className="h-7 w-7 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer inline-flex items-center justify-center border border-transparent hover:border-rose-200 dark:hover:border-rose-900/60"
-                                  title="Delete Account"
+                                  onClick={() => viewUserActivities(u)}
+                                  className="h-7 px-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition cursor-pointer inline-flex items-center gap-1 border border-zinc-200 dark:border-zinc-800 text-[11px] font-medium"
+                                  title="View User Activities & Domains"
                                 >
-                                  <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
+                                  <FontAwesomeIcon icon={faEye} className="text-xs" />
+                                  <span className="hidden sm:inline">Activity</span>
                                 </button>
-                              )}
+                                <button
+                                  type="button"
+                                  onClick={() => openEditUser(u)}
+                                  className="h-7 w-7 rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition cursor-pointer inline-flex items-center justify-center border border-zinc-200 dark:border-zinc-800"
+                                  title="Edit User Profile & Credentials"
+                                >
+                                  <FontAwesomeIcon icon={faPenToSquare} className="text-xs" />
+                                </button>
+                                {u.id !== user?.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteUser(u.id, u.name)}
+                                    className="h-7 w-7 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer inline-flex items-center justify-center border border-transparent hover:border-rose-200 dark:hover:border-rose-900/60"
+                                    title="Delete Account"
+                                  >
+                                    <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1674,6 +1846,255 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit User (CMS Control) */}
+      {editUserModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-5 sm:p-6 shadow-2xl text-left">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <FontAwesomeIcon icon={faPenToSquare} className="text-indigo-500" />
+                CMS User Management: {editUserForm.name}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditUserModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faXmark} className="text-sm" />
+              </button>
+            </div>
+            <p className="text-xs text-zinc-500 mb-4">
+              Edit account credentials, role privilege, and tenant organization binding.
+            </p>
+
+            <form onSubmit={handleEditUserSubmit} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editUserForm.name}
+                    onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })}
+                    className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 font-sans"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">Username</label>
+                  <input
+                    type="text"
+                    required
+                    value={editUserForm.username}
+                    onChange={e => setEditUserForm({ ...editUserForm, username: e.target.value })}
+                    className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={editUserForm.email}
+                  onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                  className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">Assigned Role</label>
+                  <select
+                    value={editUserForm.role}
+                    onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}
+                    className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    {managedRoles.map(r => (
+                      <option key={r.id} value={r.name}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">Tenant Workspace & Domain</label>
+                  <select
+                    value={editUserForm.organizationId}
+                    onChange={e => setEditUserForm({ ...editUserForm, organizationId: e.target.value })}
+                    className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 cursor-pointer"
+                  >
+                    <option value="">Global (Unassigned)</option>
+                    {data?.organizations.map(o => (
+                      <option key={o.id} value={o.id}>
+                        {o.name} ({o.domain || 'no domain'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1">SOC Access Tier</label>
+                <select
+                  value={editUserForm.socTier}
+                  onChange={e => setEditUserForm({ ...editUserForm, socTier: e.target.value })}
+                  className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-2 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="">All tiers</option>
+                  <option value="L1">SOC L1 (Triage)</option>
+                  <option value="L2">SOC L2 (Investigation)</option>
+                  <option value="L3">SOC L3 (Crisis Response)</option>
+                </select>
+              </div>
+
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                <label className="block text-zinc-700 dark:text-zinc-300 font-medium mb-1 flex items-center gap-1.5">
+                  <FontAwesomeIcon icon={faKey} className="text-zinc-400 text-xs" />
+                  <span>Reset Password (leave empty to keep current)</span>
+                </label>
+                <input
+                  type="password"
+                  value={editUserForm.password}
+                  onChange={e => setEditUserForm({ ...editUserForm, password: e.target.value })}
+                  placeholder="New password (optional, min. 6 characters)"
+                  className="w-full h-8.5 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 px-3 text-zinc-900 dark:text-zinc-100 outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditUserModalOpen(false)}
+                  className="h-8 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="h-8 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition cursor-pointer shadow-xs"
+                >
+                  Update Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Real-time User Activity & Connected Domains Inspection */}
+      {activityModalOpen && activeUserDetail && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 p-5 sm:p-6 shadow-2xl text-left flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <FontAwesomeIcon icon={faEye} className="text-indigo-500" />
+                  User Activity & Domain Monitoring: {activeUserDetail.name}
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  @{activeUserDetail.username} • {activeUserDetail.email} • Organization: {activeUserDetail.organization_name || 'Global'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActivityModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
+              >
+                <FontAwesomeIcon icon={faXmark} className="text-sm" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 py-4 custom-scrollbar">
+              {/* Connected Domains Card */}
+              <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/40 p-3.5">
+                <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <FontAwesomeIcon icon={faLink} className="text-indigo-500 text-xs" />
+                  Connected Web Domains & Protected Endpoints
+                </h4>
+                {activeUserConnectedApps && activeUserConnectedApps.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {activeUserConnectedApps.map(app => (
+                      <div key={app.id} className="p-2.5 rounded-lg bg-white dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-zinc-900 dark:text-white truncate">{app.name}</div>
+                          <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 truncate">{app.domain}</div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 shrink-0">
+                          {app.status || 'Active'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 italic">
+                    This user is not bound to specific external web apps yet (organization: {activeUserDetail.organization_domain || 'None'}).
+                  </p>
+                )}
+              </div>
+
+              {/* Activity Stream */}
+              <div>
+                <h4 className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                  <FontAwesomeIcon icon={faClockRotateLeft} className="text-zinc-500 text-xs" />
+                  Recorded Audit & Activity History ({activeUserActivities.length})
+                </h4>
+
+                {loadingActivities ? (
+                  <div className="py-8 text-center text-xs text-zinc-500 flex items-center justify-center gap-2">
+                    <FontAwesomeIcon icon={faRotateRight} className="animate-spin text-indigo-500" />
+                    Loading user telemetry…
+                  </div>
+                ) : activeUserActivities.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-zinc-400 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                    No activity logs recorded for this user yet.
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden">
+                    <table className="w-full text-left text-xs text-zinc-700 dark:text-zinc-300">
+                      <thead className="bg-zinc-50 dark:bg-zinc-900/80 text-[10px] font-semibold uppercase text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+                        <tr>
+                          <th className="px-3 py-2">Timestamp</th>
+                          <th className="px-3 py-2">Action</th>
+                          <th className="px-3 py-2">Resource</th>
+                          <th className="px-3 py-2">IP Address</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-sans">
+                        {activeUserActivities.map(act => (
+                          <tr key={act.id} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-900/30">
+                            <td className="px-3 py-2 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                              {formatRelative(act.timestamp)}
+                            </td>
+                            <td className="px-3 py-2 font-semibold text-zinc-900 dark:text-white">
+                              {act.action}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-[11px] text-zinc-600 dark:text-zinc-300">
+                              {act.resource} {act.resource_id ? `(${act.resource_id})` : ''}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-[11px] text-zinc-500">
+                              {act.ip_address || '127.0.0.1'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setActivityModalOpen(false)}
+                className="h-8 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-xs transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
