@@ -345,8 +345,8 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
     return () => clearInterval(timer);
   }, [fetchOverview]);
 
-  // Non-Super Admin access guard (Super Admin and Admin allowed)
-  if (user && user.role !== 'Super Admin' && user.role !== 'Admin') {
+  // Non-Super Admin access guard (Super Admin, Admin, and Security Admin allowed)
+  if (user && user.role !== 'Super Admin' && user.role !== 'Admin' && user.role !== 'Security Admin') {
     return <SuperAdminAccessDenied />;
   }
 
