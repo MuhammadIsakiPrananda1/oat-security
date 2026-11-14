@@ -38,7 +38,8 @@ import {
   faClockRotateLeft,
   faLink,
   faKey,
-  faXmark
+  faXmark,
+  faChevronDown
 } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../../context/AuthContext';
 import { superAdminApi, SuperAdminOverviewData } from '../../services/api';
@@ -110,6 +111,7 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
   const [, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [currentTab, setCurrentTab] = useState<SuperAdminTab>('overview');
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   // Sidebar width & responsive drawer
   const [sidebarWidth, setSidebarWidth] = useSuperAdminSidebarWidth();
@@ -455,31 +457,91 @@ export const SuperAdminDashboard: React.FC<{ embedded?: boolean }> = ({ embedded
             </button>
           </div>
 
-          {/* Operator identity + sign out (dedicated admin console) */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="hidden sm:flex flex-col items-end leading-tight min-w-0">
-              <span className="text-[11px] font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[180px]">
-                {user?.name || 'Super Administrator'}
-              </span>
-              <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-[180px]">
-                {user?.email}
-              </span>
-            </div>
-            <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
-              Super Admin
-            </span>
+          {/* Operator profile dropdown (modern clean design) */}
+          <div className="relative">
             <button
               type="button"
-              onClick={() => {
-                logout();
-                navigate('/login', { replace: true });
-              }}
-              title="Sign out of the admin console"
-              className="h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-medium inline-flex items-center gap-1.5 transition cursor-pointer"
+              onClick={() => setShowProfileDropdown(prev => !prev)}
+              className="h-9 px-2 sm:px-2.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition flex items-center gap-2 shadow-2xs cursor-pointer group shrink-0"
             >
-              <FontAwesomeIcon icon={faRightFromBracket} className="text-[11px]" />
-              <span className="hidden sm:inline">Sign out</span>
+              <div className="w-6 h-6 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0 border border-indigo-500/20">
+                {user?.name ? user.name.slice(0, 2).toUpperCase() : 'SA'}
+              </div>
+              <div className="hidden sm:flex flex-col items-start leading-tight min-w-0 text-left">
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[130px]">
+                  {user?.name || 'Super Admin'}
+                </span>
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate max-w-[130px]">
+                  Super Administrator
+                </span>
+              </div>
+              <span className="hidden sm:inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300">
+                Super Admin
+              </span>
+              <FontAwesomeIcon
+                icon={faChevronDown}
+                className={`text-[10px] text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-transform shrink-0 ${
+                  showProfileDropdown ? 'rotate-180' : ''
+                }`}
+              />
             </button>
+
+            {/* Profile Dropdown Menu */}
+            {showProfileDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProfileDropdown(false)}
+                />
+                <div className="absolute right-0 p-2 mt-2 w-64 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] shadow-2xl z-50 text-zinc-900 dark:text-zinc-100 animate-in fade-in zoom-in-95 duration-150">
+                  {/* User info card */}
+                  <div className="flex items-center gap-2.5 p-2 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/60 mb-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0 border border-indigo-500/20">
+                      {user?.name ? user.name.slice(0, 2).toUpperCase() : 'SA'}
+                    </div>
+                    <div className="min-w-0 flex-1 leading-tight">
+                      <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                        {user?.name || 'Super Administrator'}
+                      </p>
+                      <span className="block text-[11px] text-zinc-500 dark:text-zinc-400 font-mono truncate mt-0.5">
+                        {user?.email}
+                      </span>
+                    </div>
+                  </div>
+
+                  <ul className="text-zinc-700 dark:text-zinc-300 text-xs font-medium space-y-0.5">
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          navigate(DASHBOARD_PATH);
+                        }}
+                        className="w-full p-2 flex items-center gap-2 rounded-lg transition-colors hover:text-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100 text-left cursor-pointer"
+                      >
+                        <FontAwesomeIcon icon={faArrowLeft} className="text-xs text-zinc-400 dark:text-zinc-500 w-4" />
+                        <span>Buka Dashboard Tenant</span>
+                      </button>
+                    </li>
+
+                    <li className="border-t border-zinc-100 dark:border-zinc-800 my-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          logout();
+                          navigate('/login', { replace: true });
+                        }}
+                        className="w-full p-2 flex items-center gap-2 rounded-lg text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30 text-left transition-colors cursor-pointer"
+                      >
+                        <FontAwesomeIcon icon={faRightFromBracket} className="text-xs w-4" />
+                        <span>Keluar (Sign out)</span>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
