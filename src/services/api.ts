@@ -1065,7 +1065,7 @@ export const securityApi = {
     });
   },
 
-  async requestMalwareAction(scanId: string, action: 'QUARANTINE' | 'DELETE' | 'IGNORE' | 'BLOCK_IP') {
+  async requestMalwareAction(scanId: string, action: 'QUARANTINE' | 'DELETE' | 'IGNORE' | 'BLOCK_IP' | 'ACCEPT' | 'RESTORE') {
     return request<MalwareContainmentResult>(`/api/malware/scans/${encodeURIComponent(scanId)}/action`, {
       method: 'POST',
       body: JSON.stringify({ action })

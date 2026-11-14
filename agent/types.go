@@ -106,9 +106,10 @@ type HeartbeatResponse struct {
 
 // MalwareAction is a pending containment order for one analyzed file.
 type MalwareAction struct {
-	ScanID   string `json:"id"`
-	Action   string `json:"action"`
-	FilePath string `json:"file_path"`
-	FileName string `json:"file_name"`
-	SHA256   string `json:"sha256"`
+	ScanID          string `json:"id"`
+	Action          string `json:"action"`
+	FilePath        string `json:"file_path"`
+	FileName        string `json:"file_name"`
+	SHA256          string `json:"sha256"`
+	QuarantinedPath string `json:"quarantined_path,omitempty"`
 }
