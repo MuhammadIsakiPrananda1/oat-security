@@ -1714,29 +1714,37 @@ agentRouter.delete('/:id', (req: AuthenticatedRequest, res: Response) => {
 
   // Keep tenant organization intact even if 0 agents remain.
   const orgRemoved = false;
-  WafDeploymentService.refresh(agent.organization_id);
-  FirewallDeploymentService.refresh(agent.organization_id);
 
-  recordAuditLog({
-    organizationId: agent.organization_id,
-    userId: req.user?.userId,
-    userEmail: req.user?.email || 'unknown',
-    role: req.user?.role || 'Unknown',
-    action: purge ? 'agent.removed.purged' : 'agent.removed',
-    resource: 'agent',
-    resourceId: agent.id,
-    ipAddress: clientIp(req),
-    userAgent: String(req.headers['user-agent'] || 'OAT Web Console'),
-    metadata: {
-      name: agent.name,
-      hostname: agent.hostname,
-      applicationId: agent.application_id || null,
-      deletedEvents: purge ? eventCount : 0,
-      deletedLogs: purge ? logCount : 0,
-      unlinkedEvents: purge ? 0 : eventCount,
-      unlinkedLogs: purge ? 0 : logCount,
-      organizationRemoved: orgRemoved
-    }
+  // Asynchronous background audit log & policy refresh so client HTTP response returns immediately
+  setImmediate(() => {
+    try {
+      WafDeploymentService.refresh(agent.organization_id);
+      FirewallDeploymentService.refresh(agent.organization_id);
+    } catch {}
+
+    try {
+      recordAuditLog({
+        organizationId: agent.organization_id,
+        userId: req.user?.userId,
+        userEmail: req.user?.email || 'unknown',
+        role: req.user?.role || 'Unknown',
+        action: purge ? 'agent.removed.purged' : 'agent.removed',
+        resource: 'agent',
+        resourceId: agent.id,
+        ipAddress: clientIp(req),
+        userAgent: String(req.headers['user-agent'] || 'OAT Web Console'),
+        metadata: {
+          name: agent.name,
+          hostname: agent.hostname,
+          applicationId: agent.application_id || null,
+          deletedEvents: purge ? eventCount : 0,
+          deletedLogs: purge ? logCount : 0,
+          unlinkedEvents: purge ? 0 : eventCount,
+          unlinkedLogs: purge ? 0 : logCount,
+          organizationRemoved: orgRemoved
+        }
+      });
+    } catch {}
   });
 
   console.log(`[Agents] Removed agent ${agent.id} (${agent.hostname})${purge ? ' with its collected telemetry' : ''}${orgRemoved ? ' (organization auto-removed)' : ''}`);

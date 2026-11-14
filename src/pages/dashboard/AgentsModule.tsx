@@ -641,16 +641,22 @@ export const AgentsModule: React.FC = () => {
 
   const confirmRevoke = async () => {
     if (!revokeTarget) return;
+    const targetId = revokeTarget.id;
+    // Optimistic UI update: instantly close modal & remove from UI
+    setAgents(prev => prev.filter(a => a.id !== targetId));
+    if (selectedAgent?.agent.id === targetId) setSelectedAgent(null);
+    setRevokeTarget(null);
+    setPurgeAgentData(false);
     setRevoking(true);
     setRevokeError('');
+
     try {
-      await securityApi.revokeAgent(revokeTarget.id, false);
-      setRevokeTarget(null);
-      setPurgeAgentData(false);
-      if (selectedAgent?.agent.id === revokeTarget.id) setSelectedAgent(null);
+      await securityApi.revokeAgent(targetId, false);
       await fetchAgents(true);
     } catch (err) {
       setRevokeError(err instanceof Error ? err.message : 'Failed to remove the agent.');
+      // Re-fetch to restore state if deletion actually failed
+      await fetchAgents(true);
     } finally {
       setRevoking(false);
     }
