@@ -15,19 +15,42 @@ const app = express();
 const server = http.createServer(app);
 app.set('trust proxy', 1);
 
+// Allowed origins parser
+const parseAllowedOrigins = (): string[] => {
+  const raw = process.env.CORS_ORIGINS || CONFIG.CORS_ORIGINS || '';
+  return raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+};
+const allowedOrigins = parseAllowedOrigins();
+
 // Security headers & Origin/CORS protection
 app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' ws: wss:; frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+  );
 
   const origin = req.headers.origin;
   if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Organization-Id');
-    res.setHeader('Access-Control-Max-Age', '86400');
+    const originLower = origin.toLowerCase();
+    // Allow request only if origin matches allowed list or matches current host
+    const isAllowed = allowedOrigins.includes('*') ||
+      allowedOrigins.includes(originLower) ||
+      originLower === `https://${req.headers.host?.toLowerCase()}` ||
+      originLower === `http://${req.headers.host?.toLowerCase()}`;
+
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Organization-Id');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
   }
 
   if (req.method === 'OPTIONS') {
@@ -96,6 +119,33 @@ app.use((err: any, _req: express.Request, res: express.Response, next: express.N
 
 // Initialize WebSocket server on HTTP server (/ws)
 securityWebSocketServer.init(server);
+
+// Return 404 for unauthenticated probe/management paths (metrics, actuator) and nonexistent admin paths
+app.all(['/metrics', '/metrics/*', '/actuator', '/actuator/*'], (_req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// Explicitly protect /dashboard so direct API/browser access without auth gets rejected
+app.all(['/dashboard', '/dashboard/*'], (req, res, next) => {
+  if (!(req as any).user) {
+    // If request accepts HTML (direct browser navigation), let it fall through to SPA router which redirects to /login.
+    // If it's an API/fetch/scanner probe expecting JSON or non-HTML, return 401 Unauthorized.
+    const acceptHeader = req.headers.accept || '';
+    if (!acceptHeader.includes('text/html')) {
+      return res.status(401).json({ error: 'Authentication Required' });
+    }
+  }
+  next();
+});
+
+// Sensitive admin/administrator/api/admin probes without session get 401 Unauthorized
+app.all(['/admin', '/admin/*', '/administrator', '/administrator/*', '/api/admin', '/api/admin/*'], (req, res, next) => {
+  // If user is not authenticated on these paths, reject immediately with 401
+  if (!(req as any).user) {
+    return res.status(401).json({ error: 'Authentication Required' });
+  }
+  next();
+});
 
 // Vite middleware & SPA Handling
 async function startApp() {

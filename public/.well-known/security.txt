@@ -1,0 +1,5 @@
+Contact: mailto:security@neverlandstudio.ai.id
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: id, en
+Canonical: https://oatsecurity.neverlandstudio.ai.id/.well-known/security.txt
+Policy: https://oatsecurity.neverlandstudio.ai.id/security-policy
