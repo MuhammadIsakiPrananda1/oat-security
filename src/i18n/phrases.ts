@@ -2169,6 +2169,30 @@ export const EN_TO_ID: Record<string, string> = {
     'Active firewall ACL rules blocking malicious IPs and unauthorised ports.': 'Aturan ACL firewall aktif memblokir IP berbahaya dan port tidak sah.',
     'Zero unmitigated critical threats endangering the web perimeter.': 'Nol ancaman kritis aktif tanpa mitigasi pada perimeter web.',
     'Brute-force protection and account access policies operating optimally.': 'Proteksi brute-force dan kebijakan akses akun beroperasi optimal.',
+
+    // Malware Analysis
+    'Stopped (Held)': 'Ditahan (Dihentikan)',
+    'Rejected (Deleted)': 'Ditolak (Dihapus)',
+    'Accepted (Allowed)': 'Diterima (Diizinkan)',
+    'Safe / Allowed': 'Aman / Diizinkan',
+    'Accept': 'Terima',
+    'Reject & Delete': 'Tolak & Hapus',
+    'Accept and allow script onto server': 'Terima dan izinkan skrip masuk ke server',
+    'Reject payload and permanently delete from server': 'Tolak payload dan hapus permanen dari server',
+    'Hold file in security vault': 'Tahan file di security vault',
+    'Inspect Inbound Payload': 'Inspeksi Payload Masuk',
+    'Inbound Ingress Inspection Active': 'Inspeksi Masuk (Ingress) Aktif',
+    'Every file uploaded from outside the server is inspected in real time. Malicious payloads (webshells, root exploits) are automatically stopped and held until accepted or rejected.':
+        'Setiap file yang diunggah dari luar server diinspeksi secara real-time. Payload berbahaya (webshell, root exploit) otomatis dihentikan dan ditahan sampai diterima atau ditolak.',
+    'This sample was analyzed manually from the console. Accept marks the file clean, and Reject & Delete permanently destroys the sample.':
+        'Sampel ini dianalisis secara manual dari konsol. Terima menandai file bersih, dan Tolak & Hapus memusnahkan sampel secara permanen.',
+    'Accept File': 'Terima File',
+    'Reject File': 'Tolak File',
+    'Payload successfully accepted and marked safe': 'Payload berhasil diterima dan ditandai aman',
+    'Payload rejected and deleted': 'Payload ditolak dan dihapus',
+    'Failed to update malware status': 'Gagal memperbarui status malware',
+    'Inbound Payload Held': 'Payload Masuk Ditahan',
+    'Malicious File Held': 'File Berbahaya Ditahan',
 };
 /**
  * Indonesian → English overrides for copy that was previously hard-coded in
@@ -2354,30 +2378,6 @@ export const ID_TO_EN: Record<string, string> = {
     'Pilih Website untuk Dipantau': 'Select Target Website to Monitor',
     'Buka Detail & Metrik': 'Open Details & Metrics',
     'Atur di Detail Endpoint': 'Configure in Details',
-
-    // Malware Analysis
-    'Stopped (Held)': 'Ditahan (Dihentikan)',
-    'Rejected (Deleted)': 'Ditolak (Dihapus)',
-    'Accepted (Allowed)': 'Diterima (Diizinkan)',
-    'Safe / Allowed': 'Aman / Diizinkan',
-    'Accept': 'Terima',
-    'Reject & Delete': 'Tolak & Hapus',
-    'Accept and allow script onto server': 'Terima dan izinkan skrip masuk ke server',
-    'Reject payload and permanently delete from server': 'Tolak payload dan hapus permanen dari server',
-    'Hold file in security vault': 'Tahan file di security vault',
-    'Inspect Inbound Payload': 'Inspeksi Payload Masuk',
-    'Inbound Ingress Inspection Active': 'Inspeksi Masuk (Ingress) Aktif',
-    'Every file uploaded from outside the server is inspected in real time. Malicious payloads (webshells, root exploits) are automatically stopped and held until accepted or rejected.':
-        'Setiap file yang diunggah dari luar server diinspeksi secara real-time. Payload berbahaya (webshell, root exploit) otomatis dihentikan dan ditahan sampai diterima atau ditolak.',
-    'This sample was analyzed manually from the console. Accept marks the file clean, and Reject & Delete permanently destroys the sample.':
-        'Sampel ini dianalisis secara manual dari konsol. Terima menandai file bersih, dan Tolak & Hapus memusnahkan sampel secara permanen.',
-    'Accept File': 'Terima File',
-    'Reject File': 'Tolak File',
-    'Payload successfully accepted and marked safe': 'Payload berhasil diterima dan ditandai aman',
-    'Payload rejected and deleted': 'Payload ditolak dan dihapus',
-    'Failed to update malware status': 'Gagal memperbarui status malware',
-    'Inbound Payload Held': 'Payload Masuk Ditahan',
-    'Malicious File Held': 'File Berbahaya Ditahan',
 };
 /**
  * Natural combined page-title translations. ModulePageHeader renders the bold
