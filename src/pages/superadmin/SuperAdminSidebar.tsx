@@ -22,6 +22,7 @@ import {
   faShieldHalved,
   faSun,
   faMoon,
+  faHouse,
   faHouseLaptop,
   faUserGear,
   faDiagramProject,
@@ -69,21 +70,21 @@ export interface SuperAdminNavGroup {
 
 export const SUPERADMIN_NAV_GROUPS: SuperAdminNavGroup[] = [
   {
-    group: 'Tenant & User Control',
+    group: 'Home',
+    icon: createFaIcon(faHouse),
+    items: [
+      { id: 'overview', label: 'Cross-Tenant Overview', icon: createFaIcon(faTableColumns) },
+      { id: 'traffic', label: 'Live Ingress Stream', icon: createFaIcon(faTowerBroadcast), live: true },
+      { id: 'events', label: 'Security Events', icon: createFaIcon(faBolt) }
+    ]
+  },
+  {
+    group: 'User & Access Control',
     icon: createFaIcon(faUserGear),
     items: [
       { id: 'users', label: 'Users & RBAC Control', icon: createFaIcon(faUsers) },
       { id: 'tenants', label: 'Tenant Directory', icon: createFaIcon(faBuilding) },
       { id: 'audit-log', label: 'Global Audit Logs', icon: createFaIcon(faScroll) }
-    ]
-  },
-  {
-    group: 'Security & Telemetry',
-    icon: createFaIcon(faTableColumns),
-    items: [
-      { id: 'overview', label: 'Cross-Tenant Overview', icon: createFaIcon(faTableColumns) },
-      { id: 'events', label: 'Security Events', icon: createFaIcon(faBolt) },
-      { id: 'traffic', label: 'Live Ingress Stream', icon: createFaIcon(faTowerBroadcast), live: true }
     ]
   },
   {
@@ -96,7 +97,7 @@ export const SUPERADMIN_NAV_GROUPS: SuperAdminNavGroup[] = [
     ]
   },
   {
-    group: 'Platform Ops',
+    group: 'Platform Ops & Settings',
     icon: createFaIcon(faSliders),
     items: [
       { id: 'engine-config', label: 'Daemon Configuration', icon: createFaIcon(faSliders) },
