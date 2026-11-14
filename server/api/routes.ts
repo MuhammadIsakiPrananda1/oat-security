@@ -3317,6 +3317,23 @@ apiRouter.get('/applications', (req: AuthenticatedRequest, res) => {
     let query = 'SELECT * FROM applications WHERE organization_id = ?';
     const params: any[] = [orgId];
 
+    // Filter to only show applications selected / assigned to agents if agents exist in this org,
+    // or apps manually created/monitored. Unselected detected site suggestions are hidden.
+    try {
+      const boundAppRows = db.prepare(
+        'SELECT application_id FROM agents WHERE organization_id = ? AND application_id IS NOT NULL AND revoked_at IS NULL'
+      ).all(orgId) as { application_id: string }[];
+      const boundAppIds = boundAppRows.map(r => r.application_id).filter(Boolean);
+
+      if (boundAppIds.length > 0) {
+        const placeholders = boundAppIds.map(() => '?').join(',');
+        query += ` AND (id IN (${placeholders}) OR source = 'manual')`;
+        params.push(...boundAppIds);
+      }
+    } catch (filterErr) {
+      console.warn('[Applications] Failed to filter selected application:', filterErr);
+    }
+
     if (environment && environment !== 'ALL') {
       query += ' AND LOWER(environment) = ?';
       params.push(String(environment).toLowerCase());

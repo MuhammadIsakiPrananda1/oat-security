@@ -1051,13 +1051,19 @@ agentRouter.post('/ingest', (req: AuthenticatedRequest, res: Response) => {
   const metrics = body.metrics && typeof body.metrics === 'object' ? body.metrics : {};
   const now = new Date().toISOString();
   const hostname = cleanString(info.hostname, 128) || agent.hostname || agent.name;
-  const rawClientIp = clientIp(req); const agentIp = asIp(info.ip, net.isIP(rawClientIp) ? rawClientIp : (agent.ip || "127.0.0.1"));
+  const rawClientIp = clientIp(req);
+  const agentIp = asIp(info.ip, net.isIP(rawClientIp) ? rawClientIp : (agent.ip || "127.0.0.1"));
   const application = findApplicationForOrg(agent.application_id, agent.organization_id);
   const applicationLabel = application?.domain || application?.name || 'Endpoint Agent';
   const storedInfo = parseJsonObject(agent.host_info);
   const incomingSites = info.detectedSites !== undefined ? parseDetectedSites(info.detectedSites) : null;
   const infoRest: Record<string, any> = { ...info };
   delete infoRest.detectedSites;
+
+  // Preserve established multi-interface or host IP to avoid table redraw/flickering
+  const resolvedAgentIp = (agent.ip && agent.ip !== '127.0.0.1' && agent.ip !== '0.0.0.0')
+    ? agent.ip
+    : (net.isIP(agentIp) ? agentIp : (agent.ip || null));
 
   let acceptedEvents = 0;
   let acceptedLogs = 0;
@@ -1184,7 +1190,7 @@ agentRouter.post('/ingest', (req: AuthenticatedRequest, res: Response) => {
     cleanString(info.os, 32),
     cleanString(info.arch, 32),
     cleanString(info.version, 32),
-    net.isIP(agentIp) ? agentIp : null,
+    resolvedAgentIp,
     safeJson({
       ...storedInfo,
       ...infoRest,
@@ -1540,6 +1546,25 @@ agentRouter.post('/:id/application', (req: AuthenticatedRequest, res: Response) 
   }
 
   // Rebind the agent to the selected website and push a fresh policy revision.
+  // Also update application origin_ip, protocol, and port to match the agent and server accurately
+  try {
+    const effectiveOriginIp = (agent.ip && !agent.ip.startsWith('127.'))
+      ? agent.ip.split(',')[0].replace(/^[a-zA-Z0-9_-]+:\s*/, '').trim()
+      : (agent.ip || '127.0.0.1');
+
+    db.prepare(`
+      UPDATE applications
+      SET origin_ip = COALESCE(NULLIF(?, ''), origin_ip),
+          protocol = ?,
+          port = ?,
+          agent_id = ?
+      WHERE id = ?
+    `).run(effectiveOriginIp, protocol, port, agent.id, application.id);
+    application.origin_ip = effectiveOriginIp;
+  } catch (err) {
+    console.warn('[Agents] Failed to sync application origin/port:', err);
+  }
+
   const hostInfo = parseJsonObject(agent.host_info);
   const labels = parseJsonObject(agent.labels);
   db.prepare('UPDATE agents SET application_id = ?, host_info = ?, labels = ? WHERE id = ?').run(
