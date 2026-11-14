@@ -238,9 +238,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.removeItem(SESSION_STORAGE_KEY);
       localStorage.removeItem('oat-active-org');
+      localStorage.removeItem('oat-last-activity');
       sessionStorage.removeItem('oat_dashboard_data');
     } catch {}
   };
+
+  // ---------------------------------------------------------------------------
+  // Auto Logout on Inactivity (5 Menit / 300 detik)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!user) return;
+
+    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 menit
+    let timer: number | null = null;
+
+    const resetTimer = () => {
+      try {
+        localStorage.setItem('oat-last-activity', String(Date.now()));
+      } catch {}
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        // Cek apakah tab lain juga idle lebih dari batas waktu
+        const lastActivityStr = localStorage.getItem('oat-last-activity');
+        const lastActivity = lastActivityStr ? Number(lastActivityStr) : 0;
+        const idleTime = Date.now() - lastActivity;
+
+        if (idleTime >= INACTIVITY_TIMEOUT_MS) {
+          logout();
+          window.dispatchEvent(
+            new CustomEvent('oat:notify', {
+              detail: {
+                id: `idle-logout-${Date.now()}`,
+                title: 'Sesi Berakhir',
+                desc: 'Anda telah otomatis keluar karena tidak ada aktivitas selama 5 menit.',
+                severity: 'Medium',
+                timestamp: Date.now()
+              }
+            })
+          );
+        } else {
+          // Jika ada aktivitas di tab lain, jadwalkan sisa waktu
+          timer = window.setTimeout(resetTimer, INACTIVITY_TIMEOUT_MS - idleTime);
+        }
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    // User activity listeners
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    activityEvents.forEach(evt => window.addEventListener(evt, resetTimer, { passive: true }));
+
+    // Inisialisasi awal
+    resetTimer();
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      activityEvents.forEach(evt => window.removeEventListener(evt, resetTimer));
+    };
+  }, [user]);
 
   /**
    * Load the tenant list from the server.
